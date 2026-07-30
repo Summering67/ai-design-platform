@@ -1,0 +1,396 @@
+.shell {
+  --workspace-header-height: 4.4375rem;
+  --workspace-file-tabs-height: 3.125rem;
+  --workspace-file-toolbar-height: 2.75rem;
+  --workspace-project-width: 18.875rem;
+  --workspace-chat-width: 27.8125rem;
+  --workspace-files-width: 19.25rem;
+  --workspace-canvas-min-width: 19.6875rem;
+  --workspace-shell-min-width: 90.625rem;
+  --workspace-compact-chat-width: 25rem;
+  --workspace-compact-files-width: 16.875rem;
+  --workspace-compact-canvas-min-width: 26.25rem;
+  --workspace-compact-min-width: 68.125rem;
+  --workspace-user-message-width: 80%;
+  --workspace-shortcuts-width: 28rem;
+  --workspace-shortcuts-bottom: 30%;
+
+  min-width: var(--workspace-shell-min-width);
+  min-height: 100svh;
+  display: grid;
+  grid-template-columns: var(--workspace-project-width) minmax(0, 1fr);
+  overflow: hidden;
+  color: var(--foreground);
+  background: var(--background);
+}
+
+.navigation {
+  position: relative;
+  height: 100svh;
+  padding-inline: 0.5rem;
+  border-right: 1px solid var(--border);
+  background: color-mix(in oklch, var(--muted) 20%, transparent);
+}
+
+.header {
+  height: var(--workspace-header-height);
+  padding-inline: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.brand {
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  flex: none;
+  place-items: center;
+  border-radius: 40%;
+  color: var(--primary-foreground);
+  background: var(--primary);
+}
+
+.header > strong {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  font-size: 0.875rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mutedIcon {
+  color: var(--muted-foreground);
+}
+
+.menu {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.currentChat {
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.chatSections {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.currentChat > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.currentChat [data-icon="inline-end"],
+.account > button {
+  margin-left: auto;
+}
+
+.account {
+  position: absolute;
+  right: 0.75rem;
+  bottom: 1rem;
+  left: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.modePicker {
+  flex: none;
+}
+
+.workbench {
+  height: 100svh;
+  min-width: 0;
+  display: grid;
+  grid-template-rows: var(--workspace-header-height) minmax(0, 1fr);
+}
+
+.workspaceHeader,
+.workspaceBody {
+  min-width: 0;
+  display: grid;
+  grid-template-columns:
+    var(--workspace-chat-width)
+    var(--workspace-files-width)
+    minmax(var(--workspace-canvas-min-width), 1fr);
+}
+
+.workspaceHeader {
+  border-bottom: 1px solid var(--border);
+  background: var(--background);
+}
+
+.workbench[data-chat-hidden="true"] .workspaceHeader,
+.workbench[data-chat-hidden="true"] .workspaceBody {
+  grid-template-columns:
+    var(--workspace-files-width)
+    minmax(var(--workspace-canvas-min-width), 1fr);
+}
+
+.workbench[data-chat-hidden="true"] .chatHeader,
+.workbench[data-chat-hidden="true"] .chatPanel {
+  display: none;
+}
+
+.workspaceBody {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.chatPanel {
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  border-right: 1px solid var(--border);
+  background: var(--background);
+}
+
+.chatHeader {
+  padding-inline: 1.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-right: 1px solid var(--border);
+}
+
+.chatTitle,
+.fileTitle {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 0.875rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chatScroll {
+  height: 100%;
+  padding: 1.25rem 0.75rem;
+  overflow-y: auto;
+}
+
+.chatFlow {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.userMessage {
+  max-width: var(--workspace-user-message-width);
+  margin-left: auto;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-2xl);
+  border-bottom-right-radius: var(--radius-sm);
+  background: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.625;
+}
+
+.generationState {
+  padding-block: 2rem;
+  border: 1px solid var(--border);
+}
+
+.generationSpinner {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.emptyFill {
+  height: 100%;
+}
+
+.fileExplorer {
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows:
+    var(--workspace-file-tabs-height)
+    var(--workspace-file-toolbar-height)
+    minmax(0, 1fr);
+  border-right: 1px solid var(--border);
+  background: color-mix(in oklch, var(--muted) 10%, transparent);
+}
+
+.modeHeader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-right: 1px solid var(--border);
+}
+
+.fileTabs {
+  padding-inline: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.fileToolbar {
+  padding-inline: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}
+
+.fileTitle {
+  flex: 1;
+}
+
+.fileActions {
+  display: flex;
+  flex: none;
+}
+
+.fileEmpty {
+  min-height: 0;
+}
+
+.canvas {
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  background: var(--background);
+}
+
+.canvasHeader {
+  padding-inline: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.canvasBody {
+  position: relative;
+  height: 100%;
+  display: grid;
+  place-items: center;
+}
+
+.canvasBrand {
+  color: color-mix(in oklch, var(--muted-foreground) 25%, transparent);
+  font-size: 2.25rem;
+  font-weight: 600;
+  letter-spacing: -0.05em;
+}
+
+.shortcuts {
+  position: absolute;
+  bottom: var(--workspace-shortcuts-bottom);
+  width: min(var(--workspace-shortcuts-width), 72%);
+}
+
+.shortcutsSeparator {
+  margin-bottom: 1rem;
+}
+
+.shortcutRow {
+  min-height: 2.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.shortcutLabel {
+  flex: 1;
+}
+
+.shortcutKey {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--muted-foreground);
+  background: var(--muted);
+  font-size: 0.75rem;
+}
+
+.fallback {
+  min-height: 100svh;
+  background: var(--background);
+}
+
+@media (max-width: 90.625rem) {
+  .shell {
+    min-width: var(--workspace-compact-min-width);
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .workbench {
+    min-width: var(--workspace-compact-min-width);
+  }
+
+  .workspaceHeader,
+  .workspaceBody {
+    grid-template-columns:
+      var(--workspace-compact-chat-width)
+      var(--workspace-compact-files-width)
+      minmax(var(--workspace-compact-canvas-min-width), 1fr);
+  }
+
+  .workbench[data-chat-hidden="true"] .workspaceHeader,
+  .workbench[data-chat-hidden="true"] .workspaceBody {
+    grid-template-columns:
+      var(--workspace-compact-files-width)
+      minmax(var(--workspace-compact-canvas-min-width), 1fr);
+  }
+
+  .navigation {
+    display: none;
+  }
+}
+
+@media (max-width: 40.25rem) {
+  .shell {
+    min-width: 0;
+  }
+
+  .workbench {
+    min-width: 0;
+  }
+
+  .workspaceHeader,
+  .workspaceBody {
+    display: block;
+  }
+
+  .workspaceHeader {
+    height: var(--workspace-header-height);
+  }
+
+  .chatHeader {
+    height: 100%;
+  }
+
+  .workbench[data-chat-hidden="true"] .chatHeader {
+    display: flex;
+  }
+
+  .workbench[data-chat-hidden="true"] .chatPanel {
+    display: block;
+  }
+
+  .modeHeader,
+  .canvasHeader,
+  .fileExplorer,
+  .canvas {
+    display: none;
+  }
+}

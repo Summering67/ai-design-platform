@@ -1,102 +1,109 @@
-import Image, { type ImageProps } from "next/image";
-import { Button } from "@repo/ui/button";
-import styles from "./page.module.css";
+"use client"
 
-type Props = Omit<ImageProps, "src"> & {
-  srcLight: string;
-  srcDark: string;
-};
+import { type FormEvent, useState } from "react"
+import {
+  ActivityIcon,
+  ArrowUpIcon,
+  ChevronDownIcon,
+  Gamepad2Icon,
+  ImageIcon,
+  MailIcon,
+  MicIcon,
+  RefreshCwIcon,
+  SparklesIcon,
+} from "lucide-react"
+import { useRouter } from "next/navigation"
 
-const ThemeImage = (props: Props) => {
-  const { srcLight, srcDark, ...rest } = props;
+import { Button } from "@/components/ui/button"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupTextarea,
+} from "@/components/ui/input-group"
+import styles from "./page.module.css"
+
+const suggestions = [
+  { label: "联系表单", prompt: "创建一个简洁专业的联系表单", icon: MailIcon },
+  { label: "图片编辑器", prompt: "创建一个现代化的在线图片编辑器", icon: ImageIcon },
+  { label: "迷你游戏", prompt: "创建一个有趣的网页迷你游戏", icon: Gamepad2Icon },
+  { label: "财务计算器", prompt: "创建一个清晰易用的财务计算器", icon: ActivityIcon },
+] as const
+
+const Home = () => {
+  const router = useRouter()
+  const [prompt, setPrompt] = useState("")
+
+  const openWorkspace = (value: string) => {
+    const nextPrompt = value.trim()
+    if (!nextPrompt) return
+    router.push(`/workspace?prompt=${encodeURIComponent(nextPrompt)}`)
+  }
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    openWorkspace(prompt)
+  }
 
   return (
-    <>
-      <Image {...rest} src={srcLight} className="imgLight" />
-      <Image {...rest} src={srcDark} className="imgDark" />
-    </>
-  );
-};
-
-export default function Home() {
-  return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <ThemeImage
-          className={styles.logo}
-          srcLight="turborepo-dark.svg"
-          srcDark="turborepo-light.svg"
-          alt="Turborepo logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol>
-          <li>
-            Get started by editing <code>apps/web/app/page.tsx</code>
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new/clone?demo-description=Learn+to+implement+a+monorepo+with+a+two+Next.js+sites+that+has+installed+three+local+packages.&demo-image=%2F%2Fimages.ctfassets.net%2Fe5382hct74si%2F4K8ZISWAzJ8X1504ca0zmC%2F0b21a1c6246add355e55816278ef54bc%2FBasic.png&demo-title=Monorepo+with+Turborepo&demo-url=https%3A%2F%2Fexamples-basic-web.vercel.sh%2F&from=templates&project-name=Monorepo+with+Turborepo&repository-name=monorepo-turborepo&repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fturborepo%2Ftree%2Fmain%2Fexamples%2Fbasic&root-directory=apps%2Fdocs&skippable-integrations=1&teamSlug=vercel&utm_source=create-turbo"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            href="https://turborepo.dev/docs?utm_source"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.secondary}
-          >
-            Read our docs
-          </a>
+    <main className={styles.page}>
+      <section className={styles.hero}>
+        <div className={styles.heading}>
+          <span className={styles.eyebrow}>
+            <SparklesIcon />
+            AI DESIGN STUDIO
+          </span>
+          <h1 className={styles.title}>您想创建什么？</h1>
+          <p className={styles.description}>描述你的想法，我们会帮你把它变成可用的产品。</p>
         </div>
-        <Button appName="web" className={styles.secondary}>
-          Open alert
-        </Button>
-      </main>
-      <footer className={styles.footer}>
-        <a
-          href="https://vercel.com/templates?search=turborepo&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          href="https://turborepo.dev?utm_source=create-turbo"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to turborepo.dev →
-        </a>
-      </footer>
-    </div>
-  );
+
+        <form className={styles.form} onSubmit={handleSubmit}>
+          <InputGroup className={styles.composer}>
+            <InputGroupTextarea
+              aria-label="描述你想创建的内容"
+              autoFocus
+              className={styles.composerInput}
+              value={prompt}
+              onChange={(event) => setPrompt(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter" || event.shiftKey) return
+                event.preventDefault()
+                openWorkspace(prompt)
+              }}
+              placeholder="让 AI 为你构建..."
+            />
+            <InputGroupAddon align="block-end" className={styles.composerActions}>
+              <InputGroupButton size="sm">
+                <SparklesIcon data-icon="inline-start" />
+                Design Max
+                <ChevronDownIcon data-icon="inline-end" />
+              </InputGroupButton>
+              <InputGroupButton
+                aria-label={prompt.trim() ? "开始创建" : "语音输入"}
+                size="icon-sm"
+                type="submit"
+                variant="default"
+              >
+                {prompt.trim() ? <ArrowUpIcon /> : <MicIcon />}
+              </InputGroupButton>
+            </InputGroupAddon>
+          </InputGroup>
+        </form>
+
+        <div className={styles.suggestions}>
+          {suggestions.map(({ icon: Icon, label, prompt: value }) => (
+            <Button key={label} className={styles.suggestionButton} variant="outline" onClick={() => openWorkspace(value)}>
+              <Icon data-icon="inline-start" />
+              {label}
+            </Button>
+          ))}
+          <Button aria-label="清空输入" className={styles.suggestionButton} size="icon" variant="outline" onClick={() => setPrompt("")}>
+            <RefreshCwIcon />
+          </Button>
+        </div>
+      </section>
+    </main>
+  )
 }
+
+export default Home
