@@ -1,4 +1,4 @@
-.shell {
+.workspace {
   --workspace-header-height: 4.4375rem;
   --workspace-file-tabs-height: 3.125rem;
   --workspace-file-toolbar-height: 2.75rem;
@@ -6,22 +6,26 @@
   --workspace-chat-width: 27.8125rem;
   --workspace-files-width: 19.25rem;
   --workspace-canvas-min-width: 19.6875rem;
-  --workspace-shell-min-width: 90.625rem;
-  --workspace-compact-chat-width: 25rem;
-  --workspace-compact-files-width: 16.875rem;
-  --workspace-compact-canvas-min-width: 26.25rem;
-  --workspace-compact-min-width: 68.125rem;
+  --workspace-min-width: 90.625rem;
   --workspace-user-message-width: 80%;
   --workspace-shortcuts-width: 28rem;
   --workspace-shortcuts-bottom: 30%;
 
-  min-width: var(--workspace-shell-min-width);
+  min-width: var(--workspace-min-width);
   min-height: 100svh;
   display: grid;
   grid-template-columns: var(--workspace-project-width) minmax(0, 1fr);
   overflow: hidden;
   color: var(--foreground);
   background: var(--background);
+}
+
+.workspace[data-navigation-hidden="true"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.workspace[data-navigation-hidden="true"] .navigation {
+  display: none;
 }
 
 .navigation {
@@ -62,6 +66,10 @@
 
 .mutedIcon {
   color: var(--muted-foreground);
+}
+
+.mobileNavigationTrigger {
+  display: none;
 }
 
 .menu {
@@ -328,37 +336,42 @@
 }
 
 @media (max-width: 90.625rem) {
-  .shell {
-    min-width: var(--workspace-compact-min-width);
+  .workspace {
+    min-width: 0;
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .navigation {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: var(--workspace-project-width);
+    box-shadow: 0 0 2rem color-mix(in oklch, var(--foreground) 12%, transparent);
+    z-index: 10;
+  }
+
   .workbench {
-    min-width: var(--workspace-compact-min-width);
+    min-width: 0;
+    grid-column: 1;
   }
 
   .workspaceHeader,
   .workspaceBody {
     grid-template-columns:
-      var(--workspace-compact-chat-width)
-      var(--workspace-compact-files-width)
-      minmax(var(--workspace-compact-canvas-min-width), 1fr);
+      minmax(0, 1.1fr)
+      minmax(0, 0.75fr)
+      minmax(0, 1.4fr);
   }
 
   .workbench[data-chat-hidden="true"] .workspaceHeader,
   .workbench[data-chat-hidden="true"] .workspaceBody {
     grid-template-columns:
-      var(--workspace-compact-files-width)
-      minmax(var(--workspace-compact-canvas-min-width), 1fr);
-  }
-
-  .navigation {
-    display: none;
+      minmax(0, 0.75fr)
+      minmax(0, 1.4fr);
   }
 }
 
 @media (max-width: 40.25rem) {
-  .shell {
+  .workspace {
     min-width: 0;
   }
 
@@ -377,6 +390,10 @@
 
   .chatHeader {
     height: 100%;
+  }
+
+  .mobileNavigationTrigger {
+    display: inline-flex;
   }
 
   .workbench[data-chat-hidden="true"] .chatHeader {
