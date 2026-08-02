@@ -1,0 +1,20 @@
+# 可通过 API_CONFIG_FILE 指定实际配置文件路径。
+# 任意字段均可用 API_ 前缀环境变量覆盖，例如 server.address 对应 API_SERVER_ADDRESS。
+server:
+  address: ":8080"
+  read_timeout: 5s
+  write_timeout: 10s
+  idle_timeout: 60s
+  shutdown_timeout: 10s
+
+database:
+  # 使用 API_DATABASE_DSN 环境变量注入真实连接信息。
+  dsn: ""
+  max_open_conns: 20
+  max_idle_conns: 10
+  conn_max_lifetime: 30m
+  ping_timeout: 3s
+
+log:
+  environment: development
+  level: info
