@@ -1,8 +1,11 @@
 "use client"
 
-import { useState, useSyncExternalStore } from "react"
+import { forwardRef, useRef, useState, useSyncExternalStore } from "react"
+import type { FormEvent, KeyboardEvent } from "react"
 import type { LucideIcon } from "lucide-react"
 import {
+  ArrowDownIcon,
+  ArrowUpIcon,
   ChevronDownIcon,
   ChevronRightIcon,
   CircleDashedIcon,
@@ -29,6 +32,8 @@ import {
   StarIcon,
   UploadIcon,
 } from "lucide-react"
+import { Virtuoso } from "react-virtuoso"
+import type { Components, ItemProps, ListProps, VirtuosoHandle } from "react-virtuoso"
 
 import {
   Empty,
@@ -38,6 +43,12 @@ import {
   EmptyTitle,
 } from "../../components/empty"
 import { Button } from "../../components/button"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupTextarea,
+} from "../../components/input-group"
 import { Separator } from "../../components/separator"
 import { Spinner } from "../../components/spinner"
 import { ToggleGroup, ToggleGroupItem } from "../../components/toggle-group"
@@ -61,6 +72,22 @@ const modes = [
 
 type Mode = (typeof modes)[number]["value"]
 
+type ChatRole = "user" | "assistant"
+type ChatStatus = "idle" | "loading" | "error"
+type ChatMessage = {
+  id: string
+  role: ChatRole
+  content: string
+}
+type WorkspaceProps = {
+  projectTitle: string
+  messages: ReadonlyArray<ChatMessage>
+  status: ChatStatus
+  error: string | null
+  onSend: (content: string) => void
+  onRetry: () => void
+}
+
 const compactNavigationQuery = "(max-width: 90.625rem)"
 const subscribeCompactNavigation = (onStoreChange: () => void) => {
   const mediaQuery = window.matchMedia(compactNavigationQuery)
@@ -69,9 +96,6 @@ const subscribeCompactNavigation = (onStoreChange: () => void) => {
 }
 const getCompactNavigationSnapshot = () => window.matchMedia(compactNavigationQuery).matches
 const getServerCompactNavigationSnapshot = () => false
-
-const getProjectTitle = (prompt: string) =>
-  prompt ? `${prompt.slice(0, 12)}${prompt.length > 12 ? "..." : ""}` : "新建项目"
 
 const ProjectNavigation = ({ onCollapse, title }: { onCollapse: () => void; title: string }) => {
   return (
@@ -214,33 +238,140 @@ const WorkspaceHeader = ({
   )
 }
 
-const ChatPanel = ({ prompt }: { prompt: string }) => {
+const MessageList = forwardRef<HTMLDivElement, ListProps & { context: null }>(
+  ({ context, ...props }, ref) => {
+    void context
+    return <div {...props} ref={ref} aria-label="对话消息" className={styles.messageList} role="list" />
+  },
+)
+MessageList.displayName = "MessageList"
+
+const MessageItem = ({ context, item, ...props }: ItemProps<ChatMessage> & { context: null }) => {
+  void context
+  void item
+  return <div {...props} role="listitem" />
+}
+
+const messageComponents: Components<ChatMessage, null> = {
+  List: MessageList,
+  Item: MessageItem,
+}
+
+const ChatMessageItem = ({ message }: { message: ChatMessage }) => (
+  <article className={styles.message} data-role={message.role}>
+    {message.role === "assistant" ? (
+      <div className={styles.assistantLabel}>
+        <SparklesIcon />
+        <span>AI</span>
+      </div>
+    ) : null}
+    <p className={styles.messageContent}>{message.content}</p>
+  </article>
+)
+
+const getScrollBehavior = (): "auto" | "smooth" =>
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"
+
+const ChatPanel = ({ error, messages, onRetry, onSend, status }: Omit<WorkspaceProps, "projectTitle">) => {
+  const [draft, setDraft] = useState("")
+  const [isAtBottom, setIsAtBottom] = useState(true)
+  const listRef = useRef<VirtuosoHandle>(null)
+  const isLoading = status === "loading"
+  const canSend = Boolean(draft.trim()) && !isLoading
+  const submit = () => {
+    const content = draft.trim()
+    if (!content || isLoading) return
+    onSend(content)
+    setDraft("")
+  }
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    submit()
+  }
+  const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return
+    event.preventDefault()
+    submit()
+  }
+
   return (
     <section id="workspace-chat-panel" className={styles.chatPanel}>
-      <div className={styles.chatScroll}>
-        {prompt ? (
-          <div className={styles.chatFlow}>
-            <div className={styles.userMessage}>
-              {prompt}
-            </div>
-            <Empty className={styles.generationState}>
-              <EmptyHeader>
-                <EmptyMedia><Spinner className={styles.generationSpinner} /></EmptyMedia>
-                <EmptyTitle>正在准备工作区</EmptyTitle>
-                <EmptyDescription>分析需求并创建项目结构...</EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          </div>
+      <div className={styles.conversation}>
+        {messages.length ? (
+          <Virtuoso
+            ref={listRef}
+            alignToBottom
+            atBottomStateChange={setIsAtBottom}
+            atBottomThreshold={48}
+            className={styles.chatList}
+            components={messageComponents}
+            computeItemKey={(_index, message) => message.id}
+            data={messages}
+            followOutput={(atBottom) => atBottom && "auto"}
+            increaseViewportBy={{ top: 320, bottom: 240 }}
+            itemContent={(_index, message) => <ChatMessageItem message={message} />}
+          />
         ) : (
           <Empty className={styles.emptyFill}>
             <EmptyHeader>
               <EmptyMedia variant="icon"><SparklesIcon /></EmptyMedia>
-              <EmptyTitle>开始一个新项目</EmptyTitle>
-              <EmptyDescription>从首页描述你想创建的内容。</EmptyDescription>
+              <EmptyTitle>从一句描述开始</EmptyTitle>
+              <EmptyDescription>说说你想设计什么，AI 会在这里和你一起梳理。</EmptyDescription>
             </EmptyHeader>
           </Empty>
         )}
+        {!isAtBottom && messages.length ? (
+          <Button
+            aria-label="回到最新消息"
+            className={styles.jumpToLatest}
+            size="sm"
+            variant="secondary"
+            onClick={() => listRef.current?.scrollToIndex({
+              index: messages.length - 1,
+              align: "end",
+              behavior: getScrollBehavior(),
+            })}
+          >
+            <ArrowDownIcon data-icon="inline-start" />
+            最新消息
+          </Button>
+        ) : null}
       </div>
+
+      <div aria-atomic="true" aria-live="polite" className={styles.chatStatus}>
+        {isLoading ? (
+          <p className={styles.loadingStatus}>
+            <Spinner className={styles.statusSpinner} />
+            AI 正在整理思路
+          </p>
+        ) : null}
+        {status === "error" && error ? (
+          <div className={styles.errorStatus} role="alert">
+            <p>{error}</p>
+            <Button size="sm" variant="outline" onClick={onRetry}>重试</Button>
+          </div>
+        ) : null}
+      </div>
+
+      <form className={styles.composer} onSubmit={handleSubmit}>
+        <InputGroup className={styles.composerGroup} data-disabled={isLoading || undefined}>
+          <InputGroupTextarea
+            aria-label="发送消息"
+            disabled={isLoading}
+            placeholder={isLoading ? "等待 AI 回复..." : "描述下一步，或补充你的设计想法"}
+            rows={2}
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={handleKeyDown}
+          />
+          <InputGroupAddon align="block-end" className={styles.composerActions}>
+            <span className={styles.composerHint}>Enter 发送 · Shift+Enter 换行</span>
+            <InputGroupButton aria-label="发送消息" disabled={!canSend} size="icon-sm" type="submit" variant="default">
+              <ArrowUpIcon data-icon="inline-start" />
+            </InputGroupButton>
+          </InputGroupAddon>
+        </InputGroup>
+      </form>
     </section>
   )
 }
@@ -328,8 +459,7 @@ const Canvas = ({ mode }: { mode: Mode }) => {
   )
 }
 
-const Workspace = ({ prompt }: { prompt: string }) => {
-  const projectTitle = getProjectTitle(prompt)
+const Workspace = ({ error, messages, onRetry, onSend, projectTitle, status }: WorkspaceProps) => {
   const isCompactNavigation = useSyncExternalStore(
     subscribeCompactNavigation,
     getCompactNavigationSnapshot,
@@ -365,7 +495,13 @@ const Workspace = ({ prompt }: { prompt: string }) => {
           onNavigationVisibilityChange={toggleNavigation}
         />
         <div className={styles.workspaceBody}>
-          <ChatPanel prompt={prompt} />
+          <ChatPanel
+            error={error}
+            messages={messages}
+            status={status}
+            onRetry={onRetry}
+            onSend={onSend}
+          />
           <FileExplorer projectTitle={projectTitle} />
           <Canvas mode={mode} />
         </div>
@@ -377,3 +513,4 @@ const Workspace = ({ prompt }: { prompt: string }) => {
 const WorkspaceFallback = () => <main className={styles.fallback} />
 
 export { Workspace, WorkspaceFallback }
+export type { ChatMessage, ChatRole, ChatStatus, WorkspaceProps }

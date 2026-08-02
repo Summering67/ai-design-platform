@@ -14,7 +14,7 @@ type Pinger interface {
 	PingContext(ctx context.Context) error
 }
 
-func NewRouter(logger *zap.Logger, pinger Pinger, pingTimeout time.Duration, environment string) http.Handler {
+func NewRouter(logger *zap.Logger, pinger Pinger, pingTimeout time.Duration, environment string, chatHandler gin.HandlerFunc) http.Handler {
 	modes := map[string]string{
 		"development": gin.DebugMode,
 		"production":  gin.ReleaseMode,
@@ -37,6 +37,7 @@ func NewRouter(logger *zap.Logger, pinger Pinger, pingTimeout time.Duration, env
 
 		request.JSON(http.StatusOK, gin.H{"status": "ready"})
 	})
+	router.POST("/api/chat", chatHandler)
 
 	return router
 }

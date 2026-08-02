@@ -3,8 +3,11 @@ package config
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net"
+	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -17,6 +20,7 @@ type Config struct {
 	Server   ServerConfig   `mapstructure:"server"`
 	Database DatabaseConfig `mapstructure:"database"`
 	Log      LogConfig      `mapstructure:"log"`
+	AI       AIConfig       `mapstructure:"ai"`
 }
 
 type ServerConfig struct {
@@ -40,6 +44,13 @@ type LogConfig struct {
 	Level       string `mapstructure:"level"`
 }
 
+type AIConfig struct {
+	BaseURL        string        `mapstructure:"base_url"`
+	APIKey         string        `mapstructure:"api_key"`
+	Model          string        `mapstructure:"model"`
+	RequestTimeout time.Duration `mapstructure:"request_timeout"`
+}
+
 var configKeys = []string{
 	"server.address",
 	"server.read_timeout",
@@ -53,6 +64,10 @@ var configKeys = []string{
 	"database.ping_timeout",
 	"log.environment",
 	"log.level",
+	"ai.base_url",
+	"ai.api_key",
+	"ai.model",
+	"ai.request_timeout",
 }
 
 func Load() (Config, error) {
@@ -80,6 +95,9 @@ func Load() (Config, error) {
 		if reader.ConfigFileUsed() != "" || !errors.As(err, &notFound) {
 			return Config{}, fmt.Errorf("读取配置文件: %w", err)
 		}
+	}
+	if err := applyLocalAIConfig(reader); err != nil {
+		return Config{}, err
 	}
 
 	var config Config
@@ -118,6 +136,12 @@ func (config Config) Validate() error {
 	if _, err := zapcore.ParseLevel(config.Log.Level); err != nil {
 		return fmt.Errorf("日志级别无效: %w", err)
 	}
+	if err := validateAIConfig(config.AI); err != nil {
+		return err
+	}
+	if config.Server.WriteTimeout <= config.AI.RequestTimeout {
+		return errors.New("HTTP 写超时必须大于 AI 请求超时")
+	}
 
 	return nil
 }
@@ -138,7 +162,7 @@ func validateAddress(address string) error {
 func setDefaults(reader *viper.Viper) {
 	reader.SetDefault("server.address", ":8080")
 	reader.SetDefault("server.read_timeout", "5s")
-	reader.SetDefault("server.write_timeout", "10s")
+	reader.SetDefault("server.write_timeout", "75s")
 	reader.SetDefault("server.idle_timeout", "60s")
 	reader.SetDefault("server.shutdown_timeout", "10s")
 	reader.SetDefault("database.max_open_conns", 20)
@@ -147,4 +171,91 @@ func setDefaults(reader *viper.Viper) {
 	reader.SetDefault("database.ping_timeout", "3s")
 	reader.SetDefault("log.environment", "development")
 	reader.SetDefault("log.level", "info")
+	reader.SetDefault("ai.model", "deepseek-v4-flash")
+	reader.SetDefault("ai.request_timeout", "60s")
+}
+
+func validateAIConfig(config AIConfig) error {
+	parsedURL, err := url.ParseRequestURI(strings.TrimSpace(config.BaseURL))
+	if err != nil || parsedURL.Host == "" || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") {
+		return errors.New("AI BaseURL 必须是有效的 HTTP 地址")
+	}
+	if strings.TrimSpace(config.APIKey) == "" {
+		return errors.New("AI APIKey 不能为空")
+	}
+	if strings.TrimSpace(config.Model) == "" {
+		return errors.New("AI Model 不能为空")
+	}
+	if config.RequestTimeout <= 0 {
+		return errors.New("AI 请求超时必须为正数")
+	}
+
+	return nil
+}
+
+func applyLocalAIConfig(reader *viper.Viper) error {
+	if reader.GetString("log.environment") != "development" {
+		return nil
+	}
+	path, required, err := localEnvPath()
+	if err != nil || path == "" {
+		return err
+	}
+	values, err := readDotEnv(path)
+	if err != nil {
+		if !required && errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		return fmt.Errorf("读取本地 AI 配置: %w", err)
+	}
+	if reader.GetString("ai.base_url") == "" {
+		reader.SetDefault("ai.base_url", values["DS_BASE_URL"])
+	}
+	if reader.GetString("ai.api_key") == "" {
+		reader.SetDefault("ai.api_key", values["DS_API_KEY"])
+	}
+
+	return nil
+}
+
+func localEnvPath() (string, bool, error) {
+	if configuredPath := strings.TrimSpace(os.Getenv("API_LOCAL_ENV_FILE")); configuredPath != "" {
+		if configuredPath == "off" {
+			return "", false, nil
+		}
+		return configuredPath, true, nil
+	}
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "", false, fmt.Errorf("获取当前目录: %w", err)
+	}
+	for directory := cwd; ; directory = filepath.Dir(directory) {
+		if _, err := os.Stat(filepath.Join(directory, "pnpm-workspace.yaml")); err == nil {
+			return filepath.Join(directory, ".env.local"), false, nil
+		} else if !errors.Is(err, os.ErrNotExist) {
+			return "", false, fmt.Errorf("检查 workspace 标记: %w", err)
+		}
+		parent := filepath.Dir(directory)
+		if parent == directory {
+			return "", false, nil
+		}
+	}
+}
+
+func readDotEnv(path string) (map[string]string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = file.Close() }()
+	reader := viper.New()
+	reader.SetConfigType("env")
+	if err := reader.ReadConfig(io.LimitReader(file, 64*1024)); err != nil {
+		return nil, err
+	}
+
+	return map[string]string{
+		"DS_BASE_URL": reader.GetString("DS_BASE_URL"),
+		"DS_API_KEY":  reader.GetString("DS_API_KEY"),
+	}, nil
 }

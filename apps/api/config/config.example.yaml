@@ -3,7 +3,8 @@
 server:
   address: ":8080"
   read_timeout: 5s
-  write_timeout: 10s
+  # 必须大于 ai.request_timeout。
+  write_timeout: 75s
   idle_timeout: 60s
   shutdown_timeout: 10s
 
@@ -18,3 +19,8 @@ database:
 log:
   environment: development
   level: info
+
+ai:
+  # 使用 API_AI_BASE_URL 与 API_AI_API_KEY 注入真实地址和密钥。
+  model: deepseek-v4-flash
+  request_timeout: 60s

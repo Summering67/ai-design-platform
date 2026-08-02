@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/Summering67/ai-design-platform/apps/api/internal/chat"
 	"github.com/Summering67/ai-design-platform/apps/api/internal/config"
 	"github.com/Summering67/ai-design-platform/apps/api/internal/database"
 	"github.com/Summering67/ai-design-platform/apps/api/internal/logging"
@@ -56,6 +57,10 @@ func Run() error {
 		return err
 	}
 	defer func() { _ = logger.Sync() }()
+	aiClient, err := chat.NewClient(http.DefaultClient, runtimeConfig.AI.BaseURL, runtimeConfig.AI.APIKey, runtimeConfig.AI.Model, runtimeConfig.AI.RequestTimeout)
+	if err != nil {
+		return fmt.Errorf("初始化 AI 客户端: %w", err)
+	}
 
 	connection, err := database.Open(context.Background(), runtimeConfig.Database)
 	if err != nil {
@@ -68,7 +73,7 @@ func Run() error {
 		}
 	}()
 
-	router := NewRouter(logger, connection, runtimeConfig.Database.PingTimeout, runtimeConfig.Log.Environment)
+	router := NewRouter(logger, connection, runtimeConfig.Database.PingTimeout, runtimeConfig.Log.Environment, chat.NewHandler(aiClient))
 	httpServer := NewHTTPServer(runtimeConfig.Server, router)
 	serverErrors := make(chan error, 1)
 	go func() { serverErrors <- httpServer.Serve() }()
