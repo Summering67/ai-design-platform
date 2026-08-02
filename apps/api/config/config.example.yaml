@@ -10,13 +10,13 @@ server:
 
 database:
   # 使用 API_DATABASE_DSN 环境变量注入真实连接信息。
-  dsn: ""
+  dsn: "" # 数据库连接字符串（Data Source Name），默认为空，实际部署时通常通过环境变量注入
   max_open_conns: 20
   max_idle_conns: 10
   conn_max_lifetime: 30m
   ping_timeout: 3s
 
-log:
+log:  # 定义日志相关配置项
   environment: development
   level: info
 

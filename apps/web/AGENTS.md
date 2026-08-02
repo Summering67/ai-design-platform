@@ -2,7 +2,7 @@
 
 ## 定位
 
-`apps/web` 是项目的主业务应用，使用 Next.js App Router、React、TypeScript、Tailwind CSS 和 `@repo/ui`。
+`apps/web` 是项目的主业务应用，使用 Next.js App Router、React、TypeScript、Zustand、 Tailwind CSS 和 `@repo/ui`。
 
 修改本目录时，同时遵守仓库根目录的 `AGENTS.md`。
 

@@ -146,6 +146,7 @@ func (config Config) Validate() error {
 	return nil
 }
 
+// 提供开箱即用的默认配置值，确保在没有配置文件或环境变量的情况下，应用仍能启动并运行。
 func validateAddress(address string) error {
 	_, port, err := net.SplitHostPort(address)
 	if err != nil {
