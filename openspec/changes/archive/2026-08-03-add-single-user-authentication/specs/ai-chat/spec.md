@@ -1,34 +1,4 @@
-# AI Chat Specification
-
-## Purpose
-
-定义 AI 对话能力的服务端配置、HTTP 契约、上游调用、Web 状态编排和工作台交互要求，确保密钥只保留在服务端，并为多轮对话提供稳定、安全且可访问的端到端行为。
-
-## Requirements
-
-### Requirement: 服务端 AI 配置与密钥保护
-
-系统 SHALL 将上游 BaseURL、APIKey、Model 和请求超时加载为后端强类型配置，SHALL 在 BaseURL 或 APIKey 缺失时阻止 API 服务启动，并 MUST NOT 将 APIKey 暴露给浏览器、HTTP 响应或日志。部署环境 SHALL 使用 `API_` 前缀配置；开发环境 SHALL 能兼容仓库根 `.env.local` 中已有的 `DS_BASE_URL` 与 `DS_API_KEY`，且进程环境变量优先。
-
-#### Scenario: 使用现有本地 AI 配置
-
-- **WHEN** 服务运行于 development，进程环境未提供 AI 地址和密钥，且仓库根 `.env.local` 包含 `DS_BASE_URL` 与 `DS_API_KEY`
-- **THEN** 系统加载这两个值作为后端 AI 配置，并且不会将它们发送给浏览器
-
-#### Scenario: 部署环境覆盖本地配置
-
-- **WHEN** 进程环境提供 `API_AI_BASE_URL` 或 `API_AI_API_KEY`，同时本地文件存在对应值
-- **THEN** 系统使用进程环境中的值
-
-#### Scenario: 必需 AI 配置缺失
-
-- **WHEN** BaseURL 或 APIKey 在所有允许的配置来源中均为空
-- **THEN** 系统返回配置错误且不启动 HTTP 服务
-
-#### Scenario: 超时配置不一致
-
-- **WHEN** HTTP 写超时不大于 AI 请求超时
-- **THEN** 系统返回配置错误且不启动 HTTP 服务
+## MODIFIED Requirements
 
 ### Requirement: 稳定的对话 HTTP 契约
 

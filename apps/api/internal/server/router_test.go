@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest/observer"
@@ -20,12 +19,10 @@ func (ping pingerFunc) PingContext(ctx context.Context) error {
 	return ping(ctx)
 }
 
-var noopChatHandler = func(context *gin.Context) { context.Status(http.StatusNoContent) }
-
 func TestHealthLive(t *testing.T) {
 	response := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodGet, "/health/live", nil)
-	NewRouter(zap.NewNop(), pingerFunc(func(context.Context) error { return nil }), time.Second, "development", noopChatHandler).ServeHTTP(response, request)
+	NewRouter(zap.NewNop(), pingerFunc(func(context.Context) error { return nil }), time.Second, "development").ServeHTTP(response, request)
 
 	if response.Code != http.StatusOK {
 		t.Fatalf("期望状态码 %d，实际为 %d", http.StatusOK, response.Code)
@@ -56,7 +53,7 @@ func TestHealthReady(t *testing.T) {
 				}
 				return test.pingError
 			})
-			NewRouter(zap.NewNop(), pinger, 100*time.Millisecond, "development", noopChatHandler).ServeHTTP(response, request)
+			NewRouter(zap.NewNop(), pinger, 100*time.Millisecond, "development").ServeHTTP(response, request)
 
 			if response.Code != test.statusCode {
 				t.Fatalf("期望状态码 %d，实际为 %d", test.statusCode, response.Code)
@@ -72,7 +69,7 @@ func TestAccessLoggerRecordsRequiredFields(t *testing.T) {
 	core, logs := observer.New(zapcore.InfoLevel)
 	response := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodGet, "/health/live?secret=hidden", nil)
-	NewRouter(zap.New(core), pingerFunc(func(context.Context) error { return nil }), time.Second, "development", noopChatHandler).ServeHTTP(response, request)
+	NewRouter(zap.New(core), pingerFunc(func(context.Context) error { return nil }), time.Second, "development").ServeHTTP(response, request)
 
 	entries := logs.FilterMessage("HTTP 请求完成").All()
 	if len(entries) != 1 {
@@ -89,12 +86,12 @@ func TestAccessLoggerRecordsRequiredFields(t *testing.T) {
 	}
 }
 
-func TestChatRoute(t *testing.T) {
+func TestLegacyChatRouteIsNotRegistered(t *testing.T) {
 	response := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodPost, "/api/chat", nil)
-	NewRouter(zap.NewNop(), pingerFunc(func(context.Context) error { return nil }), time.Second, "development", noopChatHandler).ServeHTTP(response, request)
+	NewRouter(zap.NewNop(), pingerFunc(func(context.Context) error { return nil }), time.Second, "development").ServeHTTP(response, request)
 
-	if response.Code != http.StatusNoContent {
-		t.Fatalf("期望对话路由状态码 %d，实际为 %d", http.StatusNoContent, response.Code)
+	if response.Code != http.StatusNotFound {
+		t.Fatalf("期望旧路由状态码 %d，实际为 %d", http.StatusNotFound, response.Code)
 	}
 }

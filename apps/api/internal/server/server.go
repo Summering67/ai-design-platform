@@ -9,10 +9,12 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/Summering67/ai-design-platform/apps/api/internal/auth"
 	"github.com/Summering67/ai-design-platform/apps/api/internal/chat"
 	"github.com/Summering67/ai-design-platform/apps/api/internal/config"
 	"github.com/Summering67/ai-design-platform/apps/api/internal/database"
 	"github.com/Summering67/ai-design-platform/apps/api/internal/logging"
+	"github.com/Summering67/ai-design-platform/apps/api/internal/project"
 	"go.uber.org/zap"
 )
 
@@ -73,7 +75,15 @@ func Run() error {
 		}
 	}()
 
-	router := NewRouter(logger, connection, runtimeConfig.Database.PingTimeout, runtimeConfig.Log.Environment, chat.NewHandler(aiClient))
+	authService, err := auth.NewService(connection.DB, runtimeConfig.Auth.FixedUserPassword)
+	if err != nil {
+		return fmt.Errorf("初始化认证服务: %w", err)
+	}
+	projectService, err := project.NewService(connection.DB)
+	if err != nil {
+		return fmt.Errorf("初始化项目服务: %w", err)
+	}
+	router := NewApplicationRouter(logger, connection, runtimeConfig.Database.PingTimeout, runtimeConfig.Log.Environment, authService, project.NewHandler(projectService, aiClient))
 	httpServer := NewHTTPServer(runtimeConfig.Server, router)
 	serverErrors := make(chan error, 1)
 	go func() { serverErrors <- httpServer.Serve() }()

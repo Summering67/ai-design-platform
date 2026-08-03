@@ -6,6 +6,8 @@ import (
 	"runtime/debug"
 	"time"
 
+	"github.com/Summering67/ai-design-platform/apps/api/internal/auth"
+	"github.com/Summering67/ai-design-platform/apps/api/internal/project"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
@@ -14,7 +16,7 @@ type Pinger interface {
 	PingContext(ctx context.Context) error
 }
 
-func NewRouter(logger *zap.Logger, pinger Pinger, pingTimeout time.Duration, environment string, chatHandler gin.HandlerFunc) http.Handler {
+func NewRouter(logger *zap.Logger, pinger Pinger, pingTimeout time.Duration, environment string) http.Handler {
 	modes := map[string]string{
 		"development": gin.DebugMode,
 		"production":  gin.ReleaseMode,
@@ -37,8 +39,35 @@ func NewRouter(logger *zap.Logger, pinger Pinger, pingTimeout time.Duration, env
 
 		request.JSON(http.StatusOK, gin.H{"status": "ready"})
 	})
-	router.POST("/api/chat", chatHandler)
+	return router
+}
 
+func NewApplicationRouter(logger *zap.Logger, pinger Pinger, pingTimeout time.Duration, environment string, authService *auth.Service, projects *project.Handler) http.Handler {
+	modes := map[string]string{"development": gin.DebugMode, "production": gin.ReleaseMode}
+	gin.SetMode(modes[environment])
+	router := gin.New()
+	router.Use(accessLogger(logger), recovery(logger))
+	router.GET("/health/live", func(context *gin.Context) { context.JSON(http.StatusOK, gin.H{"status": "ok"}) })
+	router.GET("/health/ready", func(request *gin.Context) {
+		pingContext, cancel := context.WithTimeout(request.Request.Context(), pingTimeout)
+		defer cancel()
+		if err := pinger.PingContext(pingContext); err != nil {
+			request.JSON(http.StatusServiceUnavailable, gin.H{"status": "not_ready"})
+			return
+		}
+		request.JSON(http.StatusOK, gin.H{"status": "ready"})
+	})
+	router.POST("/api/auth/login", auth.NewHandler(authService))
+	protected := router.Group("/api")
+	protected.Use(auth.RequireUser(authService))
+	protected.GET("/auth/me", auth.MeHandler())
+	protected.POST("/auth/logout", auth.LogoutHandler(authService))
+	protected.GET("/projects", projects.Recent)
+	protected.POST("/projects", projects.Create)
+	protected.GET("/projects/:projectId", projects.Get)
+	protected.POST("/projects/:projectId/generations", projects.Send)
+	protected.POST("/projects/:projectId/messages/:messageId/generations", projects.Retry)
+	protected.POST("/projects/:projectId/generations/:generationId/stop", projects.Stop)
 	return router
 }
 

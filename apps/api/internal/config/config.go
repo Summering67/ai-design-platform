@@ -21,6 +21,7 @@ type Config struct {
 	Database DatabaseConfig `mapstructure:"database"`
 	Log      LogConfig      `mapstructure:"log"`
 	AI       AIConfig       `mapstructure:"ai"`
+	Auth     AuthConfig     `mapstructure:"auth"`
 }
 
 type ServerConfig struct {
@@ -51,6 +52,10 @@ type AIConfig struct {
 	RequestTimeout time.Duration `mapstructure:"request_timeout"`
 }
 
+type AuthConfig struct {
+	FixedUserPassword string `mapstructure:"fixed_user_password"`
+}
+
 var configKeys = []string{
 	"server.address",
 	"server.read_timeout",
@@ -68,6 +73,7 @@ var configKeys = []string{
 	"ai.api_key",
 	"ai.model",
 	"ai.request_timeout",
+	"auth.fixed_user_password",
 }
 
 func Load() (Config, error) {
@@ -138,6 +144,9 @@ func (config Config) Validate() error {
 	}
 	if err := validateAIConfig(config.AI); err != nil {
 		return err
+	}
+	if strings.TrimSpace(config.Auth.FixedUserPassword) == "" {
+		return errors.New("固定用户密码不能为空")
 	}
 	if config.Server.WriteTimeout <= config.AI.RequestTimeout {
 		return errors.New("HTTP 写超时必须大于 AI 请求超时")
@@ -215,6 +224,9 @@ func applyLocalAIConfig(reader *viper.Viper) error {
 	if reader.GetString("ai.api_key") == "" {
 		reader.SetDefault("ai.api_key", values["DS_API_KEY"])
 	}
+	if reader.GetString("auth.fixed_user_password") == "" {
+		reader.SetDefault("auth.fixed_user_password", values["API_AUTH_FIXED_USER_PASSWORD"])
+	}
 
 	return nil
 }
@@ -256,7 +268,8 @@ func readDotEnv(path string) (map[string]string, error) {
 	}
 
 	return map[string]string{
-		"DS_BASE_URL": reader.GetString("DS_BASE_URL"),
-		"DS_API_KEY":  reader.GetString("DS_API_KEY"),
+		"DS_BASE_URL":                  reader.GetString("DS_BASE_URL"),
+		"DS_API_KEY":                   reader.GetString("DS_API_KEY"),
+		"API_AUTH_FIXED_USER_PASSWORD": reader.GetString("API_AUTH_FIXED_USER_PASSWORD"),
 	}, nil
 }

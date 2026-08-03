@@ -1,54 +1,105 @@
-import type { ChatMessage } from "@repo/ui/blocks/workspace"
+type ChatMessage = { id: string; role: "user" | "assistant"; content: string };
+type Project = { id: string; title: string };
+type Event = { event: string; data: Record<string, unknown> };
 
-type ChatReply = Pick<ChatMessage, "role" | "content">
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null
-
-const parseReply = (value: unknown): ChatReply | null => {
-  if (!isRecord(value) || !isRecord(value.message)) return null
-  const { content, role } = value.message
-  if (role !== "assistant" || typeof content !== "string" || !content.trim()) return null
-  return { role, content: content.trim() }
-}
-
-const getErrorMessage = (value: unknown) => {
-  if (!isRecord(value) || !isRecord(value.error) || typeof value.error.code !== "string") {
-    return "暂时无法连接 AI 服务，请重试。"
-  }
-  const messages: Record<string, string> = {
-    ai_timeout: "AI 响应超时，请重试。",
-    invalid_request: "当前对话内容无法发送，请精简后重试。",
-  }
-  return messages[value.error.code] || "暂时无法连接 AI 服务，请重试。"
-}
-
-const readJson = async (response: Response): Promise<unknown> => {
-  try {
-    return await response.json()
-  } catch {
-    return null
+class RequestError extends Error {
+  constructor(
+    public readonly code: string,
+    message: string,
+    public readonly status: number,
+  ) {
+    super(message);
   }
 }
-
-const requestChat = async (
-  messages: ReadonlyArray<ChatMessage>,
-  signal: AbortSignal,
-): Promise<ChatReply> => {
-  const response = await fetch("/backend/api/chat", {
+const api = "/backend/api";
+const parseError = async (response: Response) => {
+  const body = (await response.json().catch(() => null)) as {
+    error?: { code?: string; message?: string };
+  } | null;
+  return new RequestError(
+    body?.error?.code || "internal_error",
+    body?.error?.message || "请求失败",
+    response.status,
+  );
+};
+const loadProject = async (projectId: string) => {
+  const response = await fetch(`${api}/projects/${projectId}`);
+  if (!response.ok) throw await parseError(response);
+  return response.json() as Promise<{
+    project: Project;
+    messages: ChatMessage[];
+  }>;
+};
+const login = async (email: string, password: string) => {
+  const response = await fetch(`${api}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      messages: messages.map(({ content, role }) => ({ content, role })),
-    }),
+    body: JSON.stringify({ email, password }),
+  });
+  if (!response.ok) throw await parseError(response);
+  return response.json() as Promise<{ email: string }>;
+};
+const currentUser = async () => {
+  const response = await fetch(`${api}/auth/me`);
+  if (!response.ok) throw await parseError(response);
+  return response.json() as Promise<{ email: string }>;
+};
+const logout = async () => {
+  const response = await fetch(`${api}/auth/logout`, { method: "POST" });
+  if (!response.ok) throw await parseError(response);
+};
+const stopGeneration = async (projectId: string, generationId: string) => {
+  const response = await fetch(
+    `${api}/projects/${projectId}/generations/${generationId}/stop`,
+    { method: "POST" },
+  );
+  if (!response.ok) throw await parseError(response);
+};
+const readEvents = async (
+  response: Response,
+  onEvent: (event: Event) => void,
+) => {
+  if (!response.body) throw new Error("生成响应不可读取");
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+    const chunks = buffer.split("\n\n");
+    buffer = chunks.pop() || "";
+    for (const chunk of chunks) {
+      const event = chunk.match(/^event: (.+)$/m)?.[1];
+      const data = chunk.match(/^data: (.+)$/m)?.[1];
+      if (event && data)
+        onEvent({ event, data: JSON.parse(data) as Record<string, unknown> });
+    }
+    if (done) return;
+  }
+};
+const generate = async (
+  path: string,
+  body: Record<string, string> | undefined,
+  signal: AbortSignal,
+  onEvent: (event: Event) => void,
+) => {
+  const response = await fetch(`${api}${path}`, {
+    method: "POST",
+    headers: body ? { "Content-Type": "application/json" } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
     signal,
-  })
-  const body = await readJson(response)
-  if (!response.ok) throw new Error(getErrorMessage(body))
-  const reply = parseReply(body)
-  if (!reply) throw new Error("AI 返回了无法识别的内容，请重试。")
-  return reply
-}
+  });
+  if (!response.ok) throw await parseError(response);
+  await readEvents(response, onEvent);
+};
 
-export { requestChat }
-export type { ChatReply }
+export {
+  RequestError,
+  currentUser,
+  generate,
+  loadProject,
+  login,
+  logout,
+  stopGeneration,
+};
+export type { ChatMessage, Project };

@@ -29,6 +29,7 @@ database:
 	t.Setenv("API_DATABASE_DSN", "postgres://environment-value")
 	t.Setenv("API_AI_BASE_URL", "https://environment.example")
 	t.Setenv("API_AI_API_KEY", "environment-key")
+	t.Setenv("API_AUTH_FIXED_USER_PASSWORD", "test-password")
 
 	loaded, err := Load()
 	if err != nil {
@@ -44,7 +45,7 @@ database:
 
 func TestLoadUsesLocalAIConfigInDevelopment(t *testing.T) {
 	localPath := filepath.Join(t.TempDir(), ".env.local")
-	if err := os.WriteFile(localPath, []byte("DS_BASE_URL=https://local.example\nDS_API_KEY=local-key\n"), 0o600); err != nil {
+	if err := os.WriteFile(localPath, []byte("DS_BASE_URL=https://local.example\nDS_API_KEY=local-key\nAPI_AUTH_FIXED_USER_PASSWORD=local-password\n"), 0o600); err != nil {
 		t.Fatalf("写入本地配置失败: %v", err)
 	}
 	t.Setenv("API_LOCAL_ENV_FILE", localPath)
@@ -54,7 +55,7 @@ func TestLoadUsesLocalAIConfigInDevelopment(t *testing.T) {
 	if err != nil {
 		t.Fatalf("加载配置失败: %v", err)
 	}
-	if loaded.AI.BaseURL != "https://local.example" || loaded.AI.APIKey != "local-key" {
+	if loaded.AI.BaseURL != "https://local.example" || loaded.AI.APIKey != "local-key" || loaded.Auth.FixedUserPassword != "local-password" {
 		t.Fatalf("本地 AI 配置不符合预期: %#v", loaded.AI)
 	}
 }
@@ -68,6 +69,7 @@ func TestLoadEnvironmentOverridesLocalAIConfig(t *testing.T) {
 	t.Setenv("API_DATABASE_DSN", "postgres://example")
 	t.Setenv("API_AI_BASE_URL", "https://environment.example")
 	t.Setenv("API_AI_API_KEY", "environment-key")
+	t.Setenv("API_AUTH_FIXED_USER_PASSWORD", "test-password")
 
 	loaded, err := Load()
 	if err != nil {
@@ -86,6 +88,7 @@ func TestLoadProductionDoesNotReadLocalAIConfig(t *testing.T) {
 	t.Setenv("API_LOCAL_ENV_FILE", localPath)
 	t.Setenv("API_DATABASE_DSN", "postgres://example")
 	t.Setenv("API_LOG_ENVIRONMENT", "production")
+	t.Setenv("API_AUTH_FIXED_USER_PASSWORD", "test-password")
 
 	if _, err := Load(); err == nil {
 		t.Fatal("production 缺少进程 AI 配置时应加载失败")
@@ -105,6 +108,7 @@ func TestValidateRejectsInvalidConfig(t *testing.T) {
 		{name: "AI APIKey 为空", change: func(config *Config) { config.AI.APIKey = "" }},
 		{name: "AI Model 为空", change: func(config *Config) { config.AI.Model = "" }},
 		{name: "AI 请求超时无效", change: func(config *Config) { config.AI.RequestTimeout = 0 }},
+		{name: "固定用户密码为空", change: func(config *Config) { config.Auth.FixedUserPassword = "" }},
 		{name: "HTTP 写超时不大于 AI 超时", change: func(config *Config) { config.Server.WriteTimeout = config.AI.RequestTimeout }},
 	}
 
@@ -142,5 +146,6 @@ func validConfig() Config {
 			Model:          "example-model",
 			RequestTimeout: time.Minute,
 		},
+		Auth: AuthConfig{FixedUserPassword: "test-password"},
 	}
 }

@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -33,6 +34,10 @@ type completionResponse struct {
 	Choices []struct {
 		Message Message `json:"message"`
 	} `json:"choices"`
+}
+
+type Streamer interface {
+	Stream(context.Context, []Message, func(string)) error
 }
 
 func NewClient(httpClient *http.Client, baseURL, apiKey, model string, timeout time.Duration) (*Client, error) {
@@ -97,6 +102,80 @@ func (client *Client) Complete(ctx context.Context, messages []Message) (Message
 	}
 
 	return message, nil
+}
+
+func (client *Client) Stream(ctx context.Context, messages []Message, onDelta func(string)) error {
+	if err := ValidateMessages(messages); err != nil {
+		return err
+	}
+	payload, err := json.Marshal(completionRequest{Messages: messages, Model: client.model, Stream: true})
+	if err != nil {
+		return fmt.Errorf("编码上游请求: %w", ErrUnavailable)
+	}
+	requestContext, cancel := context.WithTimeout(ctx, client.timeout)
+	defer cancel()
+	request, err := http.NewRequestWithContext(requestContext, http.MethodPost, client.endpoint, bytes.NewReader(payload))
+	if err != nil {
+		return fmt.Errorf("创建上游请求: %w", ErrUnavailable)
+	}
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Authorization", "Bearer "+client.apiKey)
+	response, err := client.httpClient.Do(request)
+	if err != nil {
+		if errors.Is(ctx.Err(), context.Canceled) {
+			return context.Canceled
+		}
+		if errors.Is(requestContext.Err(), context.DeadlineExceeded) {
+			return ErrTimeout
+		}
+		return fmt.Errorf("调用上游: %w", ErrUnavailable)
+	}
+	defer func() { _ = response.Body.Close() }()
+	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
+		return fmt.Errorf("上游状态异常: %w", ErrUnavailable)
+	}
+	scanner := bufio.NewScanner(io.LimitReader(response.Body, maxUpstreamResponseBytes))
+	scanner.Buffer(make([]byte, 4096), maxUpstreamResponseBytes)
+	seen := false
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if !strings.HasPrefix(line, "data:") {
+			continue
+		}
+		data := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
+		if data == "[DONE]" {
+			break
+		}
+		var event struct {
+			Choices []struct {
+				Delta struct {
+					Content string `json:"content"`
+				} `json:"delta"`
+			} `json:"choices"`
+		}
+		if err := json.Unmarshal([]byte(data), &event); err != nil {
+			return fmt.Errorf("解析上游流: %w", ErrUnavailable)
+		}
+		for _, choice := range event.Choices {
+			if choice.Delta.Content != "" {
+				seen = true
+				onDelta(choice.Delta.Content)
+			}
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		if errors.Is(requestContext.Err(), context.DeadlineExceeded) {
+			return ErrTimeout
+		}
+		if errors.Is(ctx.Err(), context.Canceled) {
+			return context.Canceled
+		}
+		return fmt.Errorf("读取上游流: %w", ErrUnavailable)
+	}
+	if !seen {
+		return fmt.Errorf("上游回复为空: %w", ErrUnavailable)
+	}
+	return nil
 }
 
 func completionEndpoint(baseURL string) (string, error) {

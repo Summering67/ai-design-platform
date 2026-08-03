@@ -4,7 +4,7 @@ import "@repo/ui/globals.css";
 import { Geist } from "next/font/google";
 import { cn } from "@repo/ui/lib/utils";
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -32,6 +32,6 @@ const RootLayout = ({
       </body>
     </html>
   );
-}
+};
 
 export default RootLayout;
