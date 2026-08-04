@@ -1,6 +1,6 @@
 import { createElement, type CSSProperties, type ReactNode } from "react";
 import type { DesignRenderNode, ValidatedDesignRenderModel } from "@repo/design-dsl";
-import { createDefaultDesignRenderAdapter, type DesignRenderAdapter } from "../../lib/design-render-adapter.js";
+import { createDefaultDesignRenderAdapter, type DesignRenderAdapter } from "../../lib/design-render-adapter";
 
 export type DesignRendererProps = {
   model: ValidatedDesignRenderModel;
@@ -15,7 +15,12 @@ const renderNode = (node: DesignRenderNode, model: ValidatedDesignRenderModel, a
   if (!node.visible) return null;
   const styleResult = adapter.theme.resolveStyle(node, model);
   if (!styleResult.ok) return null;
-  const children = node.kind === "frame" ? node.children.map((child) => renderNode(child, model, adapter)) : null;
+  const children =
+    node.kind === "frame"
+      ? node.children.map((child) => renderNode(child, model, adapter))
+      : node.kind === "component-instance" && typeof node.overrides?.children === "string"
+        ? node.overrides.children
+        : null;
   const frameStyle = node.kind === "frame" ? adapter.layout.map(node) : { ok: true as const, value: {} };
   if (!frameStyle.ok) return null;
   const style = { ...styleResult.value, ...frameStyle.value } as CSSProperties;
