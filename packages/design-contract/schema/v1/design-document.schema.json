@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-design-platform.dev/schema/v1/design-document.schema.json",
+  "type": "object",
+  "required": [
+    "version",
+    "id",
+    "name",
+    "assets",
+    "tokens",
+    "componentDefinitions",
+    "componentBindings",
+    "pages"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "const": "1.0.0" },
+    "id": { "$ref": "#/$defs/id" },
+    "name": { "type": "string", "minLength": 1 },
+    "assets": { "type": "object" },
+    "tokens": { "type": "object" },
+    "componentDefinitions": { "type": "object" },
+    "componentBindings": { "type": "object" },
+    "pages": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/page" }
+    }
+  },
+  "$defs": {
+    "id": { "type": "string", "minLength": 1 },
+    "page": {
+      "type": "object",
+      "required": ["id", "name", "rootId", "nodes"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "type": "string" },
+        "rootId": { "$ref": "#/$defs/id" },
+        "nodes": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/node" }
+        }
+      }
+    },
+    "node": {
+      "type": "object",
+      "required": ["id", "kind", "parentId"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "kind": {
+          "enum": [
+            "root",
+            "frame",
+            "text",
+            "image",
+            "icon",
+            "component-instance"
+          ]
+        },
+        "parentId": { "type": ["string", "null"] },
+        "childIds": { "type": "array", "items": { "$ref": "#/$defs/id" } },
+        "layout": { "type": "object" },
+        "layoutItem": { "type": "object" },
+        "style": { "type": "object" },
+        "semantic": { "type": "object" },
+        "text": { "type": "string" },
+        "typography": { "type": "object" },
+        "assetId": { "$ref": "#/$defs/id" },
+        "componentRef": { "$ref": "#/$defs/id" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "root" } } },
+          "then": {
+            "required": ["childIds"],
+            "properties": { "parentId": { "const": null } }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "frame" } } },
+          "then": { "required": ["childIds"] }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "text" } } },
+          "then": { "required": ["text", "typography"] }
+        }
+      ]
+    }
+  }
+}

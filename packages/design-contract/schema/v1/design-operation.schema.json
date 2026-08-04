@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-design-platform.dev/schema/v1/design-operation.schema.json",
+  "type": "array",
+  "items": {
+    "oneOf": [
+      {
+        "type": "object",
+        "required": ["type", "pageId", "parentId", "index", "subtree"],
+        "properties": { "type": { "const": "insert-subtree" } }
+      },
+      {
+        "type": "object",
+        "required": ["type", "pageId", "nodeId", "parentId", "index"],
+        "properties": { "type": { "const": "move-node" } }
+      },
+      {
+        "type": "object",
+        "required": ["type", "pageId", "nodeId"],
+        "properties": {
+          "type": {
+            "enum": [
+              "remove-node",
+              "set-text",
+              "patch-style",
+              "set-layout",
+              "set-layout-item",
+              "replace-component"
+            ]
+          }
+        }
+      }
+    ]
+  }
+}

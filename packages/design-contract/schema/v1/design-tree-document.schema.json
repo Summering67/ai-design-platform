@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-design-platform.dev/schema/v1/design-tree-document.schema.json",
+  "type": "object",
+  "required": [
+    "version",
+    "id",
+    "name",
+    "assets",
+    "tokens",
+    "componentDefinitions",
+    "componentBindings",
+    "pages"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "const": "1.0.0" },
+    "id": { "type": "string", "minLength": 1 },
+    "name": { "type": "string" },
+    "assets": { "type": "object" },
+    "tokens": { "type": "object" },
+    "componentDefinitions": { "type": "object" },
+    "componentBindings": { "type": "object" },
+    "pages": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/page" }
+    }
+  },
+  "$defs": {
+    "page": {
+      "type": "object",
+      "required": ["id", "name", "rootId", "children"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string" },
+        "rootId": { "type": "string", "minLength": 1 },
+        "children": { "type": "array", "items": { "$ref": "#/$defs/node" } }
+      }
+    },
+    "node": {
+      "type": "object",
+      "required": ["id", "kind"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "kind": {
+          "enum": ["frame", "text", "image", "icon", "component-instance"]
+        },
+        "children": { "type": "array", "items": { "$ref": "#/$defs/node" } },
+        "layout": { "type": "object" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "frame" } } },
+          "then": { "required": ["children"] },
+          "else": { "not": { "required": ["children"] } }
+        }
+      ]
+    }
+  }
+}

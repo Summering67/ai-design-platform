@@ -1,0 +1,62 @@
+{
+  "version": "1.0.0",
+  "id": "login-document",
+  "name": "登录页",
+  "assets": {},
+  "tokens": { "color.primary": "#1677ff" },
+  "componentDefinitions": {
+    "ui.button": {
+      "id": "ui.button",
+      "propsSchema": { "children": { "type": "string" } },
+      "appearance": {
+        "id": "button-appearance",
+        "kind": "text",
+        "text": "按钮",
+        "typography": {}
+      }
+    }
+  },
+  "componentBindings": {
+    "ui.button": {
+      "componentRef": "ui.button",
+      "target": "react-tailwind-antd",
+      "codeBinding": { "importFrom": "antd", "exportName": "Button" }
+    }
+  },
+  "pages": [
+    {
+      "id": "login-page",
+      "name": "登录",
+      "rootId": "login-root",
+      "children": [
+        {
+          "id": "login-card",
+          "kind": "frame",
+          "layout": {
+            "mode": "flex",
+            "direction": "column",
+            "gap": 16,
+            "padding": { "top": 24, "right": 24, "bottom": 24, "left": 24 }
+          },
+          "layoutItem": { "width": { "mode": "fixed", "value": 360 } },
+          "children": [
+            {
+              "id": "login-title",
+              "kind": "text",
+              "text": "欢迎登录",
+              "typography": { "fontSize": 24 }
+            },
+            {
+              "id": "submit",
+              "kind": "component-instance",
+              "componentRef": "ui.button",
+              "variant": { "type": "primary" },
+              "overrides": { "children": "登录" },
+              "layoutItem": { "width": { "mode": "fill" } }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
