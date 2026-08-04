@@ -103,6 +103,16 @@ After completing all artifacts, summarize:
   - Do NOT copy `<context>`, `<rules>`, `<project_context>` blocks into the artifact
   - These guide what you write, but should never appear in the output
 
+## Testing Scope
+
+When generating proposal, design, spec, and tasks artifacts:
+
+- Limit all test and acceptance tasks to unit tests and integration tests.
+- Do not generate browser automation, E2E tests, manual UI verification, visual regression tests, or Chrome/agent-browser acceptance tasks.
+- For frontend behavior, use unit, component, or integration tests only.
+- When a requirement cannot be covered by unit or integration tests, record it as an explicit risk instead of creating a manual verification task.
+- Label every testing task as either a unit test or an integration test.
+
 **Guardrails**
 - Create ALL artifacts needed for implementation (as defined by schema's `apply.requires`)
 - Always read dependency artifacts before creating a new one
