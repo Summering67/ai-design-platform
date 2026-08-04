@@ -49,8 +49,8 @@ export const validateTree = (tree: TreeDocument): Result<TreeDocument> => {
         errors.push(error("unknown_asset", `${path}/assetId`, "资源不存在"));
       if (
         node.kind === "component-instance" &&
-        (!tree.componentDefinitions[node.componentRef] ||
-          !tree.componentBindings[node.componentRef])
+        (!tree.componentDefinitions?.[node.componentRef] ||
+          !tree.componentBindings?.[node.componentRef])
       )
         errors.push(
           error(
@@ -175,8 +175,8 @@ export const validateDocument = (document: Document): Result<Document> => {
         );
       if (
         node.kind === "component-instance" &&
-        (!document.componentDefinitions[node.componentRef] ||
-          !document.componentBindings[node.componentRef])
+        (!document.componentDefinitions?.[node.componentRef] ||
+          !document.componentBindings?.[node.componentRef])
       )
         errors.push(
           error(
@@ -231,9 +231,9 @@ export const denormalize = (document: Document): Result<TreeDocument> => {
     id: document.id,
     name: document.name,
     assets: document.assets,
-    tokens: document.tokens,
-    componentDefinitions: document.componentDefinitions,
-    componentBindings: document.componentBindings,
+    ...(document.tokens ? { tokens: document.tokens } : {}),
+    ...(document.componentDefinitions ? { componentDefinitions: document.componentDefinitions } : {}),
+    ...(document.componentBindings ? { componentBindings: document.componentBindings } : {}),
   };
   return ok({ ...meta, pages });
 };
@@ -373,8 +373,8 @@ export const applyOperations = (
       if (operation.type === "replace-component") {
         if (
           node.kind !== "component-instance" ||
-          !copy.componentDefinitions[operation.componentRef] ||
-          !copy.componentBindings[operation.componentRef]
+          !copy.componentDefinitions?.[operation.componentRef] ||
+          !copy.componentBindings?.[operation.componentRef]
         )
           throw error(
             "unknown_component",

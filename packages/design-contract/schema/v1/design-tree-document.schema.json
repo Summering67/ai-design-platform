@@ -6,6 +6,7 @@
     "version",
     "id",
     "name",
+    "profile",
     "assets",
     "tokens",
     "componentDefinitions",
@@ -17,6 +18,16 @@
     "version": { "const": "1.0.0" },
     "id": { "type": "string", "minLength": 1 },
     "name": { "type": "string" },
+    "profile": {
+      "type": "object",
+      "required": ["id", "version", "digest"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 },
+        "digest": { "type": "string", "minLength": 1 }
+      }
+    },
     "assets": { "type": "object" },
     "tokens": { "type": "object" },
     "componentDefinitions": { "type": "object" },

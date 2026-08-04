@@ -6,6 +6,7 @@
     "version",
     "id",
     "name",
+    "profile",
     "assets",
     "tokens",
     "componentDefinitions",
@@ -17,6 +18,7 @@
     "version": { "const": "1.0.0" },
     "id": { "$ref": "#/$defs/id" },
     "name": { "type": "string", "minLength": 1 },
+    "profile": { "$ref": "#/$defs/profile" },
     "assets": { "type": "object" },
     "tokens": { "type": "object" },
     "componentDefinitions": { "type": "object" },
@@ -28,6 +30,16 @@
     }
   },
   "$defs": {
+    "profile": {
+      "type": "object",
+      "required": ["id", "version", "digest"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "version": { "type": "string", "minLength": 1 },
+        "digest": { "type": "string", "minLength": 1 }
+      }
+    },
     "id": { "type": "string", "minLength": 1 },
     "page": {
       "type": "object",

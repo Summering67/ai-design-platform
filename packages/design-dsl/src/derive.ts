@@ -1,5 +1,14 @@
 import { validateDocument } from "./core.js";
-import type { Document, Result, StoredNode } from "./types.js";
+import { validateDocumentWithProfile } from "./profile.js";
+import type {
+  DesignRenderNode,
+  DesignSystemProfile,
+  Document,
+  ProfileComponentContract,
+  Result,
+  StoredNode,
+  ValidatedDesignRenderModel,
+} from "./types.js";
 
 export type PreviewNode = {
   id: string;
@@ -39,6 +48,123 @@ export const deriveDomPreview = (document: Document): Result<PreviewNode[]> => {
     warnings: [],
   };
 };
+
+const legacyProfile = (document: Document): DesignSystemProfile => ({
+  id: document.profile?.id ?? "legacy-document-profile",
+  version: document.profile?.version ?? document.version,
+  digest: document.profile?.digest ?? "legacy-document-digest",
+  name: document.name,
+  tokens: document.tokens ?? {},
+  components: Object.fromEntries(
+    Object.entries(document.componentDefinitions ?? {}).map(([id, definition]) => [
+      id,
+      { id, propsSchema: definition.propsSchema },
+    ]),
+  ),
+  layout: {
+    modes: ["flex", "absolute"],
+    sizing: ["fixed", "fill", "hug", "minmax"],
+  },
+  icons: {},
+});
+
+const componentContract = (
+  document: Document,
+  profile: DesignSystemProfile,
+  componentRef: string,
+): ProfileComponentContract =>
+  profile.components[componentRef] ?? {
+    id: componentRef,
+    propsSchema: document.componentDefinitions?.[componentRef]?.propsSchema ?? {},
+  };
+
+export const deriveDesignRenderModel = (
+  document: Document,
+  suppliedProfile?: DesignSystemProfile,
+): Result<ValidatedDesignRenderModel> => {
+  const profile = suppliedProfile ?? legacyProfile(document);
+  const checked = suppliedProfile
+    ? validateDocumentWithProfile(document, profile)
+    : validateDocumentWithProfile(
+        { ...document, profile: document.profile ?? { id: profile.id, version: profile.version, digest: profile.digest } },
+        profile,
+      );
+  if (!checked.ok) return checked;
+  const render = (
+    page: Document["pages"][number],
+    id: string,
+  ): DesignRenderNode => {
+    const node = page.nodes[id]!;
+    if (node.kind === "root") throw new Error("Root 不可渲染");
+    const common = {
+      id,
+      ...(node.name ? { name: node.name } : {}),
+      visible: node.visible !== false,
+      ...(node.style ? { style: structuredClone(node.style) } : {}),
+      ...(node.layoutItem ? { layoutItem: structuredClone(node.layoutItem) } : {}),
+      ...(node.semantic ? { semantic: structuredClone(node.semantic) } : {}),
+    };
+    if (node.kind === "frame")
+      return {
+        ...common,
+        kind: "frame",
+        ...(node.layout ? { layout: structuredClone(node.layout) } : {}),
+        children: node.childIds.map((child) => render(page, child)),
+      };
+    if (node.kind === "text")
+      return {
+        ...common,
+        kind: "text",
+        text: node.text,
+        typography: structuredClone(node.typography),
+        children: [],
+      };
+    if (node.kind === "image")
+      return {
+        ...common,
+        kind: "image",
+        assetId: node.assetId,
+        asset: structuredClone(document.assets[node.assetId]!),
+        ...(node.alt ? { alt: node.alt } : {}),
+        children: [],
+      };
+    if (node.kind === "icon")
+      return { ...common, kind: "icon", name: node.name, children: [] };
+    return {
+      ...common,
+      kind: "component-instance",
+      componentRef: node.componentRef,
+      ...(node.variant ? { variant: structuredClone(node.variant) } : {}),
+      ...(node.slots ? { slots: structuredClone(node.slots) } : {}),
+      ...(node.overrides ? { overrides: structuredClone(node.overrides) } : {}),
+      contract: structuredClone(
+        componentContract(document, profile, node.componentRef),
+      ),
+      children: [],
+    };
+  };
+  return {
+    ok: true,
+    value: {
+      profile: { id: profile.id, version: profile.version, digest: profile.digest },
+      tokens: structuredClone(profile.tokens),
+      assets: structuredClone(document.assets),
+      pages: document.pages.map((page) => {
+        const root = page.nodes[page.rootId];
+        return {
+          id: page.id,
+          name: page.name,
+          nodes:
+            root?.kind === "root"
+              ? root.childIds.map((id) => render(page, id))
+              : [],
+        };
+      }),
+      credentials: { validated: true, digest: profile.digest },
+    },
+    warnings: [],
+  };
+};
 const failure = (path: string, message: string): Result<never> => ({
   ok: false,
   errors: [{ code: "generation_error", path, message }],
@@ -70,7 +196,7 @@ export const generateReactTailwindAntd = (
     if (node.kind === "icon")
       return `<span aria-hidden="true">${node.name}</span>`;
     if (node.kind === "component-instance") {
-      const binding = document.componentBindings[node.componentRef];
+      const binding = document.componentBindings?.[node.componentRef];
       const name = componentNames[node.componentRef];
       if (
         !binding ||
@@ -103,7 +229,7 @@ export const generateReactTailwindAntd = (
     (item): item is Result<never> => typeof item !== "string",
   );
   if (invalid) return invalid;
-  const tokenLines = Object.entries(document.tokens)
+  const tokenLines = Object.entries(document.tokens ?? {})
     .map(([key, value]) => `  "${key}": ${JSON.stringify(value)},`)
     .join("\n");
   const names = [...imports].sort();

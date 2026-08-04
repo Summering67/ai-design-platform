@@ -1,0 +1,31 @@
+{
+  "id": "team-default",
+  "version": "1.0.0",
+  "digest": "sha256:team-default-v1",
+  "name": "默认团队设计系统",
+  "tokens": {
+    "color.primary": "#1677ff",
+    "surface.canvas": "#ffffff",
+    "radius.md": 8,
+    "space.4": 16
+  },
+  "typography": { "body": { "fontSize": 14, "lineHeight": 1.5 } },
+  "components": {
+    "ui.button": {
+      "id": "ui.button",
+      "allowedVariants": { "type": ["default", "primary"] },
+      "slots": { "children": { "type": "string" } },
+      "overrides": { "children": { "type": "string" } }
+    },
+    "ui.input": { "id": "ui.input", "overrides": { "placeholder": { "type": "string" } } },
+    "ui.card": { "id": "ui.card", "slots": { "children": { "type": "nodes" } } },
+    "ui.form": { "id": "ui.form", "slots": { "children": { "type": "nodes" } } },
+    "ui.menu": { "id": "ui.menu", "overrides": { "items": { "type": "array" } } }
+  },
+  "layout": {
+    "modes": ["flex", "absolute"],
+    "sizing": ["fixed", "fill", "hug", "minmax"]
+  },
+  "icons": { "check": {}, "close": {} },
+  "assets": { "mimeTypes": ["image/png", "image/jpeg", "image/svg+xml"], "sources": ["https://"] }
+}
