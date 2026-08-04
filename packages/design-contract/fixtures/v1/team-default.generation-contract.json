@@ -1,0 +1,14 @@
+{
+  "profile": { "id": "team-default", "version": "1.0.0", "digest": "sha256:team-default-v1" },
+  "nodeKinds": ["frame", "text", "image", "icon", "component-instance"],
+  "tokens": ["color.primary", "radius.md", "space.4", "surface.canvas"],
+  "components": {
+    "ui.button": { "id": "ui.button", "allowedVariants": { "type": ["default", "primary"] }, "slots": { "children": { "type": "string" } }, "overrides": { "children": { "type": "string" } } },
+    "ui.card": { "id": "ui.card", "slots": { "children": { "type": "nodes" } } },
+    "ui.form": { "id": "ui.form", "slots": { "children": { "type": "nodes" } } },
+    "ui.input": { "id": "ui.input", "overrides": { "placeholder": { "type": "string" } } },
+    "ui.menu": { "id": "ui.menu", "overrides": { "items": { "type": "array" } } }
+  },
+  "layout": { "modes": ["flex", "absolute"], "sizing": ["fixed", "fill", "hug", "minmax"] },
+  "icons": ["check", "close"]
+}

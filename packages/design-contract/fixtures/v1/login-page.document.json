@@ -2,6 +2,7 @@
   "version": "1.0.0",
   "id": "login-document",
   "name": "登录页",
+  "profile": { "id": "team-default", "version": "1.0.0", "digest": "sha256:team-default-v1" },
   "assets": {},
   "tokens": { "color.primary": "#1677ff" },
   "componentDefinitions": {

@@ -1,4 +1,57 @@
 export type NodeId = string;
+export type ProfileReference = {
+  id: string;
+  version: string;
+  digest: string;
+};
+
+export type Asset = {
+  id: string;
+  hash: string;
+  mimeType: string;
+  intrinsicSize?: { width: number; height: number };
+  source: string;
+};
+
+export type ComponentSlotContract = {
+  type: "string" | "text" | "node" | "nodes";
+  required?: boolean;
+};
+
+export type ProfileComponentContract = {
+  id: string;
+  variants?: Record<string, string[]>;
+  allowedVariants?: Record<string, string[]>;
+  slots?: Record<string, ComponentSlotContract>;
+  overrides?: Record<string, unknown>;
+  propsSchema?: Record<string, unknown>;
+  semantic?: Record<string, unknown>;
+};
+
+export type DesignSystemProfile = {
+  id: string;
+  version: string;
+  digest: string;
+  name: string;
+  tokens: Record<string, unknown>;
+  typography?: Record<string, unknown>;
+  components: Record<string, ProfileComponentContract>;
+  layout: {
+    modes?: Array<"flex" | "absolute">;
+    sizing?: Array<"fixed" | "fill" | "hug" | "minmax">;
+  };
+  icons?: Record<string, unknown>;
+  assets?: { mimeTypes?: string[]; sources?: string[] };
+};
+
+export type DesignGenerationContract = {
+  profile: ProfileReference;
+  nodeKinds: Array<"frame" | "text" | "image" | "icon" | "component-instance">;
+  tokens: string[];
+  components: Record<string, ProfileComponentContract>;
+  layout: DesignSystemProfile["layout"];
+  icons: string[];
+};
 export type Sizing =
   | { mode: "fixed"; value: number }
   | { mode: "fill" }
@@ -54,6 +107,7 @@ export type ComponentInstanceNode = Base & {
   kind: "component-instance";
   componentRef: string;
   variant?: Record<string, string>;
+  slots?: Record<string, string | string[]>;
   overrides?: Record<string, unknown>;
 };
 export type TreeNode =
@@ -93,13 +147,14 @@ export type Meta = {
   version: "1.0.0";
   id: string;
   name: string;
-  assets: Record<
-    string,
-    { id: string; hash: string; mimeType: string; source: string }
-  >;
-  tokens: Record<string, unknown>;
-  componentDefinitions: Record<string, ComponentDefinition>;
-  componentBindings: Record<string, ComponentBinding>;
+  assets: Record<string, Asset>;
+  profile?: ProfileReference;
+  /** @deprecated 团队 Token 与组件契约由 Profile 所有，仅用于旧文档兼容。 */
+  tokens?: Record<string, unknown>;
+  /** @deprecated 目标组件绑定由渲染适配器所有。 */
+  componentDefinitions?: Record<string, ComponentDefinition>;
+  /** @deprecated 目标组件绑定由渲染适配器所有。 */
+  componentBindings?: Record<string, ComponentBinding>;
 };
 export type TreeDocument = Meta & {
   pages: { id: string; name: string; rootId: NodeId; children: TreeNode[] }[];
@@ -112,6 +167,69 @@ export type Document = Meta & {
     nodes: Record<NodeId, StoredNode>;
   }[];
 };
+
+export type DesignRenderNodeBase = {
+  id: NodeId;
+  name?: string;
+  visible: boolean;
+  style?: Style;
+  layoutItem?: LayoutItem;
+  semantic?: Record<string, unknown>;
+};
+
+export type DesignRenderFrameNode = DesignRenderNodeBase & {
+  kind: "frame";
+  layout?: Layout;
+  children: DesignRenderNode[];
+};
+
+export type DesignRenderTextNode = DesignRenderNodeBase & {
+  kind: "text";
+  text: string;
+  typography: Record<string, unknown>;
+  children: [];
+};
+
+export type DesignRenderImageNode = DesignRenderNodeBase & {
+  kind: "image";
+  assetId: string;
+  asset: Asset;
+  alt?: string;
+  children: [];
+};
+
+export type DesignRenderIconNode = DesignRenderNodeBase & {
+  kind: "icon";
+  name: string;
+  children: [];
+};
+
+export type DesignRenderComponentNode = DesignRenderNodeBase & {
+  kind: "component-instance";
+  componentRef: string;
+  variant?: Record<string, string>;
+  slots?: Record<string, string | string[]>;
+  overrides?: Record<string, unknown>;
+  contract: ProfileComponentContract;
+  children: [];
+};
+
+export type DesignRenderNode =
+  | DesignRenderFrameNode
+  | DesignRenderTextNode
+  | DesignRenderImageNode
+  | DesignRenderIconNode
+  | DesignRenderComponentNode;
+
+export type ValidatedDesignRenderModel = {
+  profile: ProfileReference;
+  tokens: Record<string, unknown>;
+  assets: Record<string, Asset>;
+  pages: Array<{ id: string; name: string; nodes: DesignRenderNode[] }>;
+  credentials: { validated: true; digest: string };
+};
+
+export type DesignRenderModel = ValidatedDesignRenderModel;
 export type Operation =
   | {
       type: "insert-subtree";

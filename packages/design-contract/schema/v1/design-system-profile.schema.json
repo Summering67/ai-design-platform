@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-design-platform.dev/schema/v1/design-system-profile.schema.json",
+  "type": "object",
+  "required": ["id", "version", "digest", "name", "tokens", "components", "layout"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "digest": { "type": "string", "minLength": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "tokens": { "type": "object" },
+    "typography": { "type": "object" },
+    "components": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/component" }
+    },
+    "layout": {
+      "type": "object",
+      "required": ["modes", "sizing"],
+      "additionalProperties": false,
+      "properties": {
+        "modes": { "type": "array", "items": { "enum": ["flex", "absolute"] } },
+        "sizing": {
+          "type": "array",
+          "items": { "enum": ["fixed", "fill", "hug", "minmax"] }
+        }
+      }
+    },
+    "icons": { "type": "object" },
+    "assets": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mimeTypes": { "type": "array", "items": { "type": "string" } },
+        "sources": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  },
+  "$defs": {
+    "component": {
+      "type": "object",
+      "required": ["id"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "variants": { "type": "object", "additionalProperties": { "type": "array", "items": { "type": "string" } } },
+        "allowedVariants": { "type": "object", "additionalProperties": { "type": "array", "items": { "type": "string" } } },
+        "slots": { "type": "object" },
+        "overrides": { "type": "object" },
+        "propsSchema": { "type": "object" },
+        "semantic": { "type": "object" }
+      }
+    }
+  }
+}
