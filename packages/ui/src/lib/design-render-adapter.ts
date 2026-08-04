@@ -72,7 +72,12 @@ const componentMap: Record<string, (node: ComponentNode, children: ReactNode) =>
   "ui.menu": (node) => createElement(Menu, { items: Array.isArray(node.overrides?.items) ? node.overrides.items as { key: string; label: ReactNode }[] : [] }),
 };
 export const createComponentRegistry = (renderers: typeof componentMap = componentMap): ComponentRegistry => ({
-  render: (node, children) => renderers[node.componentRef] ? success(renderers[node.componentRef](node, children)) : failure(`未注册组件 ${node.componentRef}`),
+  render: (node, children) => {
+    const renderer = renderers[node.componentRef];
+    return renderer
+      ? success(renderer(node, children))
+      : failure(`未注册组件 ${node.componentRef}`);
+  },
 });
 
 export const createDefaultDesignRenderAdapter = (profile: DesignSystemProfile): DesignRenderAdapter => ({
