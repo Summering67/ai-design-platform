@@ -1,0 +1,18 @@
+{
+  "version": "2.0.0",
+  "id": "invalid-props-node",
+  "name": "Props 节点",
+  "designSystem": { "id": "team", "version": "1.0.0", "digest": "sha256:team", "tokens": {}, "components": {} },
+  "assets": {},
+  "root": {
+    "id": "root",
+    "kind": "component",
+    "name": "组件",
+    "tag": "Card",
+    "style": {},
+    "props": {
+      "children": { "id": "hidden", "kind": "text", "tag": "span", "children": [], "text": "隐藏" }
+    },
+    "children": []
+  }
+}

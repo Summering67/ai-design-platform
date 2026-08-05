@@ -1,0 +1,238 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-design-platform.dev/schema/v2/design-document.schema.json",
+  "title": "DesignDocument v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "id", "name", "designSystem", "assets", "root"],
+  "properties": {
+    "$schema": { "type": "string", "format": "uri-reference" },
+    "version": { "const": "2.0.0" },
+    "id": { "$ref": "#/$defs/id" },
+    "name": { "type": "string", "minLength": 1 },
+    "designSystem": { "$ref": "#/$defs/designSystem" },
+    "assets": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/asset" }
+    },
+    "root": { "$ref": "#/$defs/node" }
+  },
+  "$defs": {
+    "id": { "type": "string", "minLength": 1 },
+    "jsonValue": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "boolean" },
+        { "type": "number", "minimum": -1.7976931348623157e308, "maximum": 1.7976931348623157e308 },
+        { "type": "string" },
+        { "type": "array", "items": { "$ref": "#/$defs/jsonValue" } },
+        {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/jsonValue" }
+        }
+      ]
+    },
+    "jsonObject": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/jsonValue" }
+    },
+    "asset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "src", "mimeType"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "type": { "enum": ["image", "icon", "font", "file"] },
+        "src": { "type": "string", "minLength": 1 },
+        "mimeType": { "type": "string", "minLength": 1 },
+        "hash": { "type": "string", "minLength": 1 },
+        "width": { "type": "number", "exclusiveMinimum": 0 },
+        "height": { "type": "number", "exclusiveMinimum": 0 },
+        "alt": { "type": "string" }
+      }
+    },
+    "component": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "packageName": { "type": "string", "minLength": 1 },
+        "defaultModule": { "type": "boolean" },
+        "propsSchema": { "$ref": "#/$defs/jsonObject" },
+        "variants": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": { "type": "string" },
+            "uniqueItems": true
+          }
+        },
+        "slots": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type"],
+            "properties": {
+              "type": { "enum": ["string", "text", "node", "nodes"] },
+              "required": { "type": "boolean" }
+            }
+          }
+        }
+      }
+    },
+    "designSystem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version", "digest", "tokens", "components"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "version": { "type": "string", "minLength": 1 },
+        "digest": { "type": "string", "pattern": "^[A-Za-z0-9_-]+:[A-Za-z0-9+/=_-]+$" },
+        "tokens": { "$ref": "#/$defs/jsonObject" },
+        "components": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/component" }
+        },
+        "allowedTags": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        }
+      }
+    },
+    "styleValue": {
+      "oneOf": [
+        { "type": "number" },
+        { "type": "string" },
+        { "type": "boolean" }
+      ]
+    },
+    "style": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "display": { "enum": ["block", "inline", "inline-block", "flex", "inline-flex", "none", "-webkit-box"] },
+        "position": { "enum": ["static", "relative", "absolute", "fixed", "sticky"] },
+        "top": { "$ref": "#/$defs/styleValue" },
+        "right": { "$ref": "#/$defs/styleValue" },
+        "bottom": { "$ref": "#/$defs/styleValue" },
+        "left": { "$ref": "#/$defs/styleValue" },
+        "boxSizing": { "enum": ["content-box", "border-box"] },
+        "width": { "$ref": "#/$defs/styleValue" },
+        "height": { "$ref": "#/$defs/styleValue" },
+        "minWidth": { "$ref": "#/$defs/styleValue" },
+        "minHeight": { "$ref": "#/$defs/styleValue" },
+        "maxWidth": { "$ref": "#/$defs/styleValue" },
+        "maxHeight": { "$ref": "#/$defs/styleValue" },
+        "padding": { "$ref": "#/$defs/styleValue" },
+        "paddingTop": { "$ref": "#/$defs/styleValue" },
+        "paddingRight": { "$ref": "#/$defs/styleValue" },
+        "paddingBottom": { "$ref": "#/$defs/styleValue" },
+        "paddingLeft": { "$ref": "#/$defs/styleValue" },
+        "margin": { "$ref": "#/$defs/styleValue" },
+        "marginTop": { "$ref": "#/$defs/styleValue" },
+        "marginRight": { "$ref": "#/$defs/styleValue" },
+        "marginBottom": { "$ref": "#/$defs/styleValue" },
+        "marginLeft": { "$ref": "#/$defs/styleValue" },
+        "background": { "type": "string" },
+        "backgroundColor": { "type": "string" },
+        "backgroundImage": { "type": "string" },
+        "backgroundPosition": { "type": "string" },
+        "backgroundSize": { "type": "string" },
+        "backgroundRepeat": { "enum": ["repeat", "no-repeat"] },
+        "backgroundClip": { "type": "string" },
+        "border": { "type": "string" },
+        "borderTopWidth": { "type": "number" },
+        "borderRightWidth": { "type": "number" },
+        "borderBottomWidth": { "type": "number" },
+        "borderLeftWidth": { "type": "number" },
+        "borderTopColor": { "type": "string" },
+        "borderRightColor": { "type": "string" },
+        "borderBottomColor": { "type": "string" },
+        "borderLeftColor": { "type": "string" },
+        "borderStyle": { "enum": ["solid", "dashed", "dotted", "none"] },
+        "borderRadius": { "$ref": "#/$defs/styleValue" },
+        "borderTopLeftRadius": { "$ref": "#/$defs/styleValue" },
+        "borderTopRightRadius": { "$ref": "#/$defs/styleValue" },
+        "borderBottomRightRadius": { "$ref": "#/$defs/styleValue" },
+        "borderBottomLeftRadius": { "$ref": "#/$defs/styleValue" },
+        "outlineWidth": { "type": "number" },
+        "outlineColor": { "type": "string" },
+        "outlineStyle": { "enum": ["solid", "dashed", "dotted", "none"] },
+        "color": { "type": "string" },
+        "fontSize": { "type": "number" },
+        "fontFamily": { "type": "string" },
+        "fontWeight": { "type": "number" },
+        "fontStyle": { "enum": ["normal", "italic"] },
+        "lineHeight": { "$ref": "#/$defs/styleValue" },
+        "letterSpacing": { "$ref": "#/$defs/styleValue" },
+        "textAlign": { "enum": ["left", "right", "center", "justify"] },
+        "textTransform": { "enum": ["none", "uppercase", "lowercase"] },
+        "textDecoration": { "enum": ["none", "underline", "line-through"] },
+        "textOverflow": { "enum": ["clip", "ellipsis"] },
+        "whiteSpace": { "enum": ["normal", "nowrap", "pre", "pre-wrap"] },
+        "flexGrow": { "type": "number", "minimum": 0 },
+        "flexShrink": { "type": "number", "minimum": 0 },
+        "flexBasis": { "$ref": "#/$defs/styleValue" },
+        "flexDirection": { "enum": ["row", "column", "row-reverse", "column-reverse"] },
+        "flexWrap": { "enum": ["nowrap", "wrap", "wrap-reverse"] },
+        "justifyContent": { "enum": ["flex-start", "flex-end", "center", "space-between", "space-around", "space-evenly"] },
+        "alignItems": { "enum": ["flex-start", "flex-end", "center", "baseline", "stretch"] },
+        "alignSelf": { "enum": ["auto", "flex-start", "flex-end", "center", "baseline", "stretch"] },
+        "alignContent": { "enum": ["flex-start", "flex-end", "center", "space-between", "stretch"] },
+        "columnGap": { "type": "number" },
+        "rowGap": { "type": "number" },
+        "opacity": { "type": "number", "minimum": 0, "maximum": 1 },
+        "zIndex": { "type": "number" },
+        "transform": { "type": "string" },
+        "boxShadow": { "type": "string" },
+        "backdropFilter": { "type": "string" },
+        "filter": { "type": "string" },
+        "overflow": { "enum": ["visible", "hidden", "scroll", "auto"] },
+        "overflowX": { "enum": ["visible", "hidden", "scroll", "auto"] },
+        "overflowY": { "enum": ["visible", "hidden", "scroll", "auto"] }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tool": { "type": "string", "minLength": 1 },
+        "type": { "type": "string", "minLength": 1 },
+        "id": { "type": "string", "minLength": 1 }
+      }
+    },
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "name", "tag", "style", "props", "children"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "kind": { "enum": ["element", "text", "image", "component"] },
+        "name": { "type": "string" },
+        "tag": { "type": "string", "minLength": 1 },
+        "packageName": { "type": "string", "minLength": 1 },
+        "defaultModule": { "type": "boolean" },
+        "style": { "$ref": "#/$defs/style" },
+        "props": { "$ref": "#/$defs/jsonObject" },
+        "children": { "type": "array", "items": { "$ref": "#/$defs/node" } },
+        "text": { "type": "string" },
+        "assetId": { "$ref": "#/$defs/id" },
+        "alt": { "type": "string" },
+        "source": { "$ref": "#/$defs/source" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "text" } } },
+          "then": { "required": ["text"] }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "image" } } },
+          "then": { "required": ["assetId"] }
+        }
+      ]
+    }
+  }
+}

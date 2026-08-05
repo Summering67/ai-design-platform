@@ -1,0 +1,100 @@
+{
+  "$schema": "https://ai-design-platform.dev/schema/v2/design-document.schema.json",
+  "version": "2.0.0",
+  "id": "login-page",
+  "name": "登录页",
+  "designSystem": {
+    "id": "team-default",
+    "version": "1.0.0",
+    "digest": "sha256:team-default-v1",
+    "tokens": {
+      "color.primary": "#1677ff"
+    },
+    "components": {
+      "Button": {
+        "id": "Button",
+        "packageName": "antd",
+        "propsSchema": {
+          "type": "object"
+        },
+        "variants": {
+          "type": ["primary", "default"]
+        }
+      }
+    },
+    "allowedTags": ["div", "h1", "Button", "img"]
+  },
+  "assets": {
+    "logo": {
+      "id": "logo",
+      "type": "image",
+      "src": "/assets/logo.png",
+      "mimeType": "image/png",
+      "width": 120,
+      "height": 40,
+      "alt": "品牌 Logo"
+    }
+  },
+  "root": {
+    "id": "root",
+    "kind": "element",
+    "name": "登录页",
+    "tag": "div",
+    "style": {
+      "display": "flex",
+      "flexDirection": "column",
+      "width": 1440,
+      "minHeight": 900,
+      "backgroundColor": "#ffffff",
+      "padding": 48
+    },
+    "props": {},
+    "children": [
+      {
+        "id": "logo-node",
+        "kind": "image",
+        "name": "Logo",
+        "tag": "img",
+        "style": {
+          "width": 120,
+          "height": 40
+        },
+        "props": {},
+        "children": [],
+        "assetId": "logo",
+        "alt": "品牌 Logo"
+      },
+      {
+        "id": "title",
+        "kind": "text",
+        "name": "标题",
+        "tag": "h1",
+        "style": {
+          "fontSize": 32,
+          "fontWeight": 600,
+          "color": "#111827"
+        },
+        "props": {},
+        "children": [],
+        "text": "欢迎登录"
+      },
+      {
+        "id": "submit",
+        "kind": "component",
+        "name": "登录按钮",
+        "tag": "Button",
+        "packageName": "antd",
+        "style": {
+          "width": 320,
+          "height": 40,
+          "backgroundColor": "#1677ff"
+        },
+        "props": {
+          "type": "primary",
+          "htmlType": "submit"
+        },
+        "children": []
+      }
+    ]
+  }
+}

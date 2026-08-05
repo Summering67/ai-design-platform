@@ -46,3 +46,4 @@
 - `packages/ui` 增加对 `@repo/design-dsl` 公开导出的 workspace 依赖；复用当前已加入的 `antd`，不新增其他第三方依赖。
 - 设计文档需要保存所用设计系统的 ID/版本/内容摘要，保证重新校验和渲染时使用内容完全一致的团队约束。
 - 不在本变更中实现具体上游模型调用，但必须定义其生成输入和服务端校验边界。
+> 该变更的 DSL/Profile 事实源设计已被 `consolidate-design-dsl-source` 取代。实施时以 DesignDocument 2.0 树形 JSON 为准，本文仅保留历史背景。

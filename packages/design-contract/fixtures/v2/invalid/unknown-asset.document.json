@@ -1,0 +1,17 @@
+{
+  "version": "2.0.0",
+  "id": "invalid-asset",
+  "name": "悬空资源",
+  "designSystem": { "id": "team", "version": "1.0.0", "digest": "sha256:team", "tokens": {}, "components": {} },
+  "assets": {},
+  "root": {
+    "id": "root",
+    "kind": "image",
+    "name": "图片",
+    "tag": "img",
+    "style": {},
+    "props": {},
+    "children": [],
+    "assetId": "missing"
+  }
+}

@@ -1,4 +1,2 @@
-export * from "./core.js";
-export * from "./derive.js";
-export * from "./profile.js";
-export * from "./types.js";
+export * from "./v2.js";
+export * from "./migrate-v2.js";
