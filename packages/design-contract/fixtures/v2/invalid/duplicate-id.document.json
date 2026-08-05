@@ -1,0 +1,19 @@
+{
+  "version": "2.0.0",
+  "id": "invalid-duplicate-id",
+  "name": "重复 ID",
+  "designSystem": { "id": "team", "version": "1.0.0", "digest": "sha256:team", "tokens": {}, "components": {} },
+  "assets": {},
+  "root": {
+    "id": "root",
+    "kind": "element",
+    "name": "Root",
+    "tag": "div",
+    "style": {},
+    "props": {},
+    "children": [
+      { "id": "same", "kind": "text", "name": "A", "tag": "span", "style": {}, "props": {}, "children": [], "text": "A" },
+      { "id": "same", "kind": "text", "name": "B", "tag": "span", "style": {}, "props": {}, "children": [], "text": "B" }
+    ]
+  }
+}

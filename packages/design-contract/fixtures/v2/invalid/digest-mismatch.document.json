@@ -1,0 +1,16 @@
+{
+  "version": "2.0.0",
+  "id": "invalid-digest",
+  "name": "摘要不匹配",
+  "designSystem": { "id": "team", "version": "1.0.0", "digest": "sha256:not-the-content", "tokens": { "color.primary": "#1677ff" }, "components": {} },
+  "assets": {},
+  "root": {
+    "id": "root",
+    "kind": "element",
+    "name": "Root",
+    "tag": "div",
+    "style": {},
+    "props": {},
+    "children": []
+  }
+}

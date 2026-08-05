@@ -1,5 +1,5 @@
 import { createElement, type CSSProperties, type ReactNode } from "react";
-import type { DesignRenderNode, ValidatedDesignRenderModel } from "@repo/design-dsl";
+import type { DesignRenderNode, ValidatedDesignRenderModel } from "@repo/design-dsl/legacy";
 import { createDefaultDesignRenderAdapter, type DesignRenderAdapter } from "../../lib/design-render-adapter";
 
 export type DesignRendererProps = {

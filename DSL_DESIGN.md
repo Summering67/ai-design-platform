@@ -1,5 +1,10 @@
 # AI 设计 DSL 设计
 
+> 当前规范（2026-08）：唯一事实源是 `DesignDocument 2.0.0` 树形 JSON，唯一当前 Schema 为
+> `packages/design-contract/schema/v2/design-document.schema.json`。本文后续关于 v1 Graph、
+> `DesignTreeDocument`、外部 Profile 和 `DesignOperation` 的描述属于历史设计，实施时以
+> `openspec/changes/consolidate-design-dsl-source/` 为准。
+
 ## 1. 目标与范围
 
 本 DSL 用于承接 AI 直接生成的 UI 结构，并从同一份结构化数据派生出：
@@ -15,18 +20,18 @@
 
 ### 2.1 DSL 是唯一事实来源
 
-规范化后的 `DesignDocument` Graph 保存设计意图，是唯一事实来源。设计稿预览和代码均由它派生，不能将 AI 使用的树视图、DOM、JSX、Tailwind 类名或 DOM 测量结果作为主数据。
+规范化后的 `DesignDocument` 2.0 Tree 保存设计数据，是唯一事实来源。设计稿预览、编辑 Graph、依赖和代码均由它派生，不能将 Graph、DOM、JSX、Tailwind 类名或 DOM 测量结果作为主数据。
 
 ```text
-AI
-  → DesignTreeDocument
-  → 校验与规范化
-  → DesignDocument Graph
+AI / 导入
+  → DesignDocument 2.0 Tree
+  → Schema 与语义校验
+  → 可丢弃 Graph 投影
   ├─→ DOM 设计稿渲染器
   └─→ React + Tailwind + Ant Design 代码生成器
 ```
 
-代码生成是单向派生。首期内，人工修改生成后的代码不会反向覆盖 `DesignDocument`。首次 AI 生成完整的 `DesignTreeDocument`，经规范化后成为 `DesignDocument`；后续 AI 和编辑器只能提交受控的 `DesignOperation[]`。需要向 AI 展示完整结构时，由 `DesignDocument` 无损派生 `DesignTreeDocument`；只需理解概况时，可另行派生不参与回写的有损摘要。
+代码生成是单向派生。首期内，人工修改生成后的代码不会反向覆盖 `DesignDocument`。编辑命令只在派生 Graph 副本上应用，成功后重新生成并校验完整 Tree，再原子替换规范文档；`DesignOperation[]` 只是命令边界，不是事实源。
 
 ### 2.2 保存布局意图，不保存布局副产物
 
@@ -43,7 +48,7 @@ DSL 中不出现 `div`、`className`、CSS 字符串或 Canvas 绘制指令。DO
 Go 与 TypeScript 不直接共享类型包。版本化 JSON Schema 是 DSL 的唯一跨语言契约；前端和后端分别基于它实现解析、校验与领域能力。
 
 ```text
-packages/design-contract/schema/v1/*.json
+packages/design-contract/schema/v2/design-document.schema.json
   ├─→ apps/web 与 packages/design-dsl：TypeScript 类型、编辑与渲染
   └─→ apps/api/internal/design：Go 解析、校验、迁移与持久化
 ```

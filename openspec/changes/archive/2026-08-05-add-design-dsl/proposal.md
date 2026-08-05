@@ -29,3 +29,4 @@
 - 新增 `apps/api/internal/design` 领域模块，用于 API 接收、版本检查、迁移和持久化前校验；不改变现有认证和项目对话契约。
 - 后续设计编辑器与 AI 生成流程将以 DSL 操作协议作为唯一写入口，不能直接修改 DOM、JSX 或节点对象表。
 - 预期复用现有 TypeScript、Go、React、Tailwind CSS 与 Ant Design 技术栈；若仓库尚未具备 Ant Design，需要在实施阶段确认并仅为代码生成目标增加所需依赖。
+> 该变更的 DSL 事实源设计已被 `consolidate-design-dsl-source` 取代。实施时以 DesignDocument 2.0 树形 JSON 为准，本文仅保留历史背景。

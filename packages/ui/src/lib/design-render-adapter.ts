@@ -3,7 +3,7 @@ import type {
   DesignSystemProfile,
   ProfileComponentContract,
   ValidatedDesignRenderModel,
-} from "@repo/design-dsl";
+} from "@repo/design-dsl/legacy";
 import { createElement, type CSSProperties, type ReactNode } from "react";
 import { Button, Card, Form, Input, Menu } from "antd";
 

@@ -1,0 +1,17 @@
+{
+  "version": "2.0.0",
+  "id": "invalid-runtime",
+  "name": "运行时字段",
+  "designSystem": { "id": "team", "version": "1.0.0", "digest": "sha256:team", "tokens": {}, "components": {} },
+  "assets": {},
+  "root": {
+    "id": "root",
+    "kind": "element",
+    "name": "Root",
+    "tag": "div",
+    "style": {},
+    "props": {},
+    "children": [],
+    "toTemplate": "runtime-function"
+  }
+}
