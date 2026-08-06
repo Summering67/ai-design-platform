@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
@@ -48,13 +50,31 @@ class ErrorResponse(StrictModel):
 
 class ProjectResponse(StrictModel):
     id: str
+    user_id: str
     title: str
+    created_at: datetime
+    updated_at: datetime
 
 
 class MessageResponse(StrictModel):
     id: str
+    project_id: str
+    client_message_id: str | None = None
     role: str
     content: str
+    created_at: datetime
+
+
+class AttemptResponse(StrictModel):
+    id: str
+    project_id: str
+    user_message_id: str
+    assistant_message_id: str | None = None
+    status: str
+    error_code: str | None = None
+    lease_expires_at: datetime | None = None
+    created_at: datetime
+    finished_at: datetime | None = None
 
 
 class ProjectDetailResponse(StrictModel):

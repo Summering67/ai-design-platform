@@ -21,6 +21,10 @@ class UnauthorizedError(Exception):
     """Stable authentication-domain error."""
 
 
+class InvalidCredentialsError(Exception):
+    """Stable invalid-login error."""
+
+
 class NotFoundError(Exception):
     """Stable not-found domain error."""
 
@@ -35,6 +39,10 @@ class InvalidRequestError(Exception):
 
 class NotRetryableError(Exception):
     """Stable non-retryable generation error."""
+
+
+class PersistenceError(Exception):
+    """Stable internal persistence error."""
 
 
 class UnavailableError(Exception):

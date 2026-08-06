@@ -10,8 +10,8 @@ from uuid import uuid4
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..database import SessionModel, UserModel
-from ..errors import UnauthorizedError
+from ..database import SessionModel, UserModel, database_operation
+from ..errors import InvalidCredentialsError, UnauthorizedError
 
 FIXED_USER_ID = "00000000-0000-0000-0000-000000000001"
 FIXED_USER_EMAIL = "developer@local.test"
@@ -25,21 +25,36 @@ class AuthService:
             raise ValueError("认证服务配置无效")
         self.password = password
 
-    async def login(self, session: AsyncSession, email: str, password: str) -> tuple[UserModel, str]:
+    @database_operation()
+    async def login(
+        self, session: AsyncSession, email: str, password: str
+    ) -> tuple[UserModel, str]:
         if email.strip() != FIXED_USER_EMAIL or not hmac.compare_digest(password, self.password):
-            raise UnauthorizedError
+            raise InvalidCredentialsError
         user = await session.scalar(select(UserModel).where(UserModel.id == FIXED_USER_ID))
         if user is None:
             raise RuntimeError("固定用户不存在")
         token = base64.urlsafe_b64encode(secrets.token_bytes(32)).rstrip(b"=").decode()
-        session.add(SessionModel(id=str(uuid4()), user_id=user.id, token_hash=_token_hash(token), expires_at=_now() + SESSION_DURATION))
+        session.add(
+            SessionModel(
+                id=str(uuid4()),
+                user_id=user.id,
+                token_hash=_token_hash(token),
+                expires_at=_now() + SESSION_DURATION,
+            )
+        )
         await session.commit()
         return user, token
 
+    @database_operation()
     async def current_user(self, session: AsyncSession, token: str) -> UserModel:
         if not token.strip():
             raise UnauthorizedError
-        entry = await session.scalar(select(SessionModel).where(SessionModel.token_hash == _token_hash(token), SessionModel.expires_at > _now()))
+        entry = await session.scalar(
+            select(SessionModel).where(
+                SessionModel.token_hash == _token_hash(token), SessionModel.expires_at > _now()
+            )
+        )
         if entry is None:
             raise UnauthorizedError
         user = await session.scalar(select(UserModel).where(UserModel.id == entry.user_id))
@@ -47,9 +62,12 @@ class AuthService:
             raise UnauthorizedError
         return user
 
+    @database_operation()
     async def logout(self, session: AsyncSession, token: str) -> None:
         if token.strip():
-            await session.execute(delete(SessionModel).where(SessionModel.token_hash == _token_hash(token)))
+            await session.execute(
+                delete(SessionModel).where(SessionModel.token_hash == _token_hash(token))
+            )
             await session.commit()
 
 

@@ -16,9 +16,11 @@ from .config import RuntimeConfig, load_config
 from .database import Database, open_database
 from .errors import (
     ConflictError,
+    InvalidCredentialsError,
     InvalidRequestError,
     NotFoundError,
     NotRetryableError,
+    PersistenceError,
     UnauthorizedError,
 )
 from .logging import configure_logging, request_log
@@ -31,12 +33,16 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     config: RuntimeConfig = getattr(app.state, "config", None) or load_config()
     app.state.config = config
     app.state.logger = configure_logging(config.log)
-    database: Database = getattr(app.state, "database", None) or await open_database(config.database)
+    database: Database = getattr(app.state, "database", None) or await open_database(
+        config.database
+    )
     app.state.database = database
     client = getattr(app.state, "http_client", None) or httpx.AsyncClient()
     app.state.http_client = client
     app.state.chat_client = getattr(app.state, "chat_client", None) or ChatClient(client, config.ai)
-    app.state.auth_service = getattr(app.state, "auth_service", None) or AuthService(config.auth.fixed_user_password)
+    app.state.auth_service = getattr(app.state, "auth_service", None) or AuthService(
+        config.auth.fixed_user_password
+    )
     app.state.project_service = getattr(app.state, "project_service", None) or ProjectService()
     try:
         yield
@@ -47,7 +53,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             await database.close()
 
 
-def create_app(config: RuntimeConfig | None = None, database: Database | None = None, chat_client: ChatClient | None = None) -> FastAPI:
+def create_app(
+    config: RuntimeConfig | None = None,
+    database: Database | None = None,
+    chat_client: ChatClient | None = None,
+) -> FastAPI:
     app = FastAPI(title="AI Design Server", lifespan=lifespan)
     app.state.active_generations = {}
     if config is not None:
@@ -73,24 +83,38 @@ def create_app(config: RuntimeConfig | None = None, database: Database | None = 
         return JSONResponse({"status": "ready"})
 
     @app.middleware("http")
-    async def access_log(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
+    async def access_log(
+        request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
         started = time.monotonic()
         response = await call_next(request)
-        request_log(request.app.state.logger, request.method, request.url.path, response.status_code, started)
+        request_log(
+            request.app.state.logger,
+            request.method,
+            request.url.path,
+            response.status_code,
+            started,
+        )
         return response
 
     @app.exception_handler(RequestValidationError)
-    async def validation_error(_: Request, __: RequestValidationError) -> JSONResponse:
-        return _error(400, "invalid_request", "请求无效")
+    async def validation_error(request: Request, _: RequestValidationError) -> JSONResponse:
+        message = "登录信息无效" if request.url.path == "/api/auth/login" else "请求无效"
+        return _error(400, "invalid_request", message)
 
     for error_type, status, code, message in (
+        (InvalidCredentialsError, 401, "invalid_credentials", "邮箱或密码错误"),
         (UnauthorizedError, 401, "unauthorized", "请先登录"),
         (NotFoundError, 404, "not_found", "项目不存在"),
         (ConflictError, 409, "generation_in_progress", "项目正在生成"),
         (NotRetryableError, 409, "not_retryable", "消息不可重新生成"),
         (InvalidRequestError, 400, "invalid_request", "请求无效"),
+        (PersistenceError, 500, "internal_error", "内部错误"),
     ):
-        app.add_exception_handler(error_type, lambda _, __, status=status, code=code, message=message: _error(status, code, message))
+        app.add_exception_handler(
+            error_type,
+            lambda _, __, status=status, code=code, message=message: _error(status, code, message),
+        )
     return app
 
 

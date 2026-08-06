@@ -9,3 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 async def get_session(request: Request) -> AsyncIterator[AsyncSession]:
     async with request.app.state.database.session() as session:
         yield session
+
+
+async def get_auth_session(request: Request) -> AsyncIterator[AsyncSession]:
+    async with request.app.state.database.session() as session:
+        yield session
