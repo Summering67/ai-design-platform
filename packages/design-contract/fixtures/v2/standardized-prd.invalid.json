@@ -1,0 +1,12 @@
+{
+  "version": "2.0.0",
+  "id": "prd-invalid",
+  "summary": "无效需求",
+  "goals": [],
+  "users": [],
+  "scope": {"in": [], "out": []},
+  "pages": [{"id": "same", "name": "A", "purpose": "A"}, {"id": "same", "name": "B", "purpose": "B"}],
+  "flows": [{"id": "flow", "name": "流程", "steps": [{"id": "step", "pageId": "missing", "action": "跳转"}]}],
+  "contentRequirements": [], "componentRequirements": [], "interactions": [], "responsive": [], "accessibility": [], "constraints": [], "assumptions": [], "openQuestions": [], "blockingIssues": [],
+  "unknown": true
+}

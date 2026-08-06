@@ -218,6 +218,7 @@
         "style": { "$ref": "#/$defs/style" },
         "props": { "$ref": "#/$defs/jsonObject" },
         "children": { "type": "array", "items": { "$ref": "#/$defs/node" } },
+        "responsive": { "$ref": "#/$defs/jsonObject" },
         "text": { "type": "string" },
         "assetId": { "$ref": "#/$defs/id" },
         "alt": { "type": "string" },

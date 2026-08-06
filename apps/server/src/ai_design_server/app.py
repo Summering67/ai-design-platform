@@ -9,6 +9,8 @@ from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from .agents.graph import build as build_agent_graph
+from .agents.model import ModelPort, create_openai_model
 from .auth.router import router as auth_router
 from .auth.service import AuthService
 from .chat.client import ChatClient
@@ -40,6 +42,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     client = getattr(app.state, "http_client", None) or httpx.AsyncClient()
     app.state.http_client = client
     app.state.chat_client = getattr(app.state, "chat_client", None) or ChatClient(client, config.ai)
+    app.state.agent_model = getattr(app.state, "agent_model", None) or create_openai_model(config.ai)
+    app.state.agent_graph = getattr(app.state, "agent_graph", None) or build_agent_graph(
+        app.state.agent_model, config.agent
+    )
+    app.state.active_agent_runs = getattr(app.state, "active_agent_runs", {})
     app.state.auth_service = getattr(app.state, "auth_service", None) or AuthService(
         config.auth.fixed_user_password
     )
@@ -61,9 +68,11 @@ def create_app(
     config: RuntimeConfig | None = None,
     database: Database | None = None,
     chat_client: ChatClient | None = None,
+    agent_model: ModelPort | None = None,
 ) -> FastAPI:
     app = FastAPI(title="AI Design Server", lifespan=lifespan)
     app.state.active_generations = {}
+    app.state.active_agent_runs = {}
     if config is not None:
         app.state.config = config
     if database is not None:
@@ -71,6 +80,8 @@ def create_app(
         app.state.database_injected = True
     if chat_client is not None:
         app.state.chat_client = chat_client
+    if agent_model is not None:
+        app.state.agent_model = agent_model
     app.include_router(auth_router)
     app.include_router(project_router)
 

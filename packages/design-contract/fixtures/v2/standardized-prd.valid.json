@@ -1,0 +1,19 @@
+{
+  "version": "2.0.0",
+  "id": "prd-dashboard",
+  "summary": "团队项目管理工作台",
+  "goals": ["让团队查看项目状态"],
+  "users": [{"id": "member", "text": "团队成员"}],
+  "scope": {"in": ["项目列表"], "out": ["计费"]},
+  "pages": [{"id": "projects", "name": "项目列表", "purpose": "查看和筛选项目", "states": ["loading", "empty", "ready", "error"]}],
+  "flows": [{"id": "browse", "name": "浏览项目", "steps": [{"id": "browse-1", "pageId": "projects", "action": "查看项目列表"}]}],
+  "contentRequirements": [{"id": "project-name", "text": "显示项目名称", "priority": "must"}],
+  "componentRequirements": [{"id": "project-card", "text": "使用项目卡片", "priority": "should"}],
+  "interactions": [],
+  "responsive": [{"id": "mobile", "text": "窄屏改为单列", "priority": "must"}],
+  "accessibility": [{"id": "keyboard", "text": "支持键盘操作", "priority": "must"}],
+  "constraints": [],
+  "assumptions": [],
+  "openQuestions": [],
+  "blockingIssues": []
+}

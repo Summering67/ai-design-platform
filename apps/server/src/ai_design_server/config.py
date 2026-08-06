@@ -30,6 +30,17 @@ class _EnvOverrides(BaseSettings):
     ai_api_key: str | None = None
     ai_model: str | None = None
     ai_request_timeout: str | None = None
+    agent_node_timeout: str | None = None
+    agent_total_timeout: str | None = None
+    agent_max_input_bytes: int | None = None
+    agent_max_output_bytes: int | None = None
+    agent_max_pages: int | None = None
+    agent_max_nodes: int | None = None
+    agent_max_depth: int | None = None
+    agent_max_tasks: int | None = None
+    agent_max_task_depth: int | None = None
+    agent_max_concurrency: int | None = None
+    agent_max_retries: int | None = None
     auth_fixed_user_password: str | None = None
 
 
@@ -69,6 +80,22 @@ class AIConfig(BaseModel):
     request_timeout: float = 60.0
 
 
+class AgentConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    node_timeout: float = 60.0
+    total_timeout: float = 300.0
+    max_input_bytes: int = 512 * 1024
+    max_output_bytes: int = 1024 * 1024
+    max_pages: int = 20
+    max_nodes: int = 500
+    max_depth: int = 32
+    max_tasks: int = 12
+    max_task_depth: int = 4
+    max_concurrency: int = 4
+    max_retries: int = 1
+
+
 class AuthConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -82,6 +109,7 @@ class RuntimeConfig(BaseModel):
     database: DatabaseConfig = Field(default_factory=DatabaseConfig)
     log: LogConfig = Field(default_factory=LogConfig)
     ai: AIConfig = Field(default_factory=AIConfig)
+    agent: AgentConfig = Field(default_factory=AgentConfig)
     auth: AuthConfig = Field(default_factory=AuthConfig)
 
     @model_validator(mode="after")
@@ -111,6 +139,19 @@ class RuntimeConfig(BaseModel):
             raise ValueError("固定用户密码不能为空")
         if self.server.write_timeout <= self.ai.request_timeout:
             raise ValueError("HTTP 写超时必须大于 AI 请求超时")
+        if self.agent.total_timeout < self.agent.node_timeout:
+            raise ValueError("Agent 总超时不能小于节点超时")
+        if min(
+            self.agent.max_input_bytes,
+            self.agent.max_output_bytes,
+            self.agent.max_pages,
+            self.agent.max_nodes,
+            self.agent.max_depth,
+            self.agent.max_tasks,
+            self.agent.max_task_depth,
+            self.agent.max_concurrency,
+        ) <= 0 or self.agent.max_retries < 0:
+            raise ValueError("Agent 资源上限无效")
         return self
 
 
@@ -186,6 +227,7 @@ def load_config() -> RuntimeConfig:
         "database": {},
         "log": {},
         "ai": {},
+        "agent": {},
         "auth": {},
     }
     _merge_nested(values, _yaml_values())
@@ -226,6 +268,7 @@ def _convert_durations(values: dict[str, Any]) -> dict[str, Any]:
         "server": ("read_timeout", "write_timeout", "idle_timeout", "shutdown_timeout"),
         "database": ("conn_max_lifetime", "ping_timeout"),
         "ai": ("request_timeout",),
+        "agent": ("node_timeout", "total_timeout"),
     }.items():
         for field in field_names:
             if field in converted[section] and converted[section][field] is not None:

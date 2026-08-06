@@ -1,0 +1,10 @@
+{
+  "version": "2.0.0",
+  "event": "progress",
+  "runId": "run-1",
+  "taskId": "task-1",
+  "parentTaskId": null,
+  "stage": "requirement",
+  "attempt": 1,
+  "payload": {"message": "需求解析完成"}
+}

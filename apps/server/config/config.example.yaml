@@ -20,5 +20,18 @@ ai:
   model: deepseek-v4-flash
   request_timeout: 60s
 
+agent:
+  node_timeout: 60s
+  total_timeout: 300s
+  max_input_bytes: 524288
+  max_output_bytes: 1048576
+  max_pages: 20
+  max_nodes: 500
+  max_depth: 32
+  max_tasks: 12
+  max_task_depth: 4
+  max_concurrency: 4
+  max_retries: 1
+
 auth:
   fixed_user_password: ""

@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-design-platform.dev/schema/v2/ui-validation-report.schema.json",
+  "type": "object",
+  "required": ["version", "passed", "issues", "summary"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "const": "2.0.0" },
+    "passed": { "type": "boolean" },
+    "issues": { "type": "array", "items": { "$ref": "#/$defs/issue" } },
+    "summary": {
+      "type": "object",
+      "required": ["total", "errors", "warnings", "fixed", "unresolved"],
+      "additionalProperties": false,
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "errors": { "type": "integer", "minimum": 0 },
+        "warnings": { "type": "integer", "minimum": 0 },
+        "fixed": { "type": "integer", "minimum": 0 },
+        "unresolved": { "type": "integer", "minimum": 0 }
+      }
+    }
+  },
+  "$defs": {
+    "issue": {
+      "type": "object",
+      "required": ["code", "severity", "path", "message", "repairable", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "code": { "type": "string", "minLength": 1 },
+        "severity": { "enum": ["error", "warning"] },
+        "path": { "type": "string", "pattern": "^(/.*)?$" },
+        "message": { "type": "string", "minLength": 1 },
+        "repairable": { "type": "boolean" },
+        "status": { "enum": ["open", "fixed", "unresolved"] }
+      }
+    }
+  }
+}
