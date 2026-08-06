@@ -202,13 +202,20 @@ async def _events(
 
     task = asyncio.create_task(run())
     request.app.state.active_generations[attempt.id] = task
-    while True:
-        item = await queue.get()
-        if item is None:
-            break
-        yield item
-    await task
-    request.app.state.active_generations.pop(attempt.id, None)
+    try:
+        while True:
+            item = await queue.get()
+            if item is None:
+                break
+            yield item
+        await task
+    finally:
+        # 客户端断开时，必须终止上游 HTTPX 流并释放 generation 租约。
+        # stop 路由也会取消同一个 task；这里保持幂等，避免重复写入状态。
+        if not task.done():
+            task.cancel()
+        await asyncio.gather(task, return_exceptions=True)
+        request.app.state.active_generations.pop(attempt.id, None)
 
 
 def _event(name: str, payload: object) -> str:

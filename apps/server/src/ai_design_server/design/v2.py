@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from importlib import resources
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +16,13 @@ def _schema_path() -> Path:
     return Path(__file__).resolve().parents[5] / "packages" / "design-contract" / "schema" / "v2" / "design-document.schema.json"
 
 
+def _schema_text() -> str:
+    resource = resources.files(__package__).joinpath("design-document.schema.json")
+    if resource.is_file():
+        return resource.read_text(encoding="utf-8")
+    return _schema_path().read_text(encoding="utf-8")
+
+
 def prepare_v2(payload: bytes, allowed: bool) -> dict[str, Any]:
     if not allowed:
         raise PermissionError("无权修改设计文档")
@@ -24,7 +32,7 @@ def prepare_v2(payload: bytes, allowed: bool) -> dict[str, Any]:
         document = json.loads(payload)
         if not isinstance(document, dict) or document.get("version") != "2.0.0":
             raise InvalidRequestError("设计文档版本不受支持")
-        schema = json.loads(_schema_path().read_text(encoding="utf-8"))
+        schema = json.loads(_schema_text())
         error = next(Draft202012Validator(schema).iter_errors(document), None)
         if error:
             raise InvalidRequestError("设计文档无效") from error

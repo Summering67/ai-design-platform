@@ -6,7 +6,7 @@
 
 * `apps/web`：主业务应用。
 * `apps/docs`：文档应用。
-* `apps/api`：API 后端应用。
+* `apps/server`：默认 API 后端应用（FastAPI/Uvicorn）。
 * `packages/ui`：共享 UI 组件。
 * `packages/eslint-config`：共享 ESLint 配置。
 * `packages/typescript-config`：共享 TypeScript 配置。

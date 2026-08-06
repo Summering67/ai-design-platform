@@ -3,8 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "uv run uvicorn ai_design_server.main:app --host localhost --port ${SERVER_PORT:-8081}",
-    "dev:standalone": "uv run uvicorn ai_design_server.main:app --host localhost --port ${SERVER_PORT:-8081}",
+    "dev": "uv run python -m ai_design_server.main",
+    "dev:standalone": "uv run python -m ai_design_server.main",
+    "start": "uv run python -m ai_design_server.main",
     "build": "uv run python -m build --wheel --outdir dist",
     "lint": "uv run ruff check src tests",
     "check-types": "uv run mypy src",

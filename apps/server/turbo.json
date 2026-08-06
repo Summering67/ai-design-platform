@@ -5,6 +5,9 @@
     "build": {
       "outputs": ["dist/**"]
     },
+    "dev": {
+      "env": ["API_*"]
+    },
     "test": {
       "outputs": []
     }

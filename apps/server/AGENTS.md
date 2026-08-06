@@ -1,6 +1,6 @@
 # apps/server 开发规范
 
-`apps/server` 是与 `apps/api` 并存的 Python/FastAPI 后端验证实现。`apps/api` 是只读 Go 基准；本目录不得修改、移动、删除或导入 `apps/api/internal` 私有实现。
+`apps/server` 是默认 API 运行时。它必须能够独立启动，不得导入或在运行时读取 `apps/api` 的私有代码；`apps/api` 仅作为保留的 Go 基准和定向回退入口。
 
 ## 技术栈
 
@@ -13,7 +13,6 @@
 
 ## 数据库
 
-- `apps/api/migrations/*.sql` 是唯一 Schema 事实源；禁止复制 migration、Alembic、`metadata.create_all()` 和自动建表。
 - SQLAlchemy Model 与 Pydantic DTO 分离；每个请求使用独立 `AsyncSession`。
 - 事务由领域服务显式控制；不得跨并发任务共享 Session，不依赖隐式 lazy loading。
 - 数据库或 SQLAlchemy 异常必须在边界转换为稳定领域错误，不暴露 SQL、DSN 或堆栈。
@@ -26,11 +25,6 @@
 - Pydantic 请求模型使用 `extra="forbid"`；validation/领域异常统一转换为现有 API 错误结构。
 - SSE 使用 `StreamingResponse`，客户端断开必须取消上游并终结 generation。
 
-## 双实现边界
-
-- 默认根开发入口继续运行 `apps/api`；本包只提供 `dev:standalone`。
-- Python 目标使用 `API_*` 配置键以保持未来切换兼容，但当前 Web 不指向本包。
-- 等价验证使用隔离数据库或 Schema；不得让 Go/Python 并发修改同一测试记录。
 
 ## 检查
 

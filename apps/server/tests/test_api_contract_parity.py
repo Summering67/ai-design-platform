@@ -1,3 +1,5 @@
+"""冻结的进程内 HTTP 契约回归，不需要 Go runtime。"""
+
 from __future__ import annotations
 
 import asyncio
@@ -63,6 +65,21 @@ class FakeChatClient:
             raise self.failure
         await on_delta("你好，")  # type: ignore[operator]
         await on_delta("世界")  # type: ignore[operator]
+
+
+class BlockingChatClient:
+    def __init__(self) -> None:
+        self.started = asyncio.Event()
+        self.cancelled = asyncio.Event()
+        self.release = asyncio.Event()
+
+    async def stream(self, _: object, __: object) -> None:
+        self.started.set()
+        try:
+            await self.release.wait()
+        except asyncio.CancelledError:
+            self.cancelled.set()
+            raise
 
 
 class FakeProjectService:
@@ -142,6 +159,21 @@ class FakeProjectService:
             assistant_message_id=ASSISTANT_MESSAGE_ID,
             finished_at=NOW,
         )
+
+
+class TrackingProjectService(FakeProjectService):
+    def __init__(self) -> None:
+        self.interrupts = 0
+
+    async def interrupt(
+        self,
+        session: object,
+        project_id: str,
+        attempt_id: str,
+        user_id: str | None = None,
+    ) -> AttemptModel:
+        self.interrupts += 1
+        return await super().interrupt(session, project_id, attempt_id, user_id)
 
 
 def _config() -> RuntimeConfig:
@@ -420,3 +452,25 @@ async def test_sse_has_one_go_equivalent_terminal_event(
 
     assert [event["event"] for event in parsed] == ["generation", terminal]
     assert parsed[-1]["data"] == payload
+
+
+@pytest.mark.asyncio
+async def test_sse_disconnect_cancels_upstream_and_interrupts_generation() -> None:
+    app = _app()
+    chat = BlockingChatClient()
+    service = TrackingProjectService()
+    app.state.chat_client = chat
+    request = Request({"type": "http", "app": app})
+    events = _events(request, service, _project(), _user_message(), _attempt())
+
+    assert (await events.__anext__()).startswith("event: generation")
+    consumer = asyncio.create_task(events.__anext__())
+    await chat.started.wait()
+    consumer.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await consumer
+    await asyncio.sleep(0)
+
+    assert chat.cancelled.is_set()
+    assert service.interrupts == 1
+    assert ATTEMPT_ID not in app.state.active_generations

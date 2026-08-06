@@ -32,6 +32,9 @@ dev = [
 [tool.hatch.build.targets.wheel]
 packages = ["src/ai_design_server"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"../../packages/design-contract/schema/v2/design-document.schema.json" = "ai_design_server/design/design-document.schema.json"
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]

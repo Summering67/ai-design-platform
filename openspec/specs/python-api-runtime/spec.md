@@ -110,12 +110,12 @@ FastAPI 应用 SHALL 继续提供 `GET /health/live` 和 `GET /health/ready`。�
 
 ### Requirement: Python HTTP 服务生命周期
 
-系统 SHALL 使用 Uvicorn 承载 FastAPI 应用，以显式读取、写入、空闲和关闭约束启动 API，并 SHALL 在收到 `SIGINT` 或 `SIGTERM` 后停止接收新请求、在关闭超时内等待进行中的请求完成，然后通过 lifespan 按 HTTP、数据库和日志的顺序释放资源。客户端断开 SHALL 传播取消信号到 SSE generation 和上游 AI 请求。
+系统 SHALL 使用统一 Python 进程入口读取强类型运行配置并以 Uvicorn 承载 FastAPI 应用，SHALL 将配置的监听地址、空闲连接和关闭约束映射到 Uvicorn 支持的进程参数，并 SHALL 在收到 `SIGINT` 或 `SIGTERM` 后停止接收新请求、在关闭超时内等待进行中的请求完成，然后通过 lifespan 释放 HTTP 与数据库资源。客户端断开 SHALL 传播取消信号到 SSE generation 和上游 AI 请求。package 任务 MUST NOT 使用与 `API_*` 配置并列的监听地址事实源。
 
 #### Scenario: 正常启动
 
 - **WHEN** 配置、日志、数据库和应用组装全部成功
-- **THEN** Python runtime 在既有配置地址启动 HTTP 服务
+- **THEN** Python runtime 在 `API_SERVER_ADDRESS` 指定的地址启动 HTTP 服务，`:port` 形式监听所有接口
 
 #### Scenario: 收到终止信号
 
@@ -129,27 +129,17 @@ FastAPI 应用 SHALL 继续提供 `GET /health/live` 和 `GET /health/ready`。�
 
 ### Requirement: Python Turborepo 任务集成
 
-`apps/server` SHALL 使用 `uv` 作为唯一 Python 依赖管理入口，将直接和开发依赖声明在 `pyproject.toml`，将完整版本解析结果提交到 `uv.lock`，并 MUST NOT 使用 `requirements.txt`、Pipenv、Poetry 或未锁定裸安装作为并列依赖事实源。系统 SHALL 将 `apps/server` 注册为 package 名 `server` 的独立 pnpm workspace，提供 `dev:standalone`、`build`、`lint`、`check-types` 和 `test`，但本次 MUST NOT 提供会被当前根 `turbo run dev` 自动执行的 `dev` 脚本。Python 构建 SHALL 在 `apps/server/dist/**` 输出可缓存 wheel，lint SHALL 执行 Ruff，类型检查 SHALL 执行 mypy，测试 SHALL 通过 pytest 区分单元测试和集成测试。
+`apps/server` SHALL 使用 `uv` 作为唯一 Python 依赖管理入口，将直接和开发依赖声明在 `pyproject.toml`，将完整版本解析结果提交到 `uv.lock`，并 MUST NOT 使用其他并列依赖事实源。系统 SHALL 将 `apps/server` 注册为 package 名 `server` 的独立 pnpm workspace，提供 `dev`、`dev:standalone`、`build`、`lint`、`check-types` 和 `test`；根 `dev` SHALL 选择 Python `server` 并排除 Go `api`，Server dev 任务 SHALL 在 Turborepo 严格环境模式下获得所需 `API_*` 配置。Python 构建 SHALL 输出可缓存且包含运行所需 Design v2 Schema 的自包含 wheel。
 
-#### Scenario: 依赖锁定可复现
+#### Scenario: 运行根开发入口
 
-- **WHEN** 开发者或任务入口在干净环境安装 API 的运行和开发依赖
-- **THEN** `uv` 使用已提交且与 `pyproject.toml` 一致的 `uv.lock` 解析相同版本，不执行浮动依赖解析
+- **WHEN** 开发者在仓库根目录执行 `dev` 管线
+- **THEN** Turborepo 启动 Python `server` 与前端开发任务且不启动 Go `api`
 
-#### Scenario: 运行 Python server 定向任务
+#### Scenario: 环境变量传入 Server
 
-- **WHEN** 开发者通过 Turborepo 对 `server` 包执行 `build`、`lint` 或 `check-types`
-- **THEN** 系统执行对应 Python 工具链命令且任务成功时返回成功状态
-
-#### Scenario: 运行当前根开发入口
-
-- **WHEN** 开发者在仓库根目录执行当前 `dev` 管线
-- **THEN** Go `apps/api` 继续启动，Python `apps/server` 不自动启动或争用后端监听端口
-
-#### Scenario: 运行仓库级检查
-
-- **WHEN** 开发者在仓库根目录执行已有 `build`、`lint` 或 `check-types` 管线
-- **THEN** Turborepo 将 `apps/server` 与现有 workspace 一起纳入对应非持久任务图，且不替换 `apps/api`
+- **WHEN** 根开发入口通过进程环境提供 `API_DATABASE_DSN`、`API_AI_*` 或 `API_AUTH_*`
+- **THEN** Server dev 任务可以读取这些值并按强类型配置优先级应用
 
 #### Scenario: 缓存 Python 构建产物
 
@@ -158,14 +148,14 @@ FastAPI 应用 SHALL 继续提供 `GET /health/live` 和 `GET /health/ready`。�
 
 ### Requirement: 现有 API 契约等价
 
-`apps/server` SHALL 实现现行 `user-authentication`、`project-conversations`、`ai-chat` 和 DesignDocument 校验行为，并 SHALL 保持与 `apps/api` 相同的公开路由、JSON 字段、HTTP 状态码、错误码、Cookie 属性、SSE 事件顺序与终态、AI 历史选择、请求限制、数据库写入和取消语义。Web 调用方 MUST NOT 因新增 Python 实现而修改业务请求格式或当前后端指向。
+`apps/server` SHALL 实现现行 `user-authentication`、`project-conversations`、`ai-chat` 和 DesignDocument 校验行为，并 SHALL 保持与 `apps/api` 相同的公开路由、JSON 字段、HTTP 状态码、错误码、Cookie 属性、SSE 事件顺序与终态、AI 历史选择、请求限制、数据库写入和取消语义。删除 Go runtime 后，持续回归测试 MUST 使用删除前冻结且可审查的契约 fixture，而不是要求 Go 进程继续存在。
 
 #### Scenario: 相同契约 fixture
 
 - **WHEN** Python runtime 接收覆盖成功、校验失败、未认证、冲突、上游失败和中断的冻结请求 fixture
 - **THEN** 其状态码、响应字段、错误码、SSE 事件和数据库结果符合现行 OpenSpec
 
-#### Scenario: Web 保持使用 Go 后端
+#### Scenario: 删除后运行契约回归
 
-- **WHEN** 本次变更完成后 Web 继续通过 `/backend/api` 和当前根入口请求后端
-- **THEN** 请求仍由 Go `apps/api` 处理，`apps/server` 仅通过定向或进程内测试验证等价性
+- **WHEN** Go runtime 不再存在且开发者运行 Server 测试
+- **THEN** 冻结契约回归仍可独立执行，且不会因缺少 `GO_PARITY_API_URL` 被跳过

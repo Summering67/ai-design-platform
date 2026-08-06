@@ -1,5 +1,0 @@
-DROP TABLE IF EXISTS generation_attempts;
-DROP TABLE IF EXISTS messages;
-DROP TABLE IF EXISTS projects;
-DROP TABLE IF EXISTS user_sessions;
-DROP TABLE IF EXISTS users;

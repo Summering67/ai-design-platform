@@ -47,10 +47,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     try:
         yield
     finally:
-        if not getattr(app.state, "http_client_injected", False):
-            await client.aclose()
-        if not getattr(app.state, "database_injected", False):
-            await database.close()
+        # 资源释放必须彼此隔离：数据库关闭异常不应阻断 HTTP 客户端清理，
+        # 否则进程在优雅退出后仍可能遗留连接和后台任务。
+        try:
+            if not getattr(app.state, "http_client_injected", False):
+                await client.aclose()
+        finally:
+            if not getattr(app.state, "database_injected", False):
+                await database.close()
 
 
 def create_app(
