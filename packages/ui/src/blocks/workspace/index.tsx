@@ -1,36 +1,12 @@
 "use client";
 
-import { forwardRef, useRef, useState, useSyncExternalStore } from "react";
+import { forwardRef, useEffect, useRef, useState } from "react";
 import type { FormEvent, KeyboardEvent } from "react";
-import type { LucideIcon } from "lucide-react";
 import {
   ArrowDownIcon,
   ArrowUpIcon,
   ChevronDownIcon,
-  ChevronRightIcon,
-  CircleDashedIcon,
-  CircleUserRoundIcon,
-  Code2Icon,
-  DatabaseIcon,
-  FilePlus2Icon,
-  FilesIcon,
-  FolderPlusIcon,
-  FolderTreeIcon,
-  Globe2Icon,
-  HomeIcon,
-  LayoutTemplateIcon,
-  LibraryIcon,
-  MoreHorizontalIcon,
-  PanelLeftCloseIcon,
-  PanelLeftOpenIcon,
-  PanelsTopLeftIcon,
-  RefreshCwIcon,
-  SearchIcon,
-  SendIcon,
-  ShapesIcon,
   SparklesIcon,
-  StarIcon,
-  UploadIcon,
 } from "lucide-react";
 import { Virtuoso } from "react-virtuoso";
 import type {
@@ -40,6 +16,7 @@ import type {
   VirtuosoHandle,
 } from "react-virtuoso";
 
+import { Button } from "../../components/button";
 import {
   Empty,
   EmptyDescription,
@@ -47,42 +24,30 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "../../components/empty";
-import { Button } from "../../components/button";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
   InputGroupTextarea,
 } from "../../components/input-group";
-import { Separator } from "../../components/separator";
 import { Spinner } from "../../components/spinner";
-import { ToggleGroup, ToggleGroupItem } from "../../components/toggle-group";
 import styles from "./workspace.module.css";
-
-const navItems: ReadonlyArray<{ label: string; icon: LucideIcon }> = [
-  { label: "搜索", icon: SearchIcon },
-  { label: "首页", icon: HomeIcon },
-  { label: "项目", icon: PanelsTopLeftIcon },
-  { label: "库", icon: LibraryIcon },
-  { label: "设计系统", icon: ShapesIcon },
-  { label: "模板", icon: LayoutTemplateIcon },
-];
-
-const modes = [
-  { value: "预览", label: "预览", icon: PanelsTopLeftIcon },
-  { value: "发送", label: "发送", icon: SendIcon },
-  { value: "代码", label: "代码", icon: Code2Icon },
-  { value: "数据", label: "数据", icon: DatabaseIcon },
-] as const;
-
-type Mode = (typeof modes)[number]["value"];
 
 type ChatRole = "user" | "assistant";
 type ChatStatus = "idle" | "loading" | "error";
-type ChatMessage = {
+type ChatMessage = { id: string; role: ChatRole; content: string };
+type CanvasSettings = {
+  background: string;
+  width: number;
+  height: number;
+  x: number;
+  y: number;
+  radius: number;
+};
+type CanvasNode = {
   id: string;
-  role: ChatRole;
-  content: string;
+  name: string;
+  settings: CanvasSettings;
 };
 type WorkspaceProps = {
   accountEmail: string;
@@ -94,192 +59,7 @@ type WorkspaceProps = {
   onRetry: (messageId: string) => void;
   onStop: () => void;
   onLogout: () => void;
-};
-
-const compactNavigationQuery = "(max-width: 90.625rem)";
-const subscribeCompactNavigation = (onStoreChange: () => void) => {
-  const mediaQuery = window.matchMedia(compactNavigationQuery);
-  mediaQuery.addEventListener("change", onStoreChange);
-  return () => mediaQuery.removeEventListener("change", onStoreChange);
-};
-const getCompactNavigationSnapshot = () =>
-  window.matchMedia(compactNavigationQuery).matches;
-const getServerCompactNavigationSnapshot = () => false;
-
-const ProjectNavigation = ({
-  accountEmail,
-  onCollapse,
-  onLogout,
-  title,
-}: {
-  accountEmail: string;
-  onCollapse: () => void;
-  onLogout: () => void;
-  title: string;
-}) => {
-  return (
-    <aside id="project-navigation" className={styles.navigation}>
-      <header className={styles.header}>
-        <span className={styles.brand}>
-          <SparklesIcon />
-        </span>
-        <strong>我的项目</strong>
-        <ChevronDownIcon className="text-muted-foreground" />
-        <Button
-          aria-controls="project-navigation"
-          aria-expanded
-          aria-label="收起侧边栏"
-          size="icon"
-          variant="ghost"
-          onClick={onCollapse}
-        >
-          <PanelLeftCloseIcon />
-        </Button>
-      </header>
-      <Separator />
-
-      <Button
-        className="mt-1 w-full justify-between"
-        size="lg"
-        variant="outline"
-      >
-        <span>新建聊天</span>
-        <ChevronDownIcon data-icon="inline-end" />
-      </Button>
-
-      <nav className={styles.menu}>
-        {navItems.map(({ icon: Icon, label }) => (
-          <Button
-            key={label}
-            className="w-full justify-start"
-            size="lg"
-            variant="ghost"
-          >
-            <Icon data-icon="inline-start" />
-            {label}
-          </Button>
-        ))}
-      </nav>
-
-      <section className={styles.chatSections}>
-        <Button className="w-full justify-between" variant="ghost">
-          <span>收藏</span>
-          <ChevronRightIcon data-icon="inline-end" />
-        </Button>
-        <Button className="w-full justify-between" variant="ghost">
-          <span>最近聊天</span>
-          <ChevronDownIcon data-icon="inline-end" />
-        </Button>
-        <Button className={styles.currentChat} variant="secondary">
-          <CircleDashedIcon data-icon="inline-start" />
-          <span>{title}</span>
-          <MoreHorizontalIcon data-icon="inline-end" />
-        </Button>
-      </section>
-
-      <div className={styles.account}>
-        <CircleUserRoundIcon className="text-muted-foreground" />
-        <strong>{accountEmail || "开发者"}</strong>
-        <Button variant="outline" onClick={onLogout}>
-          退出
-        </Button>
-      </div>
-    </aside>
-  );
-};
-
-const ModePicker = ({
-  mode,
-  setMode,
-}: {
-  mode: Mode;
-  setMode: (mode: Mode) => void;
-}) => {
-  return (
-    <ToggleGroup
-      aria-label="工作台模式"
-      className={styles.modePicker}
-      spacing={0}
-      value={[mode]}
-      variant="outline"
-      onValueChange={(values) => {
-        const nextMode = values[0] as Mode | undefined;
-        if (!nextMode) return;
-        setMode(nextMode);
-      }}
-    >
-      {modes.map(({ icon: Icon, label, value }) => (
-        <ToggleGroupItem key={value} aria-label={label} value={value}>
-          <Icon />
-        </ToggleGroupItem>
-      ))}
-    </ToggleGroup>
-  );
-};
-
-const WorkspaceHeader = ({
-  isChatVisible,
-  isNavigationVisible,
-  mode,
-  onChatVisibilityChange,
-  onNavigationVisibilityChange,
-  projectTitle,
-  setMode,
-}: {
-  isChatVisible: boolean;
-  isNavigationVisible: boolean;
-  mode: Mode;
-  onChatVisibilityChange: () => void;
-  onNavigationVisibilityChange: () => void;
-  projectTitle: string;
-  setMode: (mode: Mode) => void;
-}) => {
-  return (
-    <header className={styles.workspaceHeader}>
-      <div className={styles.chatHeader}>
-        {!isNavigationVisible ? (
-          <Button
-            aria-controls="project-navigation"
-            aria-expanded={false}
-            aria-label="展开侧边栏"
-            size="icon"
-            variant="ghost"
-            onClick={onNavigationVisibilityChange}
-          >
-            <PanelLeftOpenIcon />
-          </Button>
-        ) : null}
-        <StarIcon className={styles.mutedIcon} />
-        <strong className={styles.chatTitle}>{projectTitle}</strong>
-        <ChevronDownIcon className={styles.mutedIcon} />
-      </div>
-      <div className={styles.modeHeader}>
-        <Button
-          aria-controls="workspace-chat-panel"
-          aria-expanded={isChatVisible}
-          aria-label={isChatVisible ? "隐藏对话内容栏" : "显示对话内容栏"}
-          size="icon"
-          variant="ghost"
-          onClick={onChatVisibilityChange}
-        >
-          {isChatVisible ? <PanelLeftCloseIcon /> : <PanelLeftOpenIcon />}
-        </Button>
-        <ModePicker mode={mode} setMode={setMode} />
-      </div>
-      <div className={styles.canvasHeader}>
-        <Button aria-label="更多操作" size="icon" variant="outline">
-          <MoreHorizontalIcon />
-        </Button>
-        <Button aria-label="分享" size="icon" variant="outline">
-          <UploadIcon />
-        </Button>
-        <Button>
-          <Globe2Icon data-icon="inline-start" />
-          发布
-        </Button>
-      </div>
-    </header>
-  );
+  canvasNode?: CanvasNode | null;
 };
 
 const MessageList = forwardRef<HTMLDivElement, ListProps & { context: null }>(
@@ -318,7 +98,7 @@ const ChatMessageItem = ({ message }: { message: ChatMessage }) => (
     {message.role === "assistant" ? (
       <div className={styles.assistantLabel}>
         <SparklesIcon />
-        <span>AI</span>
+        <span>设计助手</span>
       </div>
     ) : null}
     <p className={styles.messageContent}>{message.content}</p>
@@ -342,7 +122,6 @@ const ChatPanel = ({
   const [isAtBottom, setIsAtBottom] = useState(true);
   const listRef = useRef<VirtuosoHandle>(null);
   const isLoading = status === "loading";
-  const canSend = Boolean(draft.trim()) && !isLoading;
   const retryMessageId = [...messages]
     .reverse()
     .find((message) => message.role === "user")?.id;
@@ -368,7 +147,15 @@ const ChatPanel = ({
   };
 
   return (
-    <section id="workspace-chat-panel" className={styles.chatPanel}>
+    <aside className={styles.chatPanel}>
+      <header className={styles.panelHeader}>
+        <span className={styles.brandMark}>
+          <SparklesIcon />
+        </span>
+        <div>
+          <strong>AI 设计助手</strong>
+        </div>
+      </header>
       <div className={styles.conversation}>
         {messages.length ? (
           <Virtuoso
@@ -394,7 +181,7 @@ const ChatPanel = ({
               </EmptyMedia>
               <EmptyTitle>从一句描述开始</EmptyTitle>
               <EmptyDescription>
-                说说你想设计什么，AI 会在这里和你一起梳理。
+                告诉我你想创作的界面，我会协助你将想法放到画布上。
               </EmptyDescription>
             </EmptyHeader>
           </Empty>
@@ -418,12 +205,11 @@ const ChatPanel = ({
           </Button>
         ) : null}
       </div>
-
       <div aria-atomic="true" aria-live="polite" className={styles.chatStatus}>
         {isLoading ? (
           <p className={styles.loadingStatus}>
             <Spinner className={styles.statusSpinner} />
-            AI 正在整理思路
+            AI 正在整理设计方案
             <Button size="sm" variant="outline" onClick={onStop}>
               停止
             </Button>
@@ -444,7 +230,6 @@ const ChatPanel = ({
           </div>
         ) : null}
       </div>
-
       <form className={styles.composer} onSubmit={handleSubmit}>
         <InputGroup
           className={styles.composerGroup}
@@ -454,7 +239,7 @@ const ChatPanel = ({
             aria-label="发送消息"
             disabled={isLoading}
             placeholder={
-              isLoading ? "等待 AI 回复..." : "描述下一步，或补充你的设计想法"
+              isLoading ? "等待 AI 回复..." : "例如：把卡片移动到页面底部"
             }
             rows={2}
             value={draft}
@@ -462,205 +247,222 @@ const ChatPanel = ({
             onKeyDown={handleKeyDown}
           />
           <InputGroupAddon align="block-end" className={styles.composerActions}>
-            <span className={styles.composerHint}>
-              Enter 发送 · Shift+Enter 换行
-            </span>
+            <span className={styles.composerHint}>Enter 发送</span>
             <InputGroupButton
               aria-label="发送消息"
-              disabled={!canSend}
+              disabled={!draft.trim() || isLoading}
               size="icon-sm"
               type="submit"
               variant="default"
             >
-              <ArrowUpIcon data-icon="inline-start" />
+              <ArrowUpIcon />
             </InputGroupButton>
           </InputGroupAddon>
         </InputGroup>
       </form>
-    </section>
+    </aside>
   );
 };
 
-const FileExplorer = ({ projectTitle }: { projectTitle: string }) => {
+const Canvas = ({ node }: { node: CanvasNode | null }) => (
+  <section className={styles.canvas}>
+    <div className={styles.canvasMeta}>
+      <span>画布</span>
+      <span>{node ? node.name : "等待设计数据"}</span>
+    </div>
+    <div className={styles.canvasSurface}>
+      {!node ? (
+        <Empty className={styles.canvasEmpty}>
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <SparklesIcon />
+            </EmptyMedia>
+            <EmptyTitle>画布等待生成</EmptyTitle>
+            <EmptyDescription>
+              发送需求后，生成的设计节点会显示在这里。
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      ) : (
+        <div
+          className={styles.canvasNode}
+          aria-label={node.name}
+          style={{
+            backgroundColor: node.settings.background,
+            width: `${node.settings.width}px`,
+            height: `${node.settings.height}px`,
+            transform: `translate(${node.settings.x}px, ${node.settings.y}px)`,
+            borderRadius: `${node.settings.radius}px`,
+          }}
+        />
+      )}
+    </div>
+  </section>
+);
+
+const NumberField = ({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+}) => (
+  <label className={styles.numberField}>
+    <span>{label}</span>
+    <input
+      inputMode="numeric"
+      min="0"
+      type="number"
+      value={value}
+      onChange={(event) => onChange(Number(event.target.value) || 0)}
+    />
+  </label>
+);
+
+const Inspector = ({
+  node,
+  setNode,
+}: {
+  node: CanvasNode | null;
+  setNode: (node: CanvasNode) => void;
+}) => {
+  if (!node)
+    return (
+      <aside className={styles.inspector}>
+        <header className={styles.panelHeader}>
+          <div>
+            <strong>配置</strong>
+            <span>未选择图层</span>
+          </div>
+        </header>
+        <Empty className={styles.inspectorEmpty}>
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <SparklesIcon />
+            </EmptyMedia>
+            <EmptyTitle>暂无可配置对象</EmptyTitle>
+            <EmptyDescription>
+              画布生成后，选择图层即可调整属性。
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      </aside>
+    );
+  const { settings } = node;
+  const update = <Key extends keyof CanvasSettings>(
+    key: Key,
+    value: CanvasSettings[Key],
+  ) => setNode({ ...node, settings: { ...settings, [key]: value } });
   return (
-    <section className={styles.fileExplorer}>
-      <div className={styles.fileTabs}>
-        <Button aria-label="文件" size="icon" variant="ghost">
-          <FilesIcon />
-        </Button>
-        <Button aria-label="搜索文件" size="icon" variant="ghost">
-          <SearchIcon />
-        </Button>
-        <Button aria-label="资源" size="icon" variant="ghost">
-          <ShapesIcon />
-        </Button>
-      </div>
-      <div className={styles.fileToolbar}>
-        <span className={styles.fileTitle}>{projectTitle}</span>
-        <div className={styles.fileActions}>
-          <Button aria-label="新建文件" size="icon-xs" variant="ghost">
-            <FilePlus2Icon />
-          </Button>
-          <Button aria-label="新建文件夹" size="icon-xs" variant="ghost">
-            <FolderPlusIcon />
-          </Button>
-          <Button aria-label="刷新" size="icon-xs" variant="ghost">
-            <RefreshCwIcon />
-          </Button>
-          <Button aria-label="更多操作" size="icon-xs" variant="ghost">
-            <MoreHorizontalIcon />
-          </Button>
+    <aside className={styles.inspector}>
+      <header className={styles.panelHeader}>
+        <div>
+          <strong>配置</strong>
+          <span>已选中 · {node.name}</span>
         </div>
+        <ChevronDownIcon />
+      </header>
+      <div className={styles.inspectorContent}>
+        <section className={styles.propertyGroup}>
+          <div className={styles.propertyHeading}>
+            <span>填充颜色</span>
+            <span>100%</span>
+          </div>
+          <label className={styles.colorField}>
+            <input
+              aria-label="填充颜色"
+              type="color"
+              value={settings.background}
+              onChange={(event) => update("background", event.target.value)}
+            />
+            <input
+              aria-label="填充颜色值"
+              value={settings.background.toUpperCase()}
+              onChange={(event) => update("background", event.target.value)}
+            />
+          </label>
+        </section>
+        <section className={styles.propertyGroup}>
+          <div className={styles.propertyHeading}>
+            <span>尺寸</span>
+            <span>PX</span>
+          </div>
+          <div className={styles.fieldGrid}>
+            <NumberField
+              label="宽度"
+              value={settings.width}
+              onChange={(value) => update("width", value)}
+            />
+            <NumberField
+              label="高度"
+              value={settings.height}
+              onChange={(value) => update("height", value)}
+            />
+          </div>
+        </section>
+        <section className={styles.propertyGroup}>
+          <div className={styles.propertyHeading}>
+            <span>位置</span>
+            <span>PX</span>
+          </div>
+          <div className={styles.fieldGrid}>
+            <NumberField
+              label="X"
+              value={settings.x}
+              onChange={(value) => update("x", value)}
+            />
+            <NumberField
+              label="Y"
+              value={settings.y}
+              onChange={(value) => update("y", value)}
+            />
+          </div>
+        </section>
+        <section className={styles.propertyGroup}>
+          <div className={styles.propertyHeading}>
+            <span>圆角</span>
+            <span>PX</span>
+          </div>
+          <NumberField
+            label="半径"
+            value={settings.radius}
+            onChange={(value) => update("radius", value)}
+          />
+        </section>
       </div>
-      <Empty className={styles.fileEmpty}>
-        <EmptyHeader>
-          <EmptyMedia variant="icon">
-            <FolderTreeIcon />
-          </EmptyMedia>
-          <EmptyTitle>暂无项目文件</EmptyTitle>
-          <EmptyDescription>生成后将在此显示文件。</EmptyDescription>
-        </EmptyHeader>
-      </Empty>
-    </section>
-  );
-};
-
-const Canvas = ({ mode }: { mode: Mode }) => {
-  return (
-    <section className={styles.canvas}>
-      <div className={styles.canvasBody}>
-        {mode === "代码" ? (
-          <>
-            <span className={styles.canvasBrand}>v0</span>
-            <div className={styles.shortcuts}>
-              <Separator className={styles.shortcutsSeparator} />
-              {[
-                ["Go to File", "⌘", "P"],
-                ["Find in Files", "⇧", "⌘ F"],
-                ["Command Palette", "⇧", "⌘ P"],
-                ["Terminal", "⌃", "`"],
-              ].map(([label, ...keys]) => (
-                <div key={label} className={styles.shortcutRow}>
-                  <span className={styles.shortcutLabel}>{label}</span>
-                  {keys.map((key) => (
-                    <kbd key={key} className={styles.shortcutKey}>
-                      {key}
-                    </kbd>
-                  ))}
-                </div>
-              ))}
-            </div>
-          </>
-        ) : null}
-        {mode === "预览" ? (
-          <Empty>
-            <EmptyHeader>
-              <EmptyMedia variant="icon">
-                <PanelsTopLeftIcon />
-              </EmptyMedia>
-              <EmptyTitle>预览尚未生成</EmptyTitle>
-              <EmptyDescription>项目生成后将在这里显示。</EmptyDescription>
-            </EmptyHeader>
-          </Empty>
-        ) : null}
-        {mode === "发送" ? (
-          <Empty>
-            <EmptyHeader>
-              <EmptyMedia variant="icon">
-                <SendIcon />
-              </EmptyMedia>
-              <EmptyTitle>等待生成结果</EmptyTitle>
-              <EmptyDescription>生成完成后可在这里继续对话。</EmptyDescription>
-            </EmptyHeader>
-          </Empty>
-        ) : null}
-        {mode === "数据" ? (
-          <Empty>
-            <EmptyHeader>
-              <EmptyMedia variant="icon">
-                <DatabaseIcon />
-              </EmptyMedia>
-              <EmptyTitle>暂无数据源</EmptyTitle>
-              <EmptyDescription>连接数据库后将在此管理数据。</EmptyDescription>
-            </EmptyHeader>
-          </Empty>
-        ) : null}
-      </div>
-    </section>
+    </aside>
   );
 };
 
 const Workspace = ({
-  accountEmail,
+  canvasNode,
   error,
   messages,
-  onLogout,
   onRetry,
   onSend,
   onStop,
-  projectTitle,
   status,
 }: WorkspaceProps) => {
-  const isCompactNavigation = useSyncExternalStore(
-    subscribeCompactNavigation,
-    getCompactNavigationSnapshot,
-    getServerCompactNavigationSnapshot,
+  const [selectedNode, setSelectedNode] = useState<CanvasNode | null>(
+    canvasNode ?? null,
   );
-  const [mode, setMode] = useState<Mode>("代码");
-  const [isChatVisible, setIsChatVisible] = useState(true);
-  const [isDesktopNavigationVisible, setIsDesktopNavigationVisible] =
-    useState(true);
-  const [isCompactNavigationVisible, setIsCompactNavigationVisible] =
-    useState(false);
-  const isNavigationVisible = isCompactNavigation
-    ? isCompactNavigationVisible
-    : isDesktopNavigationVisible;
-  const collapseNavigation = () => {
-    if (isCompactNavigation) return setIsCompactNavigationVisible(false);
-    setIsDesktopNavigationVisible(false);
-  };
-  const toggleNavigation = () => {
-    if (isCompactNavigation)
-      return setIsCompactNavigationVisible((isVisible) => !isVisible);
-    setIsDesktopNavigationVisible((isVisible) => !isVisible);
-  };
-
+  useEffect(() => setSelectedNode(canvasNode ?? null), [canvasNode]);
   return (
-    <main
-      className={styles.workspace}
-      data-navigation-hidden={!isNavigationVisible}
-    >
-      <ProjectNavigation
-        accountEmail={accountEmail}
-        title={projectTitle}
-        onCollapse={collapseNavigation}
-        onLogout={onLogout}
-      />
-      <section className={styles.workbench} data-chat-hidden={!isChatVisible}>
-        <WorkspaceHeader
-          isChatVisible={isChatVisible}
-          isNavigationVisible={isNavigationVisible}
-          mode={mode}
-          projectTitle={projectTitle}
-          setMode={setMode}
-          onChatVisibilityChange={() =>
-            setIsChatVisible((isVisible) => !isVisible)
-          }
-          onNavigationVisibilityChange={toggleNavigation}
+    <main className={styles.workspace}>
+      <div className={styles.workspaceBody}>
+        <ChatPanel
+          error={error}
+          messages={messages}
+          status={status}
+          onRetry={onRetry}
+          onSend={onSend}
+          onStop={onStop}
         />
-        <div className={styles.workspaceBody}>
-          <ChatPanel
-            error={error}
-            messages={messages}
-            status={status}
-            onRetry={onRetry}
-            onSend={onSend}
-            onStop={onStop}
-          />
-          <FileExplorer projectTitle={projectTitle} />
-          <Canvas mode={mode} />
-        </div>
-      </section>
+        <Canvas node={selectedNode} />
+        <Inspector node={selectedNode} setNode={setSelectedNode} />
+      </div>
     </main>
   );
 };
@@ -668,4 +470,11 @@ const Workspace = ({
 const WorkspaceFallback = () => <main className={styles.fallback} />;
 
 export { Workspace, WorkspaceFallback };
-export type { ChatMessage, ChatRole, ChatStatus, WorkspaceProps };
+export type {
+  CanvasNode,
+  CanvasSettings,
+  ChatMessage,
+  ChatRole,
+  ChatStatus,
+  WorkspaceProps,
+};
