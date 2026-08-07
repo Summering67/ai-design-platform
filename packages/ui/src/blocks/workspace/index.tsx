@@ -9,6 +9,8 @@ import {
   SparklesIcon,
 } from "lucide-react";
 import { Virtuoso } from "react-virtuoso";
+import { DesignDocumentRenderer } from "../design-document-renderer";
+import type { DesignDocument } from "@repo/design-dsl";
 import type {
   Components,
   ItemProps,
@@ -60,6 +62,7 @@ type WorkspaceProps = {
   onStop: () => void;
   onLogout: () => void;
   canvasNode?: CanvasNode | null;
+  document?: DesignDocument | null;
 };
 
 const MessageList = forwardRef<HTMLDivElement, ListProps & { context: null }>(
@@ -264,14 +267,16 @@ const ChatPanel = ({
   );
 };
 
-const Canvas = ({ node }: { node: CanvasNode | null }) => (
+const Canvas = ({ document, node }: { document?: DesignDocument | null; node: CanvasNode | null }) => (
   <section className={styles.canvas}>
     <div className={styles.canvasMeta}>
       <span>画布</span>
       <span>{node ? node.name : "等待设计数据"}</span>
     </div>
     <div className={styles.canvasSurface}>
-      {!node ? (
+      {document ? (
+        <DesignDocumentRenderer document={document} onError={(message) => <p>{message}</p>} />
+      ) : !node ? (
         <Empty className={styles.canvasEmpty}>
           <EmptyHeader>
             <EmptyMedia variant="icon">
@@ -438,6 +443,7 @@ const Inspector = ({
 
 const Workspace = ({
   canvasNode,
+  document,
   error,
   messages,
   onRetry,
@@ -460,7 +466,7 @@ const Workspace = ({
           onSend={onSend}
           onStop={onStop}
         />
-        <Canvas node={selectedNode} />
+        <Canvas document={document} node={selectedNode} />
         <Inspector node={selectedNode} setNode={setSelectedNode} />
       </div>
     </main>

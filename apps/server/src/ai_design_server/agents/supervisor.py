@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from collections.abc import Awaitable, Callable
 from typing import Any
 from uuid import uuid4
@@ -17,6 +18,7 @@ from .state import RootState, TaskRecord
 from .ui_design.graph import run as run_ui_design
 
 EventSink = Callable[[AgentRunEvent], Awaitable[None]]
+LOGGER = logging.getLogger("ai_design_server.agents")
 
 
 def _ready(name: str, state: RootState) -> bool:
@@ -109,6 +111,11 @@ async def execute(state: RootState, *, model: ModelPort, config: AgentConfig, em
         task_pairs = [(name, str(uuid4())) for name in selected]
         for name, task_id in task_pairs:
             state["tasks"][task_id] = TaskRecord(task_id=task_id, name=name, parent_task_id="root", status="running", attempt=1, depth=1)
+            if name != "final_gate":
+                LOGGER.info(
+                    "调用子 Agent",
+                    extra={"run_id": state["run_id"], "agent": name, "task_id": task_id, "attempt": 1},
+                )
             await _emit(emit, "stage", state, name, task_id=task_id, parent_task_id="root", payload={"status": "running"})
         try:
             outputs = await asyncio.gather(*[_run_task_with_retry(name, state, model, task_id, config, emit) for name, task_id in task_pairs])
@@ -125,7 +132,7 @@ async def execute(state: RootState, *, model: ModelPort, config: AgentConfig, em
             state["completed"].update(output)
             state["tasks"][task_id]["status"] = "completed"
             state["task_history"].append(name)
-            await _emit(emit, "progress", state, name, task_id=task_id, parent_task_id="root", payload={"status": "completed"})
+            await _emit(emit, "progress", state, name, task_id=task_id, parent_task_id="root", payload={"status": "completed", "output": output})
         if "result" in state["completed"]:
             state["result"] = state["completed"]["result"]
             state["terminal"] = "result"

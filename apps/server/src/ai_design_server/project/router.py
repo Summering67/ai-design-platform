@@ -9,8 +9,9 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..agents.contracts import load_default_generation_contract
+from ..agents.runner import run_agent
 from ..auth.router import current_user
-from ..chat import ChatMessage, Role
 from ..database import AttemptModel, MessageModel, ProjectModel, UserModel
 from ..dependencies import get_session
 from ..dto import (
@@ -156,21 +157,20 @@ async def _events(
         "generation",
         {"project_id": project.id, "message_id": message.id, "generation_id": attempt.id},
     )
-    async with request.app.state.database.session() as session:
-        context = await service.context(session, project.id, message.id)
-    chunks: list[str] = []
-
-    async def on_delta(delta: str) -> None:
-        chunks.append(delta)
-        await queue.put(_event("delta", {"content": delta}))
-
     async def run() -> None:
         failure: BaseException | None = None
+        document: object | None = None
         try:
-            await request.app.state.chat_client.stream(
-                [ChatMessage(role=Role(item.role), content=item.content) for item in context],
-                on_delta,
-            )
+            async for agent_event in run_agent(
+                {"requirement": message.content, "generation_contract": load_default_generation_contract()},
+                request.app.state.agent_model,
+                request.app.state.config.agent,
+            ):
+                await queue.put(_event("agent", agent_event))
+                if agent_event["event"] == "result":
+                    document = agent_event.get("payload", {}).get("document")
+                if agent_event["event"] == "failed":
+                    failure = RuntimeError("Agent 运行失败")
         except asyncio.CancelledError:
             async with request.app.state.database.session() as interrupt_session:
                 finished = await service.interrupt(interrupt_session, project.id, attempt.id)
@@ -181,7 +181,7 @@ async def _events(
             failure = error
         async with request.app.state.database.session() as finish_session:
             assistant, finished = await service.finish(
-                finish_session, attempt.id, "".join(chunks), failure
+                finish_session, attempt.id, "设计已生成。" if document is not None else "", failure
             )
         event = (
             "completed"
@@ -191,7 +191,7 @@ async def _events(
             else "failed"
         )
         payload: object = (
-            {"generation_id": finished.id, "message": _message(assistant)}
+            {"generation_id": finished.id, "message": _message(assistant), "document": document}
             if assistant is not None
             else {"generation_id": finished.id}
             if event == "interrupted"

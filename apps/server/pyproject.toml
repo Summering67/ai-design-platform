@@ -36,6 +36,7 @@ packages = ["src/ai_design_server"]
 
 [tool.hatch.build.targets.wheel.force-include]
 "../../packages/design-contract/schema/v2/design-document.schema.json" = "ai_design_server/design/design-document.schema.json"
+"src/ai_design_server/agents/default-generation-contract.json" = "ai_design_server/agents/default-generation-contract.json"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

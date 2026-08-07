@@ -32,6 +32,17 @@ def load_schema(name: str) -> dict[str, Any]:
     return value
 
 
+def load_default_generation_contract() -> dict[str, Any]:
+    try:
+        value = json.loads(Path(__file__).with_name("default-generation-contract.json").read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise ContractError("contract_unavailable", "默认生成契约不可用") from error
+    if not isinstance(value, dict):
+        raise ContractError("contract_unavailable", "默认生成契约格式无效")
+    validate_profile_contract(value)
+    return value
+
+
 def validate(name: str, value: Any) -> None:
     schema = load_schema(name)
     error = next(Draft202012Validator(schema).iter_errors(value), None)

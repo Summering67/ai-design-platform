@@ -64,6 +64,9 @@ importers:
       '@base-ui/react':
         specifier: ^1.6.0
         version: 1.6.0(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@repo/design-dsl':
+        specifier: workspace:*
+        version: link:../../packages/design-dsl
       '@repo/ui':
         specifier: workspace:*
         version: link:../../packages/ui

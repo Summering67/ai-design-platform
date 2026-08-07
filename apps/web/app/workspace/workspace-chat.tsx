@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Workspace } from "@repo/ui/blocks/workspace";
+import type { DesignDocument } from "@repo/design-dsl";
 import {
   RequestError,
   currentUser,
@@ -29,7 +30,20 @@ const WorkspaceChat = ({
   const [error, setError] = useState<string | null>(null);
   const [generationId, setGenerationId] = useState<string | null>(null);
   const [stream, setStream] = useState("");
+  const [document, setDocument] = useState<DesignDocument | null>(null);
   const [email, setEmail] = useState("");
+  const appendAgentMessage = (data: Record<string, unknown>) => {
+    const stage = typeof data.stage === "string" ? data.stage : "root";
+    const event = typeof data.event === "string" ? data.event : "progress";
+    setMessages((items) => [
+      ...items,
+      {
+        id: crypto.randomUUID(),
+        role: "assistant" as const,
+        content: `【Agent · ${stage} · ${event}】\n${JSON.stringify(data.payload ?? {}, null, 2)}`,
+      },
+    ]);
+  };
   useEffect(() => {
     void currentUser()
       .then((user) => setEmail(user.email))
@@ -86,10 +100,13 @@ const WorkspaceChat = ({
           }
           if (event.event === "delta" && typeof event.data.content === "string")
             setStream((value) => value + event.data.content);
+          if (event.event === "agent") appendAgentMessage(event.data);
           if (event.event === "completed") {
             const nextMessage = event.data.message as ChatMessage;
             if (nextMessage?.id)
               setMessages((items) => [...items, nextMessage]);
+            if (event.data.document)
+              setDocument(event.data.document as DesignDocument);
           }
           if (event.event === "failed" || event.event === "interrupted")
             setError(
@@ -132,9 +149,11 @@ const WorkspaceChat = ({
           setGenerationId(event.data.generation_id);
         if (event.event === "delta" && typeof event.data.content === "string")
           setStream((value) => value + event.data.content);
+        if (event.event === "agent") appendAgentMessage(event.data);
         if (event.event === "completed") {
           const nextMessage = event.data.message as ChatMessage;
           if (nextMessage?.id) setMessages((items) => [...items, nextMessage]);
+          if (event.data.document) setDocument(event.data.document as DesignDocument);
         }
         if (event.event === "failed" || event.event === "interrupted")
           setError("生成未完成，可重新生成。");
@@ -163,6 +182,7 @@ const WorkspaceChat = ({
   return (
     <Workspace
       accountEmail={email}
+      document={document}
       error={error}
       messages={visibleMessages}
       projectTitle={project?.title || "新建项目"}
