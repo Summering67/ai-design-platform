@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, TypedDict
 
-from ..contracts import validate_tree
+from ..contracts import load_schema, validate_tree
 from ..model import ModelPort
 from .prompts import SYSTEM_PROMPT
 
@@ -15,11 +15,15 @@ class UIDesignState(TypedDict, total=False):
     attempt: int
 
 
+def _document_schema() -> dict[str, Any]:
+    return load_schema("design-document.schema.json")
+
+
 async def generate(state: UIDesignState, *, model: ModelPort) -> UIDesignState:
     candidate = await model.structured(
         SYSTEM_PROMPT,
         {"prd": state["prd"], "generationContract": state["contract"], "instruction": "生成完整初始 UI 树"},
-        {"type": "object", "description": "DesignDocument v2"},
+        _document_schema(),
     )
     try:
         validate_tree(candidate, state["contract"])
@@ -34,7 +38,7 @@ async def repair(state: UIDesignState, *, model: ModelPort) -> UIDesignState:
     candidate = await model.structured(
         SYSTEM_PROMPT,
         {"prd": state["prd"], "candidate": state.get("candidate"), "error": state.get("error"), "instruction": "只修复契约错误，保持业务节点 ID"},
-        {"type": "object", "description": "DesignDocument v2"},
+        _document_schema(),
     )
     validate_tree(candidate, state["contract"])
     return {"candidate": candidate, "attempt": 2}

@@ -204,6 +204,109 @@
         "id": { "type": "string", "minLength": 1 }
       }
     },
+    "edgeInsets": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "top": { "type": "number", "minimum": 0 },
+        "right": { "type": "number", "minimum": 0 },
+        "bottom": { "type": "number", "minimum": 0 },
+        "left": { "type": "number", "minimum": 0 }
+      }
+    },
+    "sizing": {
+      "oneOf": [
+        { "type": "object", "additionalProperties": false, "required": ["mode", "value"], "properties": { "mode": { "const": "fixed" }, "value": { "type": "number", "minimum": 0 } } },
+        { "type": "object", "additionalProperties": false, "required": ["mode"], "properties": { "mode": { "const": "fill" } } },
+        { "type": "object", "additionalProperties": false, "required": ["mode"], "properties": { "mode": { "const": "hug" } } },
+        { "type": "object", "additionalProperties": false, "required": ["mode", "min"], "properties": { "mode": { "const": "minmax" }, "min": { "type": "number", "minimum": 0 }, "max": { "type": "number", "minimum": 0 } } }
+      ]
+    },
+    "flexLayout": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode"],
+      "properties": {
+        "mode": { "enum": ["flex", "absolute"] },
+        "direction": { "enum": ["row", "row-reverse", "column", "column-reverse"] },
+        "justifyContent": { "enum": ["flex-start", "flex-end", "center", "space-between", "space-around", "space-evenly"] },
+        "alignItems": { "enum": ["stretch", "flex-start", "flex-end", "center", "baseline"] },
+        "wrap": { "enum": ["nowrap", "wrap", "wrap-reverse"] },
+        "gap": { "type": "number", "minimum": 0 },
+        "rowGap": { "type": "number", "minimum": 0 },
+        "columnGap": { "type": "number", "minimum": 0 },
+        "padding": { "$ref": "#/$defs/edgeInsets" }
+      }
+    },
+    "flexItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "width": { "$ref": "#/$defs/sizing" },
+        "height": { "$ref": "#/$defs/sizing" },
+        "flex": {
+          "oneOf": [
+            { "type": "number", "minimum": 0 },
+            { "type": "string", "minLength": 1 },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "grow": { "type": "number", "minimum": 0 },
+                "shrink": { "type": "number", "minimum": 0 },
+                "basis": { "$ref": "#/$defs/styleValue" }
+              }
+            }
+          ]
+        },
+        "flexGrow": { "type": "number", "minimum": 0 },
+        "flexShrink": { "type": "number", "minimum": 0 },
+        "flexBasis": { "$ref": "#/$defs/styleValue" },
+        "alignSelf": { "enum": ["auto", "flex-start", "flex-end", "center", "baseline", "stretch"] },
+        "margin": { "$ref": "#/$defs/edgeInsets" },
+        "position": { "enum": ["flow", "absolute"] },
+        "inset": { "$ref": "#/$defs/edgeInsets" }
+      }
+    },
+    "computedLayout": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y", "width", "height"],
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "width": { "type": "number", "minimum": 0 },
+        "height": { "type": "number", "minimum": 0 },
+        "contentWidth": { "type": "number", "minimum": 0 },
+        "contentHeight": { "type": "number", "minimum": 0 },
+        "mainSize": { "type": "number", "minimum": 0 },
+        "crossSize": { "type": "number", "minimum": 0 },
+        "lineIndex": { "type": "integer", "minimum": 0 },
+        "resolvedGap": { "type": "number", "minimum": 0 },
+        "margin": { "$ref": "#/$defs/edgeInsets" },
+        "padding": { "$ref": "#/$defs/edgeInsets" }
+      }
+    },
+    "responsiveLayout": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "minWidth": { "type": "number", "minimum": 0 },
+        "maxWidth": { "type": "number", "minimum": 0 },
+        "direction": { "enum": ["row", "row-reverse", "column", "column-reverse"] },
+        "justifyContent": { "enum": ["flex-start", "flex-end", "center", "space-between", "space-around", "space-evenly"] },
+        "alignItems": { "enum": ["stretch", "flex-start", "flex-end", "center", "baseline"] },
+        "wrap": { "enum": ["nowrap", "wrap", "wrap-reverse"] },
+        "gap": { "type": "number", "minimum": 0 },
+        "rowGap": { "type": "number", "minimum": 0 },
+        "columnGap": { "type": "number", "minimum": 0 },
+        "padding": { "$ref": "#/$defs/edgeInsets" },
+        "layout": { "$ref": "#/$defs/flexLayout" },
+        "layoutItem": { "$ref": "#/$defs/flexItem" },
+        "computedLayout": { "$ref": "#/$defs/computedLayout" },
+        "visible": { "type": "boolean" }
+      }
+    },
     "node": {
       "type": "object",
       "additionalProperties": false,
@@ -216,9 +319,15 @@
         "packageName": { "type": "string", "minLength": 1 },
         "defaultModule": { "type": "boolean" },
         "style": { "$ref": "#/$defs/style" },
+        "layout": { "$ref": "#/$defs/flexLayout" },
+        "layoutItem": { "$ref": "#/$defs/flexItem" },
+        "computedLayout": { "$ref": "#/$defs/computedLayout" },
         "props": { "$ref": "#/$defs/jsonObject" },
         "children": { "type": "array", "items": { "$ref": "#/$defs/node" } },
-        "responsive": { "$ref": "#/$defs/jsonObject" },
+        "responsive": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/responsiveLayout" }
+        },
         "text": { "type": "string" },
         "assetId": { "$ref": "#/$defs/id" },
         "alt": { "type": "string" },

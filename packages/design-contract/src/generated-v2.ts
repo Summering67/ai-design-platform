@@ -24,14 +24,36 @@ export type Node = {
   packageName?: string;
   defaultModule?: boolean;
   style: Style;
+  layout?: FlexLayout;
+  layoutItem?: FlexItem;
+  computedLayout?: ComputedLayout;
   props: JsonObject;
   children: Node[];
+  responsive?: {
+    [k: string]: ResponsiveLayout;
+  };
   text?: string;
   assetId?: Id;
   alt?: string;
   source?: Source;
 };
 export type StyleValue = number | string | boolean;
+export type Sizing =
+  | {
+      mode: "fixed";
+      value: number;
+    }
+  | {
+      mode: "fill";
+    }
+  | {
+      mode: "hug";
+    }
+  | {
+      mode: "minmax";
+      min: number;
+      max?: number;
+    };
 
 export interface DesignDocumentV2 {
   $schema?: string;
@@ -163,6 +185,72 @@ export interface Style {
   overflow?: "visible" | "hidden" | "scroll" | "auto";
   overflowX?: "visible" | "hidden" | "scroll" | "auto";
   overflowY?: "visible" | "hidden" | "scroll" | "auto";
+}
+export interface FlexLayout {
+  mode: "flex" | "absolute";
+  direction?: "row" | "row-reverse" | "column" | "column-reverse";
+  justifyContent?: "flex-start" | "flex-end" | "center" | "space-between" | "space-around" | "space-evenly";
+  alignItems?: "stretch" | "flex-start" | "flex-end" | "center" | "baseline";
+  wrap?: "nowrap" | "wrap" | "wrap-reverse";
+  gap?: number;
+  rowGap?: number;
+  columnGap?: number;
+  padding?: EdgeInsets;
+}
+export interface EdgeInsets {
+  top?: number;
+  right?: number;
+  bottom?: number;
+  left?: number;
+}
+export interface FlexItem {
+  width?: Sizing;
+  height?: Sizing;
+  flex?:
+    | number
+    | string
+    | {
+        grow?: number;
+        shrink?: number;
+        basis?: StyleValue;
+      };
+  flexGrow?: number;
+  flexShrink?: number;
+  flexBasis?: StyleValue;
+  alignSelf?: "auto" | "flex-start" | "flex-end" | "center" | "baseline" | "stretch";
+  margin?: EdgeInsets;
+  position?: "flow" | "absolute";
+  inset?: EdgeInsets;
+}
+export interface ComputedLayout {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  contentWidth?: number;
+  contentHeight?: number;
+  mainSize?: number;
+  crossSize?: number;
+  lineIndex?: number;
+  resolvedGap?: number;
+  margin?: EdgeInsets;
+  padding?: EdgeInsets;
+}
+export interface ResponsiveLayout {
+  minWidth?: number;
+  maxWidth?: number;
+  direction?: "row" | "row-reverse" | "column" | "column-reverse";
+  justifyContent?: "flex-start" | "flex-end" | "center" | "space-between" | "space-around" | "space-evenly";
+  alignItems?: "stretch" | "flex-start" | "flex-end" | "center" | "baseline";
+  wrap?: "nowrap" | "wrap" | "wrap-reverse";
+  gap?: number;
+  rowGap?: number;
+  columnGap?: number;
+  padding?: EdgeInsets;
+  layout?: FlexLayout;
+  layoutItem?: FlexItem;
+  computedLayout?: ComputedLayout;
+  visible?: boolean;
 }
 export interface Source {
   tool?: string;
