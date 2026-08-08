@@ -11,6 +11,7 @@ from ..config import AIConfig
 from .errors import AgentError
 
 ReasoningSink = Callable[[str], Awaitable[None]]
+ActivitySink = Callable[[], Awaitable[None]]
 
 
 class ModelPort(Protocol):
@@ -21,10 +22,11 @@ class ModelPort(Protocol):
         schema: Mapping[str, Any],
         *,
         on_reasoning: ReasoningSink | None = None,
+        on_activity: ActivitySink | None = None,
     ) -> dict[str, Any]: ...
 
     async def select_tasks(
-        self, state: Mapping[str, Any], *, on_reasoning: ReasoningSink | None = None
+        self, state: Mapping[str, Any], *, on_reasoning: ReasoningSink | None = None, on_activity: ActivitySink | None = None
     ) -> list[str]: ...
 
 
@@ -57,6 +59,7 @@ async def _stream_completion(
     config: AIConfig,
     messages: list[dict[str, str]],
     on_reasoning: ReasoningSink | None,
+    on_activity: ActivitySink | None,
 ) -> str:
     parts: list[str] = []
     async with client.stream(
@@ -82,6 +85,8 @@ async def _stream_completion(
             if data == "[DONE]":
                 break
             reasoning, content = _stream_delta(json.loads(data))
+            if (reasoning or content) and on_activity is not None:
+                await on_activity()
             if reasoning and on_reasoning is not None:
                 await on_reasoning(reasoning)
             if content:
@@ -96,6 +101,7 @@ def create_openai_model(client: httpx.AsyncClient, config: AIConfig) -> ModelPor
         schema: Mapping[str, Any],
         *,
         on_reasoning: ReasoningSink | None = None,
+        on_activity: ActivitySink | None = None,
     ) -> dict[str, Any]:
         prompt = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
         schema_text = json.dumps(schema, ensure_ascii=False, separators=(",", ":"))
@@ -108,6 +114,7 @@ def create_openai_model(client: httpx.AsyncClient, config: AIConfig) -> ModelPor
                     {"role": "user", "content": prompt},
                 ],
                 on_reasoning,
+                on_activity,
             )
             value = json.loads(content)
             if not isinstance(value, dict):
@@ -117,7 +124,7 @@ def create_openai_model(client: httpx.AsyncClient, config: AIConfig) -> ModelPor
             raise AgentError("model_unavailable", "Agent 模型不可用", retryable=True) from error
 
     async def select_tasks(
-        state: Mapping[str, Any], *, on_reasoning: ReasoningSink | None = None
+        state: Mapping[str, Any], *, on_reasoning: ReasoningSink | None = None, on_activity: ActivitySink | None = None
     ) -> list[str]:
         schema = {"type": "object", "required": ["tasks"], "properties": {"tasks": {"type": "array", "items": {"type": "string"}}}}
         result = await structured(
@@ -125,6 +132,7 @@ def create_openai_model(client: httpx.AsyncClient, config: AIConfig) -> ModelPor
             {"state": state, "instruction": "选择当前可执行的一个或多个已注册任务"},
             schema,
             on_reasoning=on_reasoning,
+            on_activity=on_activity,
         )
         tasks = result.get("tasks")
         if not isinstance(tasks, list) or any(not isinstance(item, str) for item in tasks):
@@ -134,15 +142,15 @@ def create_openai_model(client: httpx.AsyncClient, config: AIConfig) -> ModelPor
     return cast(ModelPort, SimpleNamespace(structured=structured, select_tasks=select_tasks))
 
 
-def bind_reasoning(model: ModelPort, on_reasoning: ReasoningSink) -> ModelPort:
+def bind_reasoning(model: ModelPort, on_reasoning: ReasoningSink, on_activity: ActivitySink | None = None) -> ModelPort:
     async def structured(
         purpose: str, payload: Mapping[str, Any], schema: Mapping[str, Any], **_: Any
     ) -> dict[str, Any]:
         return await model.structured(
-            purpose, payload, schema, on_reasoning=on_reasoning
+            purpose, payload, schema, on_reasoning=on_reasoning, on_activity=on_activity
         )
 
     async def select_tasks(state: Mapping[str, Any], **_: Any) -> list[str]:
-        return await model.select_tasks(state, on_reasoning=on_reasoning)
+        return await model.select_tasks(state, on_reasoning=on_reasoning, on_activity=on_activity)
 
     return cast(ModelPort, SimpleNamespace(structured=structured, select_tasks=select_tasks))

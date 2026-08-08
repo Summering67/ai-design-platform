@@ -142,17 +142,23 @@ async def _run_task_with_retry(
                         payload={"status": "reasoning_truncated"},
                     )
 
-            async with asyncio.timeout(config.node_timeout):
-                return await _run_task(
-                    name, state, bind_reasoning(model, on_reasoning), task_id, attempt
+            async def on_activity(*, task_attempt: int = attempt) -> None:
+                await _emit(
+                    emit,
+                    "progress",
+                    state,
+                    name,
+                    task_id=task_id,
+                    attempt=task_attempt,
+                    payload={"status": "activity"},
                 )
-        except TimeoutError:
-            error = AgentError("agent_timeout", "子 Agent 响应超时", retryable=True)
-            LOGGER.warning(
-                "子 Agent 响应超时：%s（%s）",
-                AGENT_LABELS.get(name, name),
+
+            return await _run_task(
                 name,
-                extra={"generation_id": state.get("generation_id"), "agent": name, "task_id": task_id, "attempt": attempt},
+                state,
+                bind_reasoning(model, on_reasoning, on_activity),
+                task_id,
+                attempt,
             )
         except AgentError as agent_error:
             error = agent_error
@@ -181,7 +187,10 @@ async def execute(state: RootState, *, model: ModelPort, config: AgentConfig, em
                     payload={"status": "reasoning", "delta": delta},
                 )
 
-        selected = await bind_reasoning(model, on_root_reasoning).select_tasks(
+        async def on_root_activity() -> None:
+            await _emit(emit, "progress", state, "root", payload={"status": "activity"})
+
+        selected = await bind_reasoning(model, on_root_reasoning, on_root_activity).select_tasks(
             {"target": state.get("target", "design"), "completed": list(state["completed"]), "catalog": state["task_catalog"], "history": state["task_history"]}
         )
         unknown = [name for name in selected if name not in state["task_catalog"]]

@@ -45,24 +45,33 @@ async def run_agent(value: AgentInput, model: ModelPort, config: AgentConfig) ->
 
     state = {"run_id": run_id, "generation_id": value.get("generation_id"), "raw_requirement": requirement, "generation_contract": contract, "target": value.get("target", "design")}
     async def execute_graph() -> Any:
-        async with asyncio.timeout(config.total_timeout):
-            return await build(model, config).ainvoke(state, context={"event_sink": emit})
+        return await build(model, config).ainvoke(state, context={"event_sink": emit})
 
     task = asyncio.create_task(execute_graph())
     task.add_done_callback(lambda _: queue.put_nowait(None))
     await queue.put(event("run", run_id, "root", payload={"status": "started"}))
     terminal_emitted = False
+    timed_out = False
     try:
         while True:
             if task.done() and queue.empty():
                 break
-            item = await queue.get()
+            try:
+                item = await asyncio.wait_for(queue.get(), config.node_timeout)
+            except TimeoutError:
+                timed_out = True
+                task.cancel()
+                await asyncio.gather(task, return_exceptions=True)
+                if not terminal_emitted:
+                    yield event("failed", run_id, "root", payload={"code": "agent_timeout", "message": "Agent 长时间未返回内容"})
+                break
             if item is None:
                 break
             terminal_emitted = item.get("event") in {"result", "failed", "cancelled"}
             yield item
         try:
-            await task
+            if not timed_out:
+                await task
         except TimeoutError:
             if not terminal_emitted:
                 yield event("failed", run_id, "root", payload={"code": "agent_timeout", "message": "Agent 运行超时"})
