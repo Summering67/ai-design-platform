@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent, KeyboardEvent } from "react";
 import {
   ArrowDownIcon,
@@ -12,9 +12,6 @@ import { Virtuoso } from "react-virtuoso";
 import { DesignDocumentRenderer } from "../design-document-renderer";
 import type { DesignDocument } from "@repo/design-dsl";
 import type {
-  Components,
-  ItemProps,
-  ListProps,
   VirtuosoHandle,
 } from "react-virtuoso";
 
@@ -38,6 +35,14 @@ import styles from "./workspace.module.css";
 type ChatRole = "user" | "assistant";
 type ChatStatus = "idle" | "loading" | "error";
 type ChatMessage = { id: string; role: ChatRole; content: string };
+type WorkspaceReasoning = {
+  id: string;
+  stage: string;
+  taskId: string;
+  attempt: number;
+  content: string;
+  status: "reasoning" | "completed" | "truncated";
+};
 type CanvasSettings = {
   background: string;
   width: number;
@@ -55,6 +60,7 @@ type WorkspaceProps = {
   accountEmail: string;
   projectTitle: string;
   messages: ReadonlyArray<ChatMessage>;
+  reasoning: ReadonlyArray<WorkspaceReasoning>;
   status: ChatStatus;
   error: string | null;
   onSend: (content: string) => void;
@@ -63,37 +69,6 @@ type WorkspaceProps = {
   onLogout: () => void;
   canvasNode?: CanvasNode | null;
   document?: DesignDocument | null;
-};
-
-const MessageList = forwardRef<HTMLDivElement, ListProps & { context: null }>(
-  ({ context, ...props }, ref) => {
-    void context;
-    return (
-      <div
-        {...props}
-        ref={ref}
-        aria-label="对话消息"
-        className={styles.messageList}
-        role="list"
-      />
-    );
-  },
-);
-MessageList.displayName = "MessageList";
-
-const MessageItem = ({
-  context,
-  item,
-  ...props
-}: ItemProps<ChatMessage> & { context: null }) => {
-  void context;
-  void item;
-  return <div {...props} role="listitem" />;
-};
-
-const messageComponents: Components<ChatMessage, null> = {
-  List: MessageList,
-  Item: MessageItem,
 };
 
 const ChatMessageItem = ({ message }: { message: ChatMessage }) => (
@@ -108,6 +83,21 @@ const ChatMessageItem = ({ message }: { message: ChatMessage }) => (
   </article>
 );
 
+const ReasoningMessageItem = ({ item }: { item: WorkspaceReasoning }) => (
+  <article className={`${styles.message} ${styles.reasoningMessage}`} data-role="assistant">
+    <div className={styles.assistantLabel}>
+      <SparklesIcon />
+      <span>设计助手 · 模型思考过程</span>
+    </div>
+    <details open>
+      <summary>{item.stage}{item.status === "reasoning" ? " · 进行中" : ""}</summary>
+      <p className={styles.messageContent} aria-live={item.status === "reasoning" ? "polite" : undefined}>
+        {item.content || "暂无模型思考内容"}
+      </p>
+    </details>
+  </article>
+);
+
 const getScrollBehavior = (): "auto" | "smooth" =>
   window.matchMedia("(prefers-reduced-motion: reduce)").matches
     ? "auto"
@@ -116,6 +106,7 @@ const getScrollBehavior = (): "auto" | "smooth" =>
 const ChatPanel = ({
   error,
   messages,
+  reasoning,
   onRetry,
   onSend,
   onStop,
@@ -128,6 +119,17 @@ const ChatPanel = ({
   const retryMessageId = [...messages]
     .reverse()
     .find((message) => message.role === "user")?.id;
+  const reasoningItems = reasoning.map((item) => ({
+    kind: "reasoning" as const,
+    reasoning: item,
+  }));
+  const conversation = messages.flatMap((message) =>
+    message.id === "streaming"
+      ? [...reasoningItems, { kind: "message" as const, message }]
+      : [{ kind: "message" as const, message }],
+  );
+  if (!messages.some((message) => message.id === "streaming"))
+    conversation.push(...reasoningItems);
   const submit = () => {
     const content = draft.trim();
     if (!content || isLoading) return;
@@ -160,21 +162,24 @@ const ChatPanel = ({
         </div>
       </header>
       <div className={styles.conversation}>
-        {messages.length ? (
+        {conversation.length ? (
           <Virtuoso
             ref={listRef}
             alignToBottom
             atBottomStateChange={setIsAtBottom}
             atBottomThreshold={48}
             className={styles.chatList}
-            components={messageComponents}
-            computeItemKey={(_index, message) => message.id}
-            data={messages}
+            computeItemKey={(_index, item) => item.kind === "message" ? item.message.id : `reasoning:${item.reasoning.id}`}
+            data={conversation}
             followOutput={(atBottom) => atBottom && "auto"}
             increaseViewportBy={{ top: 320, bottom: 240 }}
-            itemContent={(_index, message) => (
-              <ChatMessageItem message={message} />
-            )}
+            itemContent={(_index, item) =>
+              item.kind === "message" ? (
+                <ChatMessageItem message={item.message} />
+              ) : (
+                <ReasoningMessageItem item={item.reasoning} />
+              )
+            }
           />
         ) : (
           <Empty className={styles.emptyFill}>
@@ -189,7 +194,7 @@ const ChatPanel = ({
             </EmptyHeader>
           </Empty>
         )}
-        {!isAtBottom && messages.length ? (
+        {!isAtBottom && conversation.length ? (
           <Button
             aria-label="回到最新消息"
             className={styles.jumpToLatest}
@@ -197,7 +202,7 @@ const ChatPanel = ({
             variant="secondary"
             onClick={() =>
               listRef.current?.scrollToIndex({
-                index: messages.length - 1,
+                index: conversation.length - 1,
                 align: "end",
                 behavior: getScrollBehavior(),
               })
@@ -446,6 +451,7 @@ const Workspace = ({
   document,
   error,
   messages,
+  reasoning,
   onRetry,
   onSend,
   onStop,
@@ -461,6 +467,7 @@ const Workspace = ({
         <ChatPanel
           error={error}
           messages={messages}
+          reasoning={reasoning}
           status={status}
           onRetry={onRetry}
           onSend={onSend}
@@ -482,5 +489,6 @@ export type {
   ChatMessage,
   ChatRole,
   ChatStatus,
+  WorkspaceReasoning,
   WorkspaceProps,
 };

@@ -153,6 +153,10 @@ async def _events(
     attempt: AttemptModel,
 ) -> AsyncIterator[str]:
     queue: asyncio.Queue[str | None] = asyncio.Queue()
+    request.app.state.logger.info(
+        "Agent generation started",
+        extra={"generation_id": attempt.id, "project_id": project.id},
+    )
     yield _event(
         "generation",
         {"project_id": project.id, "message_id": message.id, "generation_id": attempt.id},
@@ -162,7 +166,7 @@ async def _events(
         document: object | None = None
         try:
             async for agent_event in run_agent(
-                {"requirement": message.content, "generation_contract": load_default_generation_contract()},
+                {"requirement": message.content, "generation_contract": load_default_generation_contract(), "generation_id": attempt.id},
                 request.app.state.agent_model,
                 request.app.state.config.agent,
             ):
@@ -171,6 +175,10 @@ async def _events(
                     document = agent_event.get("payload", {}).get("document")
                 if agent_event["event"] == "failed":
                     failure = RuntimeError("Agent 运行失败")
+                    request.app.state.logger.warning(
+                        "Agent generation failed",
+                        extra={"generation_id": attempt.id, "code": agent_event.get("payload", {}).get("code", "agent_failed")},
+                    )
         except asyncio.CancelledError:
             async with request.app.state.database.session() as interrupt_session:
                 finished = await service.interrupt(interrupt_session, project.id, attempt.id)
@@ -183,6 +191,10 @@ async def _events(
             assistant, finished = await service.finish(
                 finish_session, attempt.id, "设计已生成。" if document is not None else "", failure
             )
+        request.app.state.logger.info(
+            "Agent generation finished",
+            extra={"generation_id": finished.id, "status": finished.status},
+        )
         event = (
             "completed"
             if assistant is not None

@@ -16,6 +16,7 @@ from .model import ModelPort
 class AgentInput(TypedDict, total=False):
     requirement: str
     generation_contract: dict[str, Any]
+    generation_id: str
     target: str
 
 
@@ -42,7 +43,7 @@ async def run_agent(value: AgentInput, model: ModelPort, config: AgentConfig) ->
             raise RuntimeError("Agent 输出超出大小限制")
         await queue.put(item)
 
-    state = {"run_id": run_id, "raw_requirement": requirement, "generation_contract": contract, "target": value.get("target", "design")}
+    state = {"run_id": run_id, "generation_id": value.get("generation_id"), "raw_requirement": requirement, "generation_contract": contract, "target": value.get("target", "design")}
     async def execute_graph() -> Any:
         async with asyncio.timeout(config.total_timeout):
             return await build(model, config).ainvoke(state, context={"event_sink": emit})

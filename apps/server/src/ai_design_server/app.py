@@ -42,7 +42,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     client = getattr(app.state, "http_client", None) or httpx.AsyncClient()
     app.state.http_client = client
     app.state.chat_client = getattr(app.state, "chat_client", None) or ChatClient(client, config.ai)
-    app.state.agent_model = getattr(app.state, "agent_model", None) or create_openai_model(config.ai)
+    app.state.agent_model = getattr(app.state, "agent_model", None) or create_openai_model(client, config.ai)
     app.state.agent_graph = getattr(app.state, "agent_graph", None) or build_agent_graph(
         app.state.agent_model, config.agent
     )

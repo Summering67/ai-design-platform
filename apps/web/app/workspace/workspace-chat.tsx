@@ -13,6 +13,8 @@ import {
   stopGeneration,
 } from "./chat-api";
 import type { ChatMessage, Project } from "./chat-api";
+import { applyReasoningEvent } from "./reasoning";
+import type { ReasoningItem } from "./reasoning";
 
 const WorkspaceChat = ({
   projectId,
@@ -24,26 +26,63 @@ const WorkspaceChat = ({
   const router = useRouter();
   const controller = useRef<AbortController | null>(null);
   const sendRef = useRef<(content: string) => void>(() => undefined);
+  const reasoningQueue = useRef<Record<string, unknown>[]>([]);
+  const reasoningTimer = useRef<number | null>(null);
   const [project, setProject] = useState<Project | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
   const [generationId, setGenerationId] = useState<string | null>(null);
   const [stream, setStream] = useState("");
+  const [reasoning, setReasoning] = useState<ReasoningItem[]>([]);
   const [document, setDocument] = useState<DesignDocument | null>(null);
   const [email, setEmail] = useState("");
-  const appendAgentMessage = (data: Record<string, unknown>) => {
-    const stage = typeof data.stage === "string" ? data.stage : "root";
-    const event = typeof data.event === "string" ? data.event : "progress";
-    setMessages((items) => [
-      ...items,
-      {
-        id: crypto.randomUUID(),
-        role: "assistant" as const,
-        content: `【Agent · ${stage} · ${event}】\n${JSON.stringify(data.payload ?? {}, null, 2)}`,
-      },
-    ]);
+  const flushReasoning = () => {
+    const queued = reasoningQueue.current;
+    reasoningQueue.current = [];
+    reasoningTimer.current = null;
+    if (queued.length)
+      setReasoning((items) => queued.reduce(applyReasoningEvent, items));
   };
+  const queueReasoning = (data: Record<string, unknown>) => {
+    reasoningQueue.current.push(data);
+    if (reasoningTimer.current === null)
+      reasoningTimer.current = window.setTimeout(flushReasoning, 16);
+  };
+  const clearReasoning = () => {
+    if (reasoningTimer.current !== null) {
+      window.clearTimeout(reasoningTimer.current);
+      reasoningTimer.current = null;
+    }
+    reasoningQueue.current = [];
+    setReasoning([]);
+  };
+  const appendAgentMessage = (data: Record<string, unknown>) => {
+    const event = typeof data.event === "string" ? data.event : "progress";
+    const payload = data.payload;
+    const payloadStatus =
+      payload && typeof payload === "object"
+        ? (payload as Record<string, unknown>).status
+        : undefined;
+    if (
+      event === "progress" &&
+      (payloadStatus === "reasoning" ||
+        payloadStatus === "reasoning_truncated" ||
+        payloadStatus === "completed")
+    ) {
+      queueReasoning(data);
+      return;
+    }
+    if (event === "stage" || event === "progress") return;
+  };
+  useEffect(() => {
+    return () => {
+      if (reasoningTimer.current !== null)
+        window.clearTimeout(reasoningTimer.current);
+      reasoningTimer.current = null;
+      reasoningQueue.current = [];
+    };
+  }, []);
   useEffect(() => {
     void currentUser()
       .then((user) => setEmail(user.email))
@@ -82,6 +121,7 @@ const WorkspaceChat = ({
     setStatus("loading");
     setError(null);
     setStream("");
+    clearReasoning();
     const request = new AbortController();
     controller.current = request;
     try {
@@ -94,7 +134,7 @@ const WorkspaceChat = ({
             const nextProjectId = event.data.project_id;
             const nextGenerationId = event.data.generation_id;
             if (typeof nextProjectId === "string" && !project)
-              router.replace(`/workspace/${nextProjectId}`);
+              setProject({ id: nextProjectId, title: "新建项目" });
             if (typeof nextGenerationId === "string")
               setGenerationId(nextGenerationId);
           }
@@ -127,6 +167,7 @@ const WorkspaceChat = ({
       setGenerationId(null);
       setStream("");
       setStatus((value) => (value === "loading" ? "idle" : value));
+      // 首次生成后保留当前工作台，避免路由切换中断 SSE。
     }
   };
   sendRef.current = (content) => void send(content);
@@ -137,6 +178,7 @@ const WorkspaceChat = ({
     setStatus("loading");
     setError(null);
     setStream("");
+    clearReasoning();
     void generate(
       `/projects/${project.id}/messages/${messageId}/generations`,
       undefined,
@@ -171,6 +213,7 @@ const WorkspaceChat = ({
     if (project && generationId) void stopGeneration(project.id, generationId);
     controller.current?.abort();
     setStream("");
+    clearReasoning();
     setStatus("idle");
   };
   const visibleMessages = stream
@@ -180,11 +223,12 @@ const WorkspaceChat = ({
       ]
     : messages;
   return (
-    <Workspace
+      <Workspace
       accountEmail={email}
       document={document}
       error={error}
-      messages={visibleMessages}
+        messages={visibleMessages}
+        reasoning={reasoning}
       projectTitle={project?.title || "新建项目"}
       status={status}
       onSend={(content) => void send(content)}

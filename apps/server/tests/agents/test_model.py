@@ -1,0 +1,84 @@
+from __future__ import annotations
+
+import asyncio
+import json
+
+import httpx
+import pytest
+
+from ai_design_server.agents.errors import AgentError
+from ai_design_server.agents.model import create_openai_model
+from ai_design_server.config import AIConfig
+
+
+def _config() -> AIConfig:
+    return AIConfig(base_url="https://ai.test", api_key="test-key", model="deepseek-v4-flash")
+
+
+@pytest.mark.asyncio
+async def test_structured_streams_reasoning_and_content() -> None:
+    requests: list[httpx.Request] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        body = (
+            'data: {"choices":[{"delta":{"reasoning_content":"先分析需求"}}]}\n'
+            'data: {"choices":[{"delta":{"reasoning_content":"，再组织结构"}}]}\n'
+            'data: {"choices":[{"delta":{"content":"{\\"tasks\\":[\\"requirement\\"]}"}}]}\n'
+            "data: [DONE]\n"
+        )
+        return httpx.Response(200, headers={"content-type": "text/event-stream"}, content=body.encode())
+
+    reasoning: list[str] = []
+
+    async def on_reasoning(value: str) -> None:
+        reasoning.append(value)
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        result = await create_openai_model(client, _config()).structured(
+            "Root Supervisor", {"input": "后台管理页面"}, {"type": "object"}, on_reasoning=on_reasoning
+        )
+
+    assert reasoning == ["先分析需求", "，再组织结构"]
+    assert result == {"tasks": ["requirement"]}
+    request_payload = json.loads(requests[0].content)
+    assert request_payload["stream"] is True
+    assert request_payload["thinking"] == {"type": "enabled"}
+
+
+@pytest.mark.asyncio
+async def test_structured_rejects_malformed_stream() -> None:
+    async def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            headers={"content-type": "text/event-stream"},
+            content=b"data: {\"choices\":[]}\n\ndata: [DONE]\n",
+        )
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        with pytest.raises(AgentError, match="Agent 模型不可用"):
+            await create_openai_model(client, _config()).structured(
+                "需求分析", {"input": "后台管理页面"}, {"type": "object"}
+            )
+
+
+@pytest.mark.asyncio
+async def test_structured_propagates_cancellation() -> None:
+    started = asyncio.Event()
+    release = asyncio.Event()
+
+    async def handler(_: httpx.Request) -> httpx.Response:
+        started.set()
+        await release.wait()
+        return httpx.Response(200, content=b"data: [DONE]\n")
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        task = asyncio.create_task(
+            create_openai_model(client, _config()).structured(
+                "需求分析", {"input": "后台管理页面"}, {"type": "object"}
+            )
+        )
+        await started.wait()
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task

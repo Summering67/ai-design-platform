@@ -15,6 +15,7 @@ class TaskRecord(TypedDict, total=False):
 
 class RootState(TypedDict, total=False):
     run_id: str
+    generation_id: str | None
     raw_requirement: str
     generation_contract: dict[str, Any]
     profile: dict[str, Any]

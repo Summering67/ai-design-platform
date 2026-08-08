@@ -6,5 +6,5 @@
   "parentTaskId": null,
   "stage": "requirement",
   "attempt": 1,
-  "payload": {"message": "需求解析完成"}
+  "payload": {"status": "reasoning", "delta": "先分析需求"}
 }

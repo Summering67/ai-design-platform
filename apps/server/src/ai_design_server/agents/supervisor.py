@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from collections.abc import Awaitable, Callable
 from typing import Any
@@ -11,7 +12,7 @@ from .auto_layout.graph import run as run_layout
 from .contracts import validate_tree
 from .errors import AgentError
 from .events import AgentRunEvent, EventName, event
-from .model import ModelPort
+from .model import ModelPort, bind_reasoning
 from .requirement.graph import run as run_requirement
 from .specification.graph import run as run_specification
 from .state import RootState, TaskRecord
@@ -19,6 +20,12 @@ from .ui_design.graph import run as run_ui_design
 
 EventSink = Callable[[AgentRunEvent], Awaitable[None]]
 LOGGER = logging.getLogger("ai_design_server.agents")
+AGENT_LABELS = {
+    "requirement": "需求分析",
+    "ui_design": "UI 设计",
+    "specification": "规范校验",
+    "auto_layout": "自动布局",
+}
 
 
 def _ready(name: str, state: RootState) -> bool:
@@ -75,11 +82,83 @@ async def _run_task_with_retry(
     for attempt in range(1, config.max_retries + 2):
         try:
             state["tasks"][task_id]["attempt"] = attempt
-            return await _run_task(name, state, model, task_id, attempt)
-        except AgentError as error:
-            if not error.retryable or attempt > config.max_retries:
-                raise
-            await _emit(emit, "progress", state, name, task_id=task_id, attempt=attempt, payload={"status": "retrying", "code": error.code})
+            await _emit(
+                emit,
+                "progress",
+                state,
+                name,
+                task_id=task_id,
+                attempt=attempt,
+                payload={"status": "requesting"},
+            )
+            forwarded = 0
+            truncated = False
+
+            async def on_reasoning(
+                delta: str,
+                *,
+                task_name: str = name,
+                task_attempt: int = attempt,
+                task_task_id: str = task_id,
+            ) -> None:
+                nonlocal forwarded, truncated
+                if truncated or not delta:
+                    return
+                encoded = delta.encode()
+                remaining = config.max_output_bytes - forwarded
+                if remaining <= 0:
+                    truncated = True
+                    await _emit(
+                        emit,
+                        "progress",
+                        state,
+                        task_name,
+                        task_id=task_task_id,
+                        attempt=task_attempt,
+                        payload={"status": "reasoning_truncated"},
+                    )
+                    return
+                visible = encoded[:remaining].decode(errors="ignore")
+                if visible:
+                    forwarded += len(visible.encode())
+                    await _emit(
+                        emit,
+                        "progress",
+                        state,
+                        task_name,
+                        task_id=task_task_id,
+                        attempt=task_attempt,
+                        payload={"status": "reasoning", "delta": visible},
+                    )
+                if forwarded < len(encoded):
+                    truncated = True
+                    await _emit(
+                        emit,
+                        "progress",
+                        state,
+                        task_name,
+                        task_id=task_task_id,
+                        attempt=task_attempt,
+                        payload={"status": "reasoning_truncated"},
+                    )
+
+            async with asyncio.timeout(config.node_timeout):
+                return await _run_task(
+                    name, state, bind_reasoning(model, on_reasoning), task_id, attempt
+                )
+        except TimeoutError:
+            error = AgentError("agent_timeout", "子 Agent 响应超时", retryable=True)
+            LOGGER.warning(
+                "子 Agent 响应超时：%s（%s）",
+                AGENT_LABELS.get(name, name),
+                name,
+                extra={"generation_id": state.get("generation_id"), "agent": name, "task_id": task_id, "attempt": attempt},
+            )
+        except AgentError as agent_error:
+            error = agent_error
+        if not error.retryable or attempt > config.max_retries:
+            raise error
+        await _emit(emit, "progress", state, name, task_id=task_id, attempt=attempt, payload={"status": "retrying", "code": error.code})
     raise AgentError("retry_exhausted", "Agent 重试耗尽")
 
 
@@ -92,7 +171,19 @@ async def execute(state: RootState, *, model: ModelPort, config: AgentConfig, em
     for _ in range(config.max_tasks):
         if state.get("terminal"):
             return state
-        selected = await model.select_tasks({"target": state.get("target", "design"), "completed": list(state["completed"]), "catalog": state["task_catalog"], "history": state["task_history"]})
+        async def on_root_reasoning(delta: str) -> None:
+            if delta:
+                await _emit(
+                    emit,
+                    "progress",
+                    state,
+                    "root",
+                    payload={"status": "reasoning", "delta": delta},
+                )
+
+        selected = await bind_reasoning(model, on_root_reasoning).select_tasks(
+            {"target": state.get("target", "design"), "completed": list(state["completed"]), "catalog": state["task_catalog"], "history": state["task_history"]}
+        )
         unknown = [name for name in selected if name not in state["task_catalog"]]
         if unknown:
             state["terminal"] = "failed"
@@ -113,8 +204,10 @@ async def execute(state: RootState, *, model: ModelPort, config: AgentConfig, em
             state["tasks"][task_id] = TaskRecord(task_id=task_id, name=name, parent_task_id="root", status="running", attempt=1, depth=1)
             if name != "final_gate":
                 LOGGER.info(
-                    "调用子 Agent",
-                    extra={"run_id": state["run_id"], "agent": name, "task_id": task_id, "attempt": 1},
+                    "调用子 Agent：%s（%s）",
+                    AGENT_LABELS[name],
+                    name,
+                    extra={"generation_id": state.get("generation_id"), "run_id": state["run_id"], "agent": name, "task_id": task_id, "attempt": 1},
                 )
             await _emit(emit, "stage", state, name, task_id=task_id, parent_task_id="root", payload={"status": "running"})
         try:
@@ -132,6 +225,13 @@ async def execute(state: RootState, *, model: ModelPort, config: AgentConfig, em
             state["completed"].update(output)
             state["tasks"][task_id]["status"] = "completed"
             state["task_history"].append(name)
+            if name != "final_gate" and LOGGER.isEnabledFor(logging.DEBUG):
+                LOGGER.debug(
+                    "子 Agent 输出：%s（%s）",
+                    AGENT_LABELS[name],
+                    name,
+                    extra={"generation_id": state.get("generation_id"), "agent": name, "task_id": task_id, "output": json.dumps(output, ensure_ascii=False, separators=(",", ":"))},
+                )
             await _emit(emit, "progress", state, name, task_id=task_id, parent_task_id="root", payload={"status": "completed", "output": output})
         if "result" in state["completed"]:
             state["result"] = state["completed"]["result"]

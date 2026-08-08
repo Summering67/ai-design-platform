@@ -8,6 +8,7 @@ from typing import Any
 from .config import LogConfig
 
 _SENSITIVE = {"authorization", "cookie", "password", "token", "api_key", "dsn", "body"}
+_LOG_RECORD_FIELDS = frozenset(logging.makeLogRecord({}).__dict__)
 
 
 class JsonFormatter(logging.Formatter):
@@ -18,7 +19,7 @@ class JsonFormatter(logging.Formatter):
             "logger": record.name,
         }
         for key, value in record.__dict__.items():
-            if key.startswith("_") or key in {"args", "msg", "exc_info", "exc_text", "stack_info"}:
+            if key.startswith("_") or key in _LOG_RECORD_FIELDS:
                 continue
             if key.lower() in _SENSITIVE:
                 continue
