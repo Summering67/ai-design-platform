@@ -120,7 +120,12 @@ Web 应用 SHALL 从项目接口加载完整消息历史，并使用项目级 SS
 #### Scenario: 聚合 reasoning 增量
 
 - **WHEN** Web 连续收到属于同一 run、任务和尝试次数的 reasoning 进度事件
-- **THEN** Web 按接收顺序原样追加增量，并且不会插入固定思考文案或改变文本内容
+- **THEN** Web 按接收顺序原样缓冲增量，并且不会插入固定思考文案或改变文本内容
+
+#### Scenario: 阶段成功后展示 reasoning
+
+- **WHEN** Web 收到同一任务的阶段完成事件
+- **THEN** Web 才展示该任务已缓冲的 reasoning，并明确标记为无需用户回复
 
 #### Scenario: 请求正在进行
 
@@ -144,22 +149,22 @@ Web 应用 SHALL 从项目接口加载完整消息历史，并使用项目级 SS
 
 ### Requirement: 受控且可访问的工作台对话界面
 
-共享 `Workspace` SHALL 通过 Props 与回调接收带稳定 ID 的持久化消息、临时流式文本、按 Agent 任务组织的 reasoning、generation 状态、错误、发送、停止和重新生成动作，MUST NOT 读取应用环境变量或自行请求接口。对话栏 SHALL 使用 `react-virtuoso` 虚拟化展示用户与助手消息，并 SHALL 在与消息分离的生成区域以可访问的可折叠控件展示真实模型 reasoning、生成态、错误态以及支持键盘操作的多行输入区。UI MUST 将 reasoning 标注为模型思考过程，不得将其表示为系统执行日志或事实结论。
+共享 `Workspace` SHALL 通过 Props 与回调接收带稳定 ID 的持久化消息、临时流式文本、generation 状态、已完成阶段的 reasoning、结构化追问、错误、发送、停止和重新生成动作，MUST NOT 读取应用环境变量或自行请求接口。对话栏 SHALL 使用 `react-virtuoso` 虚拟化展示用户、助手消息及已完成阶段的 reasoning，并 SHALL 在与消息分离的生成区域展示生成态、错误态、结构化追问按钮以及支持键盘操作的多行输入区。UI MUST NOT 展示尚未完成阶段的 reasoning；只有合法 `input_required` 中的问题和选项可以作为用户需要回答的内容。
 
-#### Scenario: 实时展示 reasoning
+#### Scenario: 正式追问替换未完成 reasoning
 
-- **WHEN** 当前任务收到新的真实 reasoning 增量
-- **THEN** 对话栏在对应 Agent 的可折叠区域按原始顺序展示内容，保持当前键盘焦点，并让辅助技术感知内容更新
+- **WHEN** Web 在缓冲 reasoning 后收到合法 `input_required`
+- **THEN** Web 丢弃当前未完成阶段的 reasoning，只展示结构化问题及编号选项按钮
 
-#### Scenario: 阶段 reasoning 完成
+#### Scenario: 展示结构化追问按钮
 
-- **WHEN** 对应 Agent 阶段完成
-- **THEN** reasoning 区域默认折叠但在当前 generation 页面生命周期内仍可由用户重新展开
+- **WHEN** Web 收到合法 `input_required`
+- **THEN** 对话栏按问题展示编号选项按钮，等待用户完成回答后再恢复 generation
 
-#### Scenario: reasoning 被截断
+#### Scenario: 追问内容超过可用高度
 
-- **WHEN** Web 收到该任务的 reasoning 截断状态
-- **THEN** 对应区域以状态信息说明展示已达到上限，且不会伪造缺失内容
+- **WHEN** 结构化追问的问题和选项无法在对话栏剩余高度内完整展示
+- **THEN** 问题列表可独立上下滚动，提交按钮保持可见，并在所有问题均已回答后允许用户提交
 
 #### Scenario: 空项目工作台
 

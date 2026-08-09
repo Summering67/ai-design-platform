@@ -40,7 +40,8 @@ const applyReasoningEvent = (
       ? items.map((item, itemIndex) => (itemIndex === index ? next : item))
       : [...items, next];
   }
-  if (status !== "completed" || !current) return [...items];
+  if ((status !== "completed" && status !== "reasoning_completed") || !current)
+    return [...items];
   return items.map((item, itemIndex) =>
     itemIndex === index ? { ...item, status: "completed" } : item,
   );

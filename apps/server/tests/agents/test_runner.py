@@ -114,6 +114,83 @@ async def test_root_runs_dynamic_v2_pipeline(caplog: pytest.LogCaptureFixture) -
 
 
 @pytest.mark.asyncio
+async def test_agent_continues_pipeline_after_user_answers_input_request() -> None:
+    contract = _read("packages/design-contract/fixtures/v1/team-default.generation-contract.json")
+    model = _fake_model()
+    structured = model.structured
+
+    async def require_answer(
+        purpose: str, payload: dict[str, Any], schema: dict[str, Any], **kwargs: Any
+    ) -> dict[str, Any]:
+        if "需求解析 Agent" in purpose and not payload.get("resolvedUserInputs"):
+            raise InputRequired(
+                [
+                    InputQuestion(
+                        "business-domain",
+                        "后台管理主要管理哪类业务对象？",
+                        "业务领域",
+                        [
+                            InputQuestionOption("用户与权限（推荐）", "生成用户权限后台。"),
+                            InputQuestionOption("订单与交易", "生成订单交易后台。"),
+                        ],
+                        True,
+                    )
+                ]
+            )
+        return await structured(purpose, payload, schema, **kwargs)
+
+    model.structured = require_answer
+    waiting_events = [
+        event
+        async for event in run_agent(
+            {
+                "requirement": "设计一个项目列表",
+                "generation_contract": contract,
+                "generation_id": "generation-1",
+            },
+            model,
+            AgentConfig(),
+        )
+    ]
+    assert waiting_events[-1]["event"] == "input_required"
+    assert all(event["event"] not in {"result", "failed"} for event in waiting_events)
+
+    resumed_events = [
+        event
+        async for event in run_agent(
+            {
+                "requirement": "设计一个项目列表",
+                "generation_contract": contract,
+                "generation_id": "generation-1",
+                "resolved_user_inputs": [
+                    {
+                        "source_stage": "requirement",
+                        "questions": waiting_events[-1]["payload"]["questions"],
+                        "answers": [
+                            {
+                                "question_id": "business-domain",
+                                "content": "用户与权限（推荐）",
+                            }
+                        ],
+                    }
+                ],
+            },
+            model,
+            AgentConfig(),
+        )
+    ]
+
+    assert all(event["event"] != "input_required" for event in resumed_events)
+    assert [
+        event["stage"]
+        for event in resumed_events
+        if event["event"] == "progress" and event["payload"].get("status") == "completed"
+    ] == ["requirement", "ui_design", "specification", "auto_layout", "final_gate"]
+    assert resumed_events[-1]["event"] == "result"
+    assert resumed_events[-1]["payload"]["document"]["version"] == "2.0.0"
+
+
+@pytest.mark.asyncio
 async def test_agent_returns_timeout_when_child_agent_does_not_respond() -> None:
     contract = _read("packages/design-contract/fixtures/v1/team-default.generation-contract.json")
 

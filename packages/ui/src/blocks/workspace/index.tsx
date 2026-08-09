@@ -30,6 +30,7 @@ import {
   InputGroupTextarea,
 } from "../../components/input-group";
 import { Spinner } from "../../components/spinner";
+import { ToggleGroup, ToggleGroupItem } from "../../components/toggle-group";
 import styles from "./workspace.module.css";
 
 type ChatRole = "user" | "assistant";
@@ -105,13 +106,11 @@ const ReasoningMessageItem = ({ item }: { item: WorkspaceReasoning }) => (
   <article className={`${styles.message} ${styles.reasoningMessage}`} data-role="assistant">
     <div className={styles.assistantLabel}>
       <SparklesIcon />
-      <span>设计助手 · 模型内部思考（无需回复）</span>
+      <span>设计助手 · 模型思考（无需回复）</span>
     </div>
-    <details open>
-      <summary>{item.stage}{item.status === "reasoning" ? " · 进行中" : ""}</summary>
-      <p className={styles.messageContent} aria-live={item.status === "reasoning" ? "polite" : undefined}>
-        {item.content || "暂无模型思考内容"}
-      </p>
+    <details>
+      <summary>{item.stage}</summary>
+      <p className={styles.messageContent}>{item.content}</p>
     </details>
   </article>
 );
@@ -142,10 +141,9 @@ const ChatPanel = ({
   const retryMessageId = [...messages]
     .reverse()
     .find((message) => message.role === "user")?.id;
-  const reasoningItems = reasoning.map((item) => ({
-    kind: "reasoning" as const,
-    reasoning: item,
-  }));
+  const reasoningItems = reasoning
+    .filter((item) => item.status === "completed")
+    .map((item) => ({ kind: "reasoning" as const, reasoning: item }));
   const conversation = messages.flatMap((message) =>
     message.id === "streaming"
       ? [...reasoningItems, { kind: "message" as const, message }]
@@ -269,60 +267,78 @@ const ChatPanel = ({
               <strong id="input-request-title">需要你的确认</strong>
               <span>第 {inputRequest.round} 轮 · 回答后继续生成</span>
             </div>
-            {inputRequest.questions.map((question) => {
-              const answer = answers[question.id];
-              const options = question.options || [];
-              const questionText = question.question || question.text || "请选择一个选项";
-              return (
-                <fieldset className={styles.inputRequestQuestion} key={question.id}>
-                  <legend>{question.header || "需要确认"}</legend>
-                  <p>{questionText}</p>
-                  {options.length ? (
-                    <div className={styles.inputRequestOptions}>
-                      {options.map((option) => (
-                        <label className={styles.inputRequestOption} key={option.label}>
-                          <input
-                            checked={answer?.selected === option.label}
-                            disabled={status !== "awaiting_input"}
-                            name={question.id}
-                            onChange={() => setAnswers((current) => ({ ...current, [question.id]: { selected: option.label } }))}
-                            type="radio"
+            <div aria-label="追问列表" className={styles.inputRequestQuestions} role="group">
+              {inputRequest.questions.map((question) => {
+                const answer = answers[question.id];
+                const options = question.options || [];
+                const questionText = question.question || question.text || "请选择一个选项";
+                return (
+                  <fieldset className={styles.inputRequestQuestion} key={question.id}>
+                    <legend>{question.header || "需要确认"}</legend>
+                    <p>{questionText}</p>
+                    {options.length ? (
+                      <ToggleGroup
+                        aria-label={questionText}
+                        className={styles.inputRequestOptions}
+                        disabled={status !== "awaiting_input"}
+                        onValueChange={(values) => {
+                          const selected = values[0];
+                          if (!selected) return;
+                          setAnswers((current) => ({
+                            ...current,
+                            [question.id]: { selected },
+                          }));
+                        }}
+                        orientation="vertical"
+                        value={answer?.selected ? [answer.selected] : []}
+                        variant="outline"
+                      >
+                        {options.map((option, optionIndex) => (
+                          <ToggleGroupItem
+                            className={styles.inputRequestOption}
+                            key={option.label}
                             value={option.label}
-                          />
-                          <span><strong>{option.label}</strong><small>{option.description}</small></span>
-                        </label>
-                      ))}
-                      {question.isOther ? (
-                        <label className={styles.inputRequestOption}>
-                          <input
-                            checked={answer?.selected === "__other__"}
-                            disabled={status !== "awaiting_input"}
-                            name={question.id}
-                            onChange={() => setAnswers((current) => ({ ...current, [question.id]: { ...current[question.id], selected: "__other__" } }))}
-                            type="radio"
+                          >
+                            <span className={styles.inputRequestOptionIndex}>{optionIndex + 1}</span>
+                            <span className={styles.inputRequestOptionContent}>
+                              <strong>{option.label}</strong>
+                              <small>{option.description}</small>
+                            </span>
+                          </ToggleGroupItem>
+                        ))}
+                        {question.isOther ? (
+                          <ToggleGroupItem
+                            className={styles.inputRequestOption}
                             value="__other__"
-                          />
-                          <span><strong>其他</strong><small>输入更符合你的答案</small></span>
-                        </label>
-                      ) : null}
-                    </div>
-                  ) : null}
-                  {!options.length || answer?.selected === "__other__" ? (
-                    <textarea
-                      aria-label={`${questionText}的自定义回答`}
-                      disabled={status !== "awaiting_input"}
-                      placeholder="请输入你的回答"
-                      value={answer?.custom || ""}
-                      onChange={(event) => setAnswers((current) => ({ ...current, [question.id]: { ...current[question.id], custom: event.target.value } }))}
-                    />
-                  ) : null}
-                </fieldset>
-              );
-            })}
+                          >
+                            <span className={styles.inputRequestOptionIndex}>{options.length + 1}</span>
+                            <span className={styles.inputRequestOptionContent}>
+                              <strong>其他</strong>
+                              <small>输入更符合你的答案</small>
+                            </span>
+                          </ToggleGroupItem>
+                        ) : null}
+                      </ToggleGroup>
+                    ) : null}
+                    {!options.length || answer?.selected === "__other__" ? (
+                      <textarea
+                        aria-label={`${questionText}的自定义回答`}
+                        disabled={status !== "awaiting_input"}
+                        placeholder="请输入你的回答"
+                        value={answer?.custom || ""}
+                        onChange={(event) => setAnswers((current) => ({ ...current, [question.id]: { ...current[question.id], custom: event.target.value } }))}
+                      />
+                    ) : null}
+                  </fieldset>
+                );
+              })}
+            </div>
             <Button
+              className={styles.inputRequestSubmit}
               disabled={unanswered}
               onClick={submitAnswers}
               size="sm"
+              type="button"
             >
               提交回答并继续
             </Button>

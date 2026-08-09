@@ -110,6 +110,60 @@ async def test_structured_input_required_is_a_control_signal() -> None:
 
 
 @pytest.mark.asyncio
+async def test_structured_retries_without_thinking_when_only_reasoning_is_returned() -> None:
+    requests: list[httpx.Request] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        if len(requests) == 1:
+            body = (
+                'data: {"choices":[{"delta":{"reasoning_content":"Q1 请选择业务领域"}}]}\n'
+                "data: [DONE]\n"
+            )
+        else:
+            value = {
+                "kind": "input_required",
+                "questions": [
+                    {
+                        "id": "business-domain",
+                        "header": "业务领域",
+                        "question": "这个后台管理页面主要用来管理什么？",
+                        "isOther": True,
+                        "options": [
+                            {
+                                "label": "通用数据概览（推荐）",
+                                "description": "生成后台首页和仪表盘。",
+                            },
+                            {
+                                "label": "用户/成员管理",
+                                "description": "生成用户列表管理页面。",
+                            },
+                        ],
+                    }
+                ],
+            }
+            body = (
+                f"data: {json.dumps({'choices': [{'delta': {'content': json.dumps(value, ensure_ascii=False)}}]}, ensure_ascii=False)}\n"
+                "data: [DONE]\n"
+            )
+        return httpx.Response(
+            200, headers={"content-type": "text/event-stream"}, content=body.encode()
+        )
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        with pytest.raises(InputRequired) as error:
+            await create_openai_model(client, _config()).structured(
+                "需求分析", {"input": "后台管理页面"}, {"type": "object"}
+            )
+
+    assert error.value.questions[0].id == "business-domain"
+    assert [json.loads(request.content)["thinking"] for request in requests] == [
+        {"type": "enabled"},
+        {"type": "disabled"},
+    ]
+
+
+@pytest.mark.asyncio
 async def test_structured_propagates_cancellation() -> None:
     started = asyncio.Event()
     release = asyncio.Event()

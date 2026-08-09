@@ -26,6 +26,7 @@ AGENT_LABELS = {
     "specification": "规范校验",
     "auto_layout": "自动布局",
 }
+TASK_ORDER = ("requirement", "ui_design", "specification", "auto_layout", "final_gate")
 
 
 def _ready(name: str, state: RootState) -> bool:
@@ -39,6 +40,10 @@ def _ready(name: str, state: RootState) -> bool:
         and "final_document" not in completed,
         "final_gate": "final_document" in completed,
     }.get(name, False)
+
+
+def _ready_tasks(state: RootState) -> list[str]:
+    return [name for name in TASK_ORDER if _ready(name, state)]
 
 
 def _catalog() -> dict[str, dict[str, Any]]:
@@ -315,6 +320,13 @@ async def execute(
                     "history": state["task_history"],
                 }
             )
+            await _emit(
+                emit,
+                "progress",
+                state,
+                "root",
+                payload={"status": "reasoning_completed"},
+            )
         except InputRequired as required:
             round_number = input_rounds("root") + 1
             if round_number > 3:
@@ -340,17 +352,7 @@ async def execute(
             name for name in selected if name in state["task_catalog"] and _ready(name, state)
         ]
         if not selected:
-            selected = [
-                name
-                for name in (
-                    "requirement",
-                    "ui_design",
-                    "specification",
-                    "auto_layout",
-                    "final_gate",
-                )
-                if _ready(name, state)
-            ]
+            selected = _ready_tasks(state)
         if not selected:
             state["terminal"] = "failed"
             state["error"] = {"code": "no_executable_task", "message": "Root 没有可执行任务"}

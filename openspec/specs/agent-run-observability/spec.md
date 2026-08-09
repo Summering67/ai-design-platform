@@ -7,17 +7,27 @@
 ## Requirements
 
 ### Requirement: 可见的 Agent 输出
-系统 SHALL 将 Agent 运行事件作为 SSE `agent` 事件发送给项目所有者。系统 SHALL 将 DeepSeek 在 thinking 模式下实际返回的非空 `reasoning_content` 增量原样映射为带阶段、任务身份和尝试次数的 `progress` Agent 事件，MUST NOT 使用固定文案、模板或服务端摘要替代真实增量。每个专业阶段完成事件 SHALL 包含已验证结构化输出；reasoning 事件 MUST 与最终结构化输出分离，MUST NOT 写入消息历史、数据库或日志，且事件仍 MUST NOT 包含提示词、原始模型消息、堆栈、内部路径或凭证。
+系统 SHALL 将 Agent 运行事件作为 SSE `agent` 事件发送给项目所有者。用于调度、追问和设计文档生成的结构化模型调用 MUST 开启 thinking，将非空 `reasoning_content` 作为进度事件发送，并单独消费最终 `content` 执行 JSON Schema 校验。若首次流只有 reasoning 而没有合法 content，系统 SHALL 关闭 thinking 重试一次以取得正式结构化输出。每个专业阶段完成事件 SHALL 包含已验证结构化输出；reasoning 事件 MUST NOT 写入消息历史、数据库或日志，且事件 MUST NOT 包含提示词、原始模型消息、堆栈、内部路径或凭证。
 
-#### Scenario: 实时查看真实模型 reasoning
+#### Scenario: 结构化调用传输 reasoning
 
-- **WHEN** DeepSeek 在 Root 或专业 Agent 调用期间流式返回非空 `reasoning_content`
-- **THEN** 项目所有者按原始顺序收到包含对应 run、阶段、任务、尝试次数及原始 reasoning 增量的 `progress` Agent 事件
+- **WHEN** Root 或专业 Agent 调用兼容 Chat Completions 的模型
+- **THEN** 请求开启 thinking，系统流式发送真实 reasoning 增量，并只将最终 content 用作结构化结果
+
+#### Scenario: 只有 reasoning 时恢复正式输出
+
+- **WHEN** 开启 thinking 的结构化调用结束后没有返回合法 content
+- **THEN** 系统关闭 thinking 重试一次，且不将 reasoning 文本当作正式结果
 
 #### Scenario: 查看阶段返回
 
 - **WHEN** 专业 Agent 完成已验证输出
 - **THEN** 前端收到包含阶段、任务身份、尝试次数和 output 的 agent 事件
+
+#### Scenario: Root 完成一次任务选择
+
+- **WHEN** Root 成功取得并校验本轮待执行任务
+- **THEN** 系统发送 `reasoning_completed` 进度状态，使本轮已缓冲 reasoning 可安全展示
 
 ### Requirement: 结构化用户输入请求
 
@@ -31,7 +41,7 @@ Root Supervisor 及所有可调用模型的 Agent SHALL 只能通过结构化 `i
 #### Scenario: reasoning 含有疑问句
 
 - **WHEN** reasoning 内容包含模型自问自答或疑问句
-- **THEN** 系统仅展示 reasoning，不暂停 generation，也不创建 input request
+- **THEN** 系统不暂停 generation，也不创建 input request；只有合法 `input_required` 才能请求用户回答
 
 #### Scenario: 上游没有 reasoning
 

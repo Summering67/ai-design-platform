@@ -16,6 +16,8 @@ import {
 import type { ChatMessage, PendingInputRequest, Project } from "./chat-api";
 import { applyReasoningEvent } from "./reasoning";
 import type { ReasoningItem } from "./reasoning";
+import { settleGenerationStatus } from "./workspace-status";
+import type { WorkspaceStatus } from "./workspace-status";
 
 const WorkspaceChat = ({
   projectId,
@@ -31,7 +33,7 @@ const WorkspaceChat = ({
   const reasoningTimer = useRef<number | null>(null);
   const [project, setProject] = useState<Project | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [status, setStatus] = useState<"idle" | "loading" | "awaiting_input" | "error">("idle");
+  const [status, setStatus] = useState<WorkspaceStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   const [generationId, setGenerationId] = useState<string | null>(null);
   const [inputRequest, setInputRequest] = useState<PendingInputRequest | null>(null);
@@ -60,22 +62,18 @@ const WorkspaceChat = ({
     setReasoning([]);
   };
   const appendAgentMessage = (data: Record<string, unknown>) => {
-    const event = typeof data.event === "string" ? data.event : "progress";
     const payload = data.payload;
-    const payloadStatus =
-      payload && typeof payload === "object"
-        ? (payload as Record<string, unknown>).status
-        : undefined;
+    const payloadStatus = payload && typeof payload === "object"
+      ? (payload as Record<string, unknown>).status
+      : undefined;
     if (
-      event === "progress" &&
+      data.event === "progress" &&
       (payloadStatus === "reasoning" ||
         payloadStatus === "reasoning_truncated" ||
+        payloadStatus === "reasoning_completed" ||
         payloadStatus === "completed")
-    ) {
+    )
       queueReasoning(data);
-      return;
-    }
-    if (event === "stage" || event === "progress") return;
   };
   const handleGenerationEvent = (event: { event: string; data: Record<string, unknown> }) => {
     if (event.event === "generation") {
@@ -87,6 +85,7 @@ const WorkspaceChat = ({
     }
     if (event.event === "agent") appendAgentMessage(event.data);
     if (event.event === "input_required") {
+      clearReasoning();
       setInputRequest(event.data as unknown as PendingInputRequest);
       if (typeof event.data.generation_id === "string") setGenerationId(event.data.generation_id);
       setStatus("awaiting_input");
@@ -99,18 +98,17 @@ const WorkspaceChat = ({
       setGenerationId(null);
     }
     if (event.event === "failed" || event.event === "interrupted") {
+      clearReasoning();
       setInputRequest(null);
       setGenerationId(null);
       setError(event.event === "interrupted" ? "生成已停止，可重新生成。" : "生成失败，可重新生成。");
+      setStatus("error");
     }
   };
-  useEffect(() => {
-    return () => {
-      if (reasoningTimer.current !== null)
-        window.clearTimeout(reasoningTimer.current);
-      reasoningTimer.current = null;
-      reasoningQueue.current = [];
-    };
+  useEffect(() => () => {
+    if (reasoningTimer.current !== null) window.clearTimeout(reasoningTimer.current);
+    reasoningTimer.current = null;
+    reasoningQueue.current = [];
   }, []);
   useEffect(() => {
     void currentUser()
@@ -179,7 +177,7 @@ const WorkspaceChat = ({
     } finally {
       controller.current = null;
       setStream("");
-      setStatus((value) => (value === "loading" ? "idle" : value));
+      setStatus(settleGenerationStatus);
       // 首次生成后保留当前工作台，避免路由切换中断 SSE。
     }
   };
@@ -208,12 +206,13 @@ const WorkspaceChat = ({
       .finally(() => {
         controller.current = null;
         setStream("");
-        setStatus((value) => (value === "loading" ? "idle" : value));
+        setStatus(settleGenerationStatus);
       });
   };
   sendRef.current = (content) => void send(content);
-  const retry = (messageId: string) => {
-    if (!project || status === "loading" || status === "awaiting_input") return;
+  const retry = async (messageId: string) => {
+    const currentProject = project;
+    if (!currentProject || status === "loading" || status === "awaiting_input") return;
     const request = new AbortController();
     controller.current = request;
     setStatus("loading");
@@ -221,22 +220,42 @@ const WorkspaceChat = ({
     setStream("");
     setInputRequest(null);
     clearReasoning();
-    void generate(
-      `/projects/${project.id}/messages/${messageId}/generations`,
-      undefined,
-      request.signal,
-      (event) => {
-        handleGenerationEvent(event);
-        if (event.event === "delta" && typeof event.data.content === "string")
-          setStream((value) => value + event.data.content);
-      },
-    )
-      .catch(() => setError("重新生成失败"))
-      .finally(() => {
-        controller.current = null;
-        setStream("");
-        setStatus("idle");
-      });
+    const restorePendingInput = async () => {
+      const { pending_input_request } = await loadProject(currentProject.id);
+      if (!pending_input_request) return false;
+      setInputRequest(pending_input_request);
+      setGenerationId(pending_input_request.generation_id);
+      setError(null);
+      setStatus("awaiting_input");
+      return true;
+    };
+    try {
+      if (await restorePendingInput()) return;
+      await generate(
+        `/projects/${currentProject.id}/messages/${messageId}/generations`,
+        undefined,
+        request.signal,
+        (event) => {
+          handleGenerationEvent(event);
+          if (event.event === "delta" && typeof event.data.content === "string")
+            setStream((value) => value + event.data.content);
+        },
+      );
+    } catch (reason: unknown) {
+      try {
+        if (reason instanceof RequestError && reason.status === 409) {
+          if (await restorePendingInput()) return;
+        }
+      } catch {
+        // 统一进入下方错误状态。
+      }
+      setError("重新生成失败");
+      setStatus("error");
+    } finally {
+      controller.current = null;
+      setStream("");
+      setStatus(settleGenerationStatus);
+    }
   };
   const stop = () => {
     if (project && generationId) void stopGeneration(project.id, generationId);

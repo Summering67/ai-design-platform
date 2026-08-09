@@ -64,6 +64,8 @@ async def _stream_completion(
     messages: list[dict[str, str]],
     on_reasoning: ReasoningSink | None,
     on_activity: ActivitySink | None,
+    *,
+    thinking: bool = True,
 ) -> str:
     parts: list[str] = []
     async with client.stream(
@@ -74,7 +76,7 @@ async def _stream_completion(
             "messages": messages,
             "model": config.model,
             "stream": True,
-            "thinking": {"type": "enabled"},
+            "thinking": {"type": "enabled" if thinking else "disabled"},
         },
         timeout=config.request_timeout,
     ) as response:
@@ -91,7 +93,7 @@ async def _stream_completion(
             reasoning, content = _stream_delta(json.loads(data))
             if (reasoning or content) and on_activity is not None:
                 await on_activity()
-            if reasoning and on_reasoning is not None:
+            if thinking and reasoning and on_reasoning is not None:
                 await on_reasoning(reasoning)
             if content:
                 parts.append(content)
@@ -218,28 +220,46 @@ def create_openai_model(client: httpx.AsyncClient, config: AIConfig) -> ModelPor
         schema_text = json.dumps(
             _response_schema(schema), ensure_ascii=False, separators=(",", ":")
         )
+        messages = [
+            {
+                "role": "system",
+                "content": f"你是 {purpose}。只返回符合 JSON Schema 的 JSON 对象，不要 Markdown。若缺少必须由用户确认且无法安全推断的信息，返回 kind=input_required；每个问题提供 2-3 个互斥选项，将推荐项放在第一项并在 label 标注（推荐），选项仍不足时可用 isOther 开放自定义回答。否则返回 kind=result 并将业务对象放入 result。不得重复询问 resolvedUserInputs 已回答的问题，reasoning 中不要向用户提问。Schema: {schema_text}",
+            },
+            {"role": "user", "content": prompt},
+        ]
+        fallback_used = False
         try:
             content = await _stream_completion(
                 client,
                 config,
-                [
-                    {
-                        "role": "system",
-                        "content": f"你是 {purpose}。只返回符合 JSON Schema 的 JSON 对象，不要 Markdown。若缺少必须由用户确认且无法安全推断的信息，返回 kind=input_required；每个问题提供 2-3 个互斥选项，将推荐项放在第一项并在 label 标注（推荐），选项仍不足时可用 isOther 开放自定义回答。否则返回 kind=result 并将业务对象放入 result。不得重复询问 resolvedUserInputs 已回答的问题，reasoning 中不要向用户提问。Schema: {schema_text}",
-                    },
-                    {"role": "user", "content": prompt},
-                ],
+                messages,
                 on_reasoning,
                 on_activity,
             )
-            value = json.loads(content)
-            if not isinstance(value, dict):
-                raise TypeError("模型返回值不是对象")
+            try:
+                value = json.loads(content)
+                if not isinstance(value, dict):
+                    raise TypeError("模型返回值不是对象")
+            except (json.JSONDecodeError, TypeError):
+                fallback_used = True
+                content = await _stream_completion(
+                    client,
+                    config,
+                    messages,
+                    None,
+                    on_activity,
+                    thinking=False,
+                )
+                value = json.loads(content)
+                if not isinstance(value, dict):
+                    raise TypeError("模型返回值不是对象")
             return _unwrap_response(value)
         except InputRequired:
             raise
         except Exception as error:
-            raise AgentError("model_unavailable", "Agent 模型不可用", retryable=True) from error
+            raise AgentError(
+                "model_unavailable", "Agent 模型不可用", retryable=not fallback_used
+            ) from error
 
     async def select_tasks(
         state: Mapping[str, Any],
