@@ -18,8 +18,7 @@ from sqlalchemy import (
     func,
     text,
 )
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.engine import make_url
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import (
@@ -67,9 +66,7 @@ class SessionModel(Base):
 
 class ProjectModel(Base):
     __tablename__ = "projects"
-    __table_args__ = (
-        Index("projects_user_updated_at_idx", "user_id", text("updated_at DESC")),
-    )
+    __table_args__ = (Index("projects_user_updated_at_idx", "user_id", text("updated_at DESC")),)
 
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True)
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
@@ -131,7 +128,9 @@ class AttemptModel(Base):
     )
     status: Mapped[str] = mapped_column(Text)
     error_code: Mapped[str | None] = mapped_column(Text, nullable=True)
-    lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    lease_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
@@ -140,8 +139,15 @@ class InputRequestModel(Base):
     __tablename__ = "generation_input_requests"
     __table_args__ = (
         CheckConstraint("round BETWEEN 1 AND 3", name="generation_input_requests_round_check"),
-        CheckConstraint("status IN ('pending', 'answered')", name="generation_input_requests_status_check"),
-        UniqueConstraint("generation_id", "source_stage", "round", name="generation_input_requests_generation_stage_round_key"),
+        CheckConstraint(
+            "status IN ('pending', 'answered')", name="generation_input_requests_status_check"
+        ),
+        UniqueConstraint(
+            "generation_id",
+            "source_stage",
+            "round",
+            name="generation_input_requests_generation_stage_round_key",
+        ),
         UniqueConstraint("response_id", name="generation_input_requests_response_id_key"),
         Index(
             "generation_input_requests_one_pending_idx",
@@ -153,11 +159,13 @@ class InputRequestModel(Base):
     )
 
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True)
-    generation_id: Mapped[str] = mapped_column(ForeignKey("generation_attempts.id", ondelete="CASCADE"))
+    generation_id: Mapped[str] = mapped_column(
+        ForeignKey("generation_attempts.id", ondelete="CASCADE")
+    )
     source_stage: Mapped[str] = mapped_column(Text)
     source_task_id: Mapped[str] = mapped_column(Text)
     round: Mapped[int] = mapped_column()
-    questions: Mapped[list[dict[str, str]]] = mapped_column(JSONB)
+    questions: Mapped[list[dict[str, object]]] = mapped_column(JSONB)
     answers: Mapped[list[dict[str, str]] | None] = mapped_column(JSONB, nullable=True)
     response_id: Mapped[str | None] = mapped_column(UUID(as_uuid=False), nullable=True)
     status: Mapped[str] = mapped_column(Text)
@@ -192,7 +200,12 @@ def _async_dsn(dsn: str) -> str:
         parsed = make_url(value)
     except Exception as error:
         raise ValueError("数据库 DSN 无效") from error
-    if parsed.drivername not in {"postgres", "postgresql", "postgres+psycopg", "postgresql+psycopg"}:
+    if parsed.drivername not in {
+        "postgres",
+        "postgresql",
+        "postgres+psycopg",
+        "postgresql+psycopg",
+    }:
         raise ValueError("数据库 DSN 必须使用 PostgreSQL")
     if not parsed.host or not parsed.database:
         raise ValueError("数据库 DSN 必须包含主机和数据库名")

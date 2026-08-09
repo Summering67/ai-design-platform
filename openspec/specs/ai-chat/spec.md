@@ -59,6 +59,11 @@
 - **WHEN** 客户端请求旧的 `POST /api/chat`
 - **THEN** 系统不匹配该路由，且不会提供匿名对话能力
 
+#### Scenario: generation 等待用户输入
+
+- **WHEN** Agent 发出阻断性的 `input_required`
+- **THEN** SSE 返回唯一的 `input_required` 事件并结束当前流，客户端展示逐题回答表单而不是继续发送普通消息
+
 ### Requirement: 有界的上游 Chat Completions 调用
 
 系统 SHALL 使用服务端配置，在前台请求上下文和独立 AI 超时内调用兼容 Chat Completions 的上游流式接口。系统 SHALL 从数据库完整历史中选择目标用户消息之前最近最多 24 个完整对话轮次，按原顺序追加当前目标用户消息后发送给上游；达到总内容上限时 SHALL 只移除最旧的整个轮次。系统 MUST NOT 拆分轮次、截断消息、使用失败或中断的临时文本、生成摘要，或向客户端透传上游原始错误、内部网络错误和凭据。

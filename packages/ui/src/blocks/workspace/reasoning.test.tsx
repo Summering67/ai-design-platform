@@ -30,6 +30,46 @@ test("工作台分离展示真实模型思考过程", () => {
     />,
   )
   assert.match(markup, /模型思考过程/)
+  assert.match(markup, /无需回复/)
   assert.match(markup, /模型真实 reasoning/)
   assert.match(markup, /aria-label="模型思考过程"/)
+})
+
+test("工作台展示阻断问题并要求逐题回答", () => {
+  const markup = renderToStaticMarkup(
+    <Workspace
+      accountEmail="developer@local.test"
+      document={null}
+      error={null}
+      inputRequest={{
+        id: "request-1",
+        generationId: "generation-1",
+        round: 1,
+        questions: [{
+          id: "brand-color",
+          header: "品牌颜色",
+          question: "品牌主色是什么？",
+          isOther: true,
+          options: [
+            { label: "沿用现有蓝色（推荐）", description: "保持产品视觉一致。" },
+            { label: "改用紫色", description: "增强设计工具的创意感。" },
+          ],
+        }],
+      }}
+      messages={[]}
+      onAnswer={() => undefined}
+      onLogout={() => undefined}
+      onRetry={() => undefined}
+      onSend={() => undefined}
+      onStop={() => undefined}
+      projectTitle="测试项目"
+      reasoning={[]}
+      status="awaiting_input"
+    />,
+  )
+  assert.match(markup, /需要你的确认/)
+  assert.match(markup, /品牌主色是什么？/)
+  assert.match(markup, /沿用现有蓝色（推荐）/)
+  assert.match(markup, /保持产品视觉一致。/)
+  assert.match(markup, /其他/)
 })

@@ -93,7 +93,7 @@ class InputRequestResponse(StrictModel):
     source_stage: str
     source_task_id: str
     round: int
-    questions: list[dict[str, str]]
+    questions: list[dict[str, object]]
     status: str
 
 

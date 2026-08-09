@@ -153,6 +153,22 @@ TBD - created by archiving change add-single-user-authentication. Update Purpose
 - **WHEN** 上游 generation 返回失败
 - **THEN** 系统记录失败终态并等待用户显式重新生成
 
+### Requirement: 阻断输入与生成恢复
+
+系统 SHALL 支持 generation 状态 `awaiting_input`。所有 Agent 的结构化 `input_required` 请求 SHALL 持久化并暂停当前 generation；项目所有者通过专用回答接口提交每个问题的非空答案后，系统 SHALL 将同一 generation 恢复为 `running`，从 Requirement 阶段重新执行，并将与来源阶段匹配的已回答输入传递给 Agent。每个 Agent 阶段最多允许三轮阻断追问。
+
+问题选项 SHALL 随问题单持久化。未开放“其他”回答的问题只接受其选项 label；开放“其他”回答的问题可接受用户提供的非空自定义内容。
+
+#### Scenario: 用户回答后恢复生成
+
+- **WHEN** 项目所有者提交 pending input request 的完整答案
+- **THEN** 系统原子保存答案、恢复 generation 并通过 SSE 返回后续 Agent 事件和最终结果
+
+#### Scenario: 不完整或重复回答
+
+- **WHEN** 回答缺少问题、包含未知问题 ID、重复问题 ID 或重复 response ID
+- **THEN** 系统拒绝回答且不得启动第二次 Agent 执行
+
 ### Requirement: Agent 成功说明消息
 
 系统 SHALL 在 Root Agent 成功产生最终设计文档后创建简短助手消息以完成既有项目对话轮次；该消息 MUST NOT 包含或替代 DesignDocument。

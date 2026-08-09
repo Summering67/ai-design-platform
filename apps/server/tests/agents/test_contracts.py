@@ -25,6 +25,7 @@ def test_v2_fixtures_validate() -> None:
     validate_prd(_read("packages/design-contract/fixtures/v2/standardized-prd.valid.json"))
     validate_report(_read("packages/design-contract/fixtures/v2/ui-validation-report.valid.json"))
     validate_event(_read("packages/design-contract/fixtures/v2/agent-run-event.valid.json"))
+    validate_event(_read("packages/design-contract/fixtures/v2/agent-run-event.input-required.json"))
     validate_tree(_read("packages/design-contract/fixtures/v2/login-page.document.json"), contract)
 
 

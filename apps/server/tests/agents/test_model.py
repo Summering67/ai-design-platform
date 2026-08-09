@@ -6,7 +6,7 @@ import json
 import httpx
 import pytest
 
-from ai_design_server.agents.errors import AgentError
+from ai_design_server.agents.errors import AgentError, InputRequired
 from ai_design_server.agents.model import create_openai_model
 from ai_design_server.config import AIConfig
 
@@ -27,7 +27,9 @@ async def test_structured_streams_reasoning_and_content() -> None:
             'data: {"choices":[{"delta":{"content":"{\\"tasks\\":[\\"requirement\\"]}"}}]}\n'
             "data: [DONE]\n"
         )
-        return httpx.Response(200, headers={"content-type": "text/event-stream"}, content=body.encode())
+        return httpx.Response(
+            200, headers={"content-type": "text/event-stream"}, content=body.encode()
+        )
 
     reasoning: list[str] = []
 
@@ -36,7 +38,10 @@ async def test_structured_streams_reasoning_and_content() -> None:
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
         result = await create_openai_model(client, _config()).structured(
-            "Root Supervisor", {"input": "后台管理页面"}, {"type": "object"}, on_reasoning=on_reasoning
+            "Root Supervisor",
+            {"input": "后台管理页面"},
+            {"type": "object"},
+            on_reasoning=on_reasoning,
         )
 
     assert reasoning == ["先分析需求", "，再组织结构"]
@@ -52,7 +57,7 @@ async def test_structured_rejects_malformed_stream() -> None:
         return httpx.Response(
             200,
             headers={"content-type": "text/event-stream"},
-            content=b"data: {\"choices\":[]}\n\ndata: [DONE]\n",
+            content=b'data: {"choices":[]}\n\ndata: [DONE]\n',
         )
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
@@ -60,6 +65,48 @@ async def test_structured_rejects_malformed_stream() -> None:
             await create_openai_model(client, _config()).structured(
                 "需求分析", {"input": "后台管理页面"}, {"type": "object"}
             )
+
+
+@pytest.mark.asyncio
+async def test_structured_input_required_is_a_control_signal() -> None:
+    async def handler(_: httpx.Request) -> httpx.Response:
+        value = {
+            "kind": "input_required",
+            "questions": [
+                {
+                    "id": "brand-color",
+                    "header": "品牌颜色",
+                    "question": "品牌主色是什么？",
+                    "isOther": True,
+                    "options": [
+                        {"label": "沿用现有蓝色（推荐）", "description": "保持产品视觉一致。"},
+                        {"label": "改用紫色", "description": "增强设计工具的创意感。"},
+                    ],
+                }
+            ],
+        }
+        body = (
+            f"data: {json.dumps({'choices': [{'delta': {'content': json.dumps(value, ensure_ascii=False)}}]}, ensure_ascii=False)}\n"
+            "data: [DONE]\n"
+        )
+        return httpx.Response(
+            200, headers={"content-type": "text/event-stream"}, content=body.encode()
+        )
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        with pytest.raises(InputRequired) as error:
+            await create_openai_model(client, _config()).structured(
+                "UI Design", {}, {"type": "object"}
+            )
+
+    assert [(item.id, item.text) for item in error.value.questions] == [
+        ("brand-color", "品牌主色是什么？")
+    ]
+    assert error.value.questions[0].header == "品牌颜色"
+    assert [item.label for item in error.value.questions[0].options] == [
+        "沿用现有蓝色（推荐）",
+        "改用紫色",
+    ]
 
 
 @pytest.mark.asyncio

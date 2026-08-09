@@ -19,6 +19,20 @@
 - **WHEN** 专业 Agent 完成已验证输出
 - **THEN** 前端收到包含阶段、任务身份、尝试次数和 output 的 agent 事件
 
+### Requirement: 结构化用户输入请求
+
+Root Supervisor 及所有可调用模型的 Agent SHALL 只能通过结构化 `input_required` 事件请求用户输入。reasoning 文本中的问句 MUST NOT 被解释为用户输入请求。请求 SHALL 包含来源阶段、任务标识、轮次和非空且唯一的问题 ID；每个通用问题 SHALL 提供短标题、完整问题及 2–3 个互斥的标签/说明选项，并可显式允许“其他”回答。发送后当前 generation MUST 停止调度后续 Agent，直到回答被提交。
+
+#### Scenario: Agent 请求用户输入
+
+- **WHEN** 任一 Agent 无法安全推断会影响当前产物的必要信息
+- **THEN** 系统持久化 pending input request、将 generation 标记为 `awaiting_input`，并向项目所有者发送结构化 `input_required` 事件
+
+#### Scenario: reasoning 含有疑问句
+
+- **WHEN** reasoning 内容包含模型自问自答或疑问句
+- **THEN** 系统仅展示 reasoning，不暂停 generation，也不创建 input request
+
 #### Scenario: 上游没有 reasoning
 
 - **WHEN** 上游只返回最终 `content` 而未返回非空 `reasoning_content`

@@ -26,6 +26,6 @@ def test_models_map_authoritative_postgres_constraints() -> None:
         "messages_project_id_client_message_id_key",
     }
     assert {index.name for index in AttemptModel.__table__.indexes} >= {
-        "generation_attempts_one_running_project_idx",
+        "generation_attempts_one_active_project_idx",
         "generation_attempts_user_message_idx",
     }

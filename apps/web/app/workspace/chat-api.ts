@@ -1,5 +1,23 @@
 type ChatMessage = { id: string; role: "user" | "assistant"; content: string };
 type Project = { id: string; title: string };
+type InputQuestionOption = { label: string; description: string };
+type InputQuestion = {
+  id: string;
+  header?: string;
+  question?: string;
+  isOther?: boolean;
+  options?: InputQuestionOption[];
+  text?: string;
+};
+type PendingInputRequest = {
+  id: string;
+  generation_id: string;
+  source_stage: string;
+  source_task_id: string;
+  round: number;
+  questions: InputQuestion[];
+  status: "pending" | "answered";
+};
 type Event = { event: string; data: Record<string, unknown> };
 
 class RequestError extends Error {
@@ -28,6 +46,7 @@ const loadProject = async (projectId: string) => {
   return response.json() as Promise<{
     project: Project;
     messages: ChatMessage[];
+    pending_input_request?: PendingInputRequest;
   }>;
 };
 const login = async (email: string, password: string) => {
@@ -55,6 +74,19 @@ const stopGeneration = async (projectId: string, generationId: string) => {
   );
   if (!response.ok) throw await parseError(response);
 };
+const answerInput = async (
+  projectId: string,
+  generationId: string,
+  requestId: string,
+  body: { response_id: string; answers: { question_id: string; content: string }[] },
+  signal: AbortSignal,
+  onEvent: (event: Event) => void,
+) => generate(
+  `/projects/${projectId}/generations/${generationId}/input-requests/${requestId}/answers`,
+  body,
+  signal,
+  onEvent,
+);
 const readEvents = async (
   response: Response,
   onEvent: (event: Event) => void,
@@ -79,7 +111,7 @@ const readEvents = async (
 };
 const generate = async (
   path: string,
-  body: Record<string, string> | undefined,
+  body: object | undefined,
   signal: AbortSignal,
   onEvent: (event: Event) => void,
 ) => {
@@ -95,6 +127,7 @@ const generate = async (
 
 export {
   RequestError,
+  answerInput,
   currentUser,
   generate,
   loadProject,
@@ -102,4 +135,4 @@ export {
   logout,
   stopGeneration,
 };
-export type { ChatMessage, Project };
+export type { ChatMessage, InputQuestion, InputQuestionOption, PendingInputRequest, Project };

@@ -8,7 +8,7 @@ from typing import Any, Protocol, cast
 import httpx
 
 from ..config import AIConfig
-from .errors import AgentError, InputQuestion, InputRequired
+from .errors import AgentError, InputQuestion, InputQuestionOption, InputRequired
 
 ReasoningSink = Callable[[str], Awaitable[None]]
 ActivitySink = Callable[[], Awaitable[None]]
@@ -26,7 +26,11 @@ class ModelPort(Protocol):
     ) -> dict[str, Any]: ...
 
     async def select_tasks(
-        self, state: Mapping[str, Any], *, on_reasoning: ReasoningSink | None = None, on_activity: ActivitySink | None = None
+        self,
+        state: Mapping[str, Any],
+        *,
+        on_reasoning: ReasoningSink | None = None,
+        on_activity: ActivitySink | None = None,
     ) -> list[str]: ...
 
 
@@ -112,13 +116,30 @@ def _response_schema(schema: Mapping[str, Any]) -> dict[str, Any]:
                     "questions": {
                         "type": "array",
                         "minItems": 1,
+                        "maxItems": 3,
                         "items": {
                             "type": "object",
                             "additionalProperties": False,
-                            "required": ["id", "text"],
+                            "required": ["id", "header", "question", "isOther", "options"],
                             "properties": {
                                 "id": {"type": "string", "minLength": 1},
-                                "text": {"type": "string", "minLength": 1},
+                                "header": {"type": "string", "minLength": 1, "maxLength": 40},
+                                "question": {"type": "string", "minLength": 1},
+                                "isOther": {"type": "boolean"},
+                                "options": {
+                                    "type": "array",
+                                    "minItems": 2,
+                                    "maxItems": 3,
+                                    "items": {
+                                        "type": "object",
+                                        "additionalProperties": False,
+                                        "required": ["label", "description"],
+                                        "properties": {
+                                            "label": {"type": "string", "minLength": 1},
+                                            "description": {"type": "string", "minLength": 1},
+                                        },
+                                    },
+                                },
                             },
                         },
                     },
@@ -138,15 +159,47 @@ def _unwrap_response(value: dict[str, Any]) -> dict[str, Any]:
         raise AgentError("invalid_model_response", "Agent 返回包络无效", retryable=True)
     questions: list[InputQuestion] = []
     seen: set[str] = set()
+    if not 1 <= len(value["questions"]) <= 3:
+        raise AgentError("invalid_model_response", "Agent 问题数量无效", retryable=True)
     for item in value["questions"]:
-        if not isinstance(item, dict) or not isinstance(item.get("id"), str) or not isinstance(item.get("text"), str):
+        if (
+            not isinstance(item, dict)
+            or not isinstance(item.get("id"), str)
+            or not isinstance(item.get("header"), str)
+            or not isinstance(item.get("question"), str)
+            or not isinstance(item.get("isOther"), bool)
+            or not isinstance(item.get("options"), list)
+        ):
             raise AgentError("invalid_model_response", "Agent 问题格式无效", retryable=True)
         question_id = item["id"].strip()
-        text = item["text"].strip()
-        if not question_id or not text or question_id in seen:
+        header = item["header"].strip()
+        text = item["question"].strip()
+        raw_options = item["options"]
+        options: list[InputQuestionOption] = []
+        option_labels: set[str] = set()
+        for option in raw_options:
+            if (
+                not isinstance(option, dict)
+                or not isinstance(option.get("label"), str)
+                or not isinstance(option.get("description"), str)
+            ):
+                raise AgentError("invalid_model_response", "Agent 选项格式无效", retryable=True)
+            label = option["label"].strip()
+            description = option["description"].strip()
+            if not label or not description or label in option_labels:
+                raise AgentError("invalid_model_response", "Agent 选项格式无效", retryable=True)
+            option_labels.add(label)
+            options.append(InputQuestionOption(label, description))
+        if (
+            not question_id
+            or not header
+            or not text
+            or question_id in seen
+            or not 2 <= len(options) <= 3
+        ):
             raise AgentError("invalid_model_response", "Agent 问题格式无效", retryable=True)
         seen.add(question_id)
-        questions.append(InputQuestion(question_id, text))
+        questions.append(InputQuestion(question_id, text, header, options, item["isOther"]))
     if not questions:
         raise AgentError("invalid_model_response", "Agent 问题不能为空", retryable=True)
     raise InputRequired(questions)
@@ -162,13 +215,18 @@ def create_openai_model(client: httpx.AsyncClient, config: AIConfig) -> ModelPor
         on_activity: ActivitySink | None = None,
     ) -> dict[str, Any]:
         prompt = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
-        schema_text = json.dumps(_response_schema(schema), ensure_ascii=False, separators=(",", ":"))
+        schema_text = json.dumps(
+            _response_schema(schema), ensure_ascii=False, separators=(",", ":")
+        )
         try:
             content = await _stream_completion(
                 client,
                 config,
                 [
-                    {"role": "system", "content": f"你是 {purpose}。只返回符合 JSON Schema 的 JSON 对象，不要 Markdown。若缺少必须由用户确认且无法安全推断的信息，返回 kind=input_required 和问题列表；否则返回 kind=result 并将业务对象放入 result。reasoning 中不要向用户提问。Schema: {schema_text}"},
+                    {
+                        "role": "system",
+                        "content": f"你是 {purpose}。只返回符合 JSON Schema 的 JSON 对象，不要 Markdown。若缺少必须由用户确认且无法安全推断的信息，返回 kind=input_required；每个问题提供 2-3 个互斥选项，将推荐项放在第一项并在 label 标注（推荐），选项仍不足时可用 isOther 开放自定义回答。否则返回 kind=result 并将业务对象放入 result。不得重复询问 resolvedUserInputs 已回答的问题，reasoning 中不要向用户提问。Schema: {schema_text}",
+                    },
                     {"role": "user", "content": prompt},
                 ],
                 on_reasoning,
@@ -178,13 +236,22 @@ def create_openai_model(client: httpx.AsyncClient, config: AIConfig) -> ModelPor
             if not isinstance(value, dict):
                 raise TypeError("模型返回值不是对象")
             return _unwrap_response(value)
+        except InputRequired:
+            raise
         except Exception as error:
             raise AgentError("model_unavailable", "Agent 模型不可用", retryable=True) from error
 
     async def select_tasks(
-        state: Mapping[str, Any], *, on_reasoning: ReasoningSink | None = None, on_activity: ActivitySink | None = None
+        state: Mapping[str, Any],
+        *,
+        on_reasoning: ReasoningSink | None = None,
+        on_activity: ActivitySink | None = None,
     ) -> list[str]:
-        schema = {"type": "object", "required": ["tasks"], "properties": {"tasks": {"type": "array", "items": {"type": "string"}}}}
+        schema = {
+            "type": "object",
+            "required": ["tasks"],
+            "properties": {"tasks": {"type": "array", "items": {"type": "string"}}},
+        }
         result = await structured(
             "Root Supervisor",
             {"state": state, "instruction": "选择当前可执行的一个或多个已注册任务"},
@@ -200,13 +267,16 @@ def create_openai_model(client: httpx.AsyncClient, config: AIConfig) -> ModelPor
     return cast(ModelPort, SimpleNamespace(structured=structured, select_tasks=select_tasks))
 
 
-def bind_reasoning(model: ModelPort, on_reasoning: ReasoningSink, on_activity: ActivitySink | None = None) -> ModelPort:
+def bind_reasoning(
+    model: ModelPort, on_reasoning: ReasoningSink, on_activity: ActivitySink | None = None
+) -> ModelPort:
     async def structured(
         purpose: str, payload: Mapping[str, Any], schema: Mapping[str, Any], **_: Any
     ) -> dict[str, Any]:
-        return await model.structured(
+        result = await model.structured(
             purpose, payload, schema, on_reasoning=on_reasoning, on_activity=on_activity
         )
+        return _unwrap_response(result)
 
     async def select_tasks(state: Mapping[str, Any], **_: Any) -> list[str]:
         return await model.select_tasks(state, on_reasoning=on_reasoning, on_activity=on_activity)

@@ -33,8 +33,24 @@ import { Spinner } from "../../components/spinner";
 import styles from "./workspace.module.css";
 
 type ChatRole = "user" | "assistant";
-type ChatStatus = "idle" | "loading" | "error";
+type ChatStatus = "idle" | "loading" | "awaiting_input" | "error";
 type ChatMessage = { id: string; role: ChatRole; content: string };
+type WorkspaceInputQuestionOption = { label: string; description: string };
+type WorkspaceInputQuestion = {
+  id: string;
+  header?: string;
+  question?: string;
+  isOther?: boolean;
+  options?: ReadonlyArray<WorkspaceInputQuestionOption>;
+  text?: string;
+};
+type WorkspaceInputAnswer = { selected?: string; custom?: string };
+type WorkspaceInputRequest = {
+  id: string;
+  generationId: string;
+  round: number;
+  questions: ReadonlyArray<WorkspaceInputQuestion>;
+};
 type WorkspaceReasoning = {
   id: string;
   stage: string;
@@ -66,7 +82,9 @@ type WorkspaceProps = {
   onSend: (content: string) => void;
   onRetry: (messageId: string) => void;
   onStop: () => void;
+  onAnswer?: (answers: { questionId: string; content: string }[]) => void;
   onLogout: () => void;
+  inputRequest?: WorkspaceInputRequest | null;
   canvasNode?: CanvasNode | null;
   document?: DesignDocument | null;
 };
@@ -87,7 +105,7 @@ const ReasoningMessageItem = ({ item }: { item: WorkspaceReasoning }) => (
   <article className={`${styles.message} ${styles.reasoningMessage}`} data-role="assistant">
     <div className={styles.assistantLabel}>
       <SparklesIcon />
-      <span>设计助手 · 模型思考过程</span>
+      <span>设计助手 · 模型内部思考（无需回复）</span>
     </div>
     <details open>
       <summary>{item.stage}{item.status === "reasoning" ? " · 进行中" : ""}</summary>
@@ -110,12 +128,17 @@ const ChatPanel = ({
   onRetry,
   onSend,
   onStop,
+  onAnswer,
+  inputRequest,
   status,
 }: Omit<WorkspaceProps, "projectTitle" | "accountEmail" | "onLogout">) => {
   const [draft, setDraft] = useState("");
+  const [answers, setAnswers] = useState<Record<string, WorkspaceInputAnswer>>({});
   const [isAtBottom, setIsAtBottom] = useState(true);
   const listRef = useRef<VirtuosoHandle>(null);
   const isLoading = status === "loading";
+  const isAwaitingInput = status === "awaiting_input" && Boolean(inputRequest);
+  useEffect(() => setAnswers({}), [inputRequest?.id]);
   const retryMessageId = [...messages]
     .reverse()
     .find((message) => message.role === "user")?.id;
@@ -136,6 +159,23 @@ const ChatPanel = ({
     onSend(content);
     setDraft("");
   };
+  const submitAnswers = () => {
+    if (!inputRequest) return;
+    const values = inputRequest.questions.map((question) => {
+      const answer = answers[question.id];
+      const content = answer?.selected === "__other__" || !question.options?.length
+        ? answer?.custom?.trim() || ""
+        : answer?.selected?.trim() || "";
+      return { questionId: question.id, content };
+    });
+    if (values.some(({ content }) => !content)) return;
+    onAnswer?.(values);
+  };
+  const unanswered = inputRequest?.questions.some((question) => {
+    const answer = answers[question.id];
+    if (!question.options?.length || answer?.selected === "__other__") return !answer?.custom?.trim();
+    return !answer?.selected;
+  }) ?? true;
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     submit();
@@ -223,6 +263,71 @@ const ChatPanel = ({
             </Button>
           </p>
         ) : null}
+        {isAwaitingInput && inputRequest ? (
+          <section className={styles.inputRequestPanel} aria-labelledby="input-request-title">
+            <div className={styles.inputRequestHeading}>
+              <strong id="input-request-title">需要你的确认</strong>
+              <span>第 {inputRequest.round} 轮 · 回答后继续生成</span>
+            </div>
+            {inputRequest.questions.map((question) => {
+              const answer = answers[question.id];
+              const options = question.options || [];
+              const questionText = question.question || question.text || "请选择一个选项";
+              return (
+                <fieldset className={styles.inputRequestQuestion} key={question.id}>
+                  <legend>{question.header || "需要确认"}</legend>
+                  <p>{questionText}</p>
+                  {options.length ? (
+                    <div className={styles.inputRequestOptions}>
+                      {options.map((option) => (
+                        <label className={styles.inputRequestOption} key={option.label}>
+                          <input
+                            checked={answer?.selected === option.label}
+                            disabled={status !== "awaiting_input"}
+                            name={question.id}
+                            onChange={() => setAnswers((current) => ({ ...current, [question.id]: { selected: option.label } }))}
+                            type="radio"
+                            value={option.label}
+                          />
+                          <span><strong>{option.label}</strong><small>{option.description}</small></span>
+                        </label>
+                      ))}
+                      {question.isOther ? (
+                        <label className={styles.inputRequestOption}>
+                          <input
+                            checked={answer?.selected === "__other__"}
+                            disabled={status !== "awaiting_input"}
+                            name={question.id}
+                            onChange={() => setAnswers((current) => ({ ...current, [question.id]: { ...current[question.id], selected: "__other__" } }))}
+                            type="radio"
+                            value="__other__"
+                          />
+                          <span><strong>其他</strong><small>输入更符合你的答案</small></span>
+                        </label>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  {!options.length || answer?.selected === "__other__" ? (
+                    <textarea
+                      aria-label={`${questionText}的自定义回答`}
+                      disabled={status !== "awaiting_input"}
+                      placeholder="请输入你的回答"
+                      value={answer?.custom || ""}
+                      onChange={(event) => setAnswers((current) => ({ ...current, [question.id]: { ...current[question.id], custom: event.target.value } }))}
+                    />
+                  ) : null}
+                </fieldset>
+              );
+            })}
+            <Button
+              disabled={unanswered}
+              onClick={submitAnswers}
+              size="sm"
+            >
+              提交回答并继续
+            </Button>
+          </section>
+        ) : null}
         {status === "error" && error ? (
           <div className={styles.errorStatus} role="alert">
             <p>{error}</p>
@@ -241,11 +346,11 @@ const ChatPanel = ({
       <form className={styles.composer} onSubmit={handleSubmit}>
         <InputGroup
           className={styles.composerGroup}
-          data-disabled={isLoading || undefined}
+          data-disabled={isLoading || isAwaitingInput || undefined}
         >
           <InputGroupTextarea
             aria-label="发送消息"
-            disabled={isLoading}
+            disabled={isLoading || isAwaitingInput}
             placeholder={
               isLoading ? "等待 AI 回复..." : "例如：把卡片移动到页面底部"
             }
@@ -258,7 +363,7 @@ const ChatPanel = ({
             <span className={styles.composerHint}>Enter 发送</span>
             <InputGroupButton
               aria-label="发送消息"
-              disabled={!draft.trim() || isLoading}
+              disabled={!draft.trim() || isLoading || isAwaitingInput}
               size="icon-sm"
               type="submit"
               variant="default"
@@ -455,6 +560,8 @@ const Workspace = ({
   onRetry,
   onSend,
   onStop,
+  onAnswer,
+  inputRequest,
   status,
 }: WorkspaceProps) => {
   const [selectedNode, setSelectedNode] = useState<CanvasNode | null>(
@@ -472,6 +579,8 @@ const Workspace = ({
           onRetry={onRetry}
           onSend={onSend}
           onStop={onStop}
+          onAnswer={onAnswer}
+          inputRequest={inputRequest}
         />
         <Canvas document={document} node={selectedNode} />
         <Inspector node={selectedNode} setNode={setSelectedNode} />
@@ -491,4 +600,7 @@ export type {
   ChatStatus,
   WorkspaceReasoning,
   WorkspaceProps,
+  WorkspaceInputQuestion,
+  WorkspaceInputQuestionOption,
+  WorkspaceInputRequest,
 };

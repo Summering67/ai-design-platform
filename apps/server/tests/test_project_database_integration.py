@@ -34,15 +34,17 @@ pytestmark = pytest.mark.skipif(not TEST_DSN, reason="未配置隔离 PostgreSQL
 async def database() -> AsyncIterator[Database]:
     schema = f"test_python_migration_{uuid4().hex}"
     engine = create_async_engine(_async_dsn(TEST_DSN))
-    migration = (
-        Path(__file__).resolve().parents[2]
-        / "api/migrations/20260803090000_add_single_user_authentication.up.sql"
-    ).read_text(encoding="utf-8")
+    migration_root = Path(__file__).resolve().parents[2] / "migrations"
+    migrations = [
+        (migration_root / "20260803090000_add_single_user_authentication.up.sql").read_text(encoding="utf-8"),
+        (migration_root / "20260809120000_add_agent_input_requests.up.sql").read_text(encoding="utf-8"),
+    ]
     async with engine.begin() as connection:
         await connection.execute(text(f'CREATE SCHEMA "{schema}"'))
         await connection.execute(text(f'SET LOCAL search_path TO "{schema}"'))
-        for statement in migration.split(";"):
-            statement.strip() and await connection.exec_driver_sql(statement)
+        for migration in migrations:
+            for statement in migration.split(";"):
+                statement.strip() and await connection.exec_driver_sql(statement)
     await engine.dispose()
 
     scoped_engine = create_async_engine(

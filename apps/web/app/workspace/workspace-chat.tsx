@@ -6,13 +6,14 @@ import { Workspace } from "@repo/ui/blocks/workspace";
 import type { DesignDocument } from "@repo/design-dsl";
 import {
   RequestError,
+  answerInput,
   currentUser,
   generate,
   loadProject,
   logout,
   stopGeneration,
 } from "./chat-api";
-import type { ChatMessage, Project } from "./chat-api";
+import type { ChatMessage, PendingInputRequest, Project } from "./chat-api";
 import { applyReasoningEvent } from "./reasoning";
 import type { ReasoningItem } from "./reasoning";
 
@@ -30,9 +31,10 @@ const WorkspaceChat = ({
   const reasoningTimer = useRef<number | null>(null);
   const [project, setProject] = useState<Project | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "loading" | "awaiting_input" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
   const [generationId, setGenerationId] = useState<string | null>(null);
+  const [inputRequest, setInputRequest] = useState<PendingInputRequest | null>(null);
   const [stream, setStream] = useState("");
   const [reasoning, setReasoning] = useState<ReasoningItem[]>([]);
   const [document, setDocument] = useState<DesignDocument | null>(null);
@@ -75,6 +77,33 @@ const WorkspaceChat = ({
     }
     if (event === "stage" || event === "progress") return;
   };
+  const handleGenerationEvent = (event: { event: string; data: Record<string, unknown> }) => {
+    if (event.event === "generation") {
+      const nextProjectId = event.data.project_id;
+      const nextGenerationId = event.data.generation_id;
+      if (typeof nextProjectId === "string" && !project)
+        setProject({ id: nextProjectId, title: "新建项目" });
+      if (typeof nextGenerationId === "string") setGenerationId(nextGenerationId);
+    }
+    if (event.event === "agent") appendAgentMessage(event.data);
+    if (event.event === "input_required") {
+      setInputRequest(event.data as unknown as PendingInputRequest);
+      if (typeof event.data.generation_id === "string") setGenerationId(event.data.generation_id);
+      setStatus("awaiting_input");
+    }
+    if (event.event === "completed") {
+      const nextMessage = event.data.message as ChatMessage;
+      if (nextMessage?.id) setMessages((items) => [...items, nextMessage]);
+      if (event.data.document) setDocument(event.data.document as DesignDocument);
+      setInputRequest(null);
+      setGenerationId(null);
+    }
+    if (event.event === "failed" || event.event === "interrupted") {
+      setInputRequest(null);
+      setGenerationId(null);
+      setError(event.event === "interrupted" ? "生成已停止，可重新生成。" : "生成失败，可重新生成。");
+    }
+  };
   useEffect(() => {
     return () => {
       if (reasoningTimer.current !== null)
@@ -91,9 +120,14 @@ const WorkspaceChat = ({
   useEffect(() => {
     if (!projectId) return;
     void loadProject(projectId)
-      .then(({ project: nextProject, messages: nextMessages }) => {
+      .then(({ project: nextProject, messages: nextMessages, pending_input_request }) => {
         setProject(nextProject);
         setMessages(nextMessages);
+        if (pending_input_request) {
+          setInputRequest(pending_input_request);
+          setGenerationId(pending_input_request.generation_id);
+          setStatus("awaiting_input");
+        }
       })
       .catch((reason: unknown) => {
         if (reason instanceof RequestError && reason.status === 401)
@@ -114,13 +148,14 @@ const WorkspaceChat = ({
     sendRef.current(prompt);
   }, [prompt, projectId]);
   const send = async (content: string) => {
-    if (status === "loading") return;
+    if (status === "loading" || status === "awaiting_input") return;
     const messageId = crypto.randomUUID();
     const userMessage = { id: messageId, role: "user" as const, content };
     setMessages((items) => [...items, userMessage]);
     setStatus("loading");
     setError(null);
     setStream("");
+    setInputRequest(null);
     clearReasoning();
     const request = new AbortController();
     controller.current = request;
@@ -130,30 +165,9 @@ const WorkspaceChat = ({
         { message_id: messageId, content },
         request.signal,
         (event) => {
-          if (event.event === "generation") {
-            const nextProjectId = event.data.project_id;
-            const nextGenerationId = event.data.generation_id;
-            if (typeof nextProjectId === "string" && !project)
-              setProject({ id: nextProjectId, title: "新建项目" });
-            if (typeof nextGenerationId === "string")
-              setGenerationId(nextGenerationId);
-          }
+          handleGenerationEvent(event);
           if (event.event === "delta" && typeof event.data.content === "string")
             setStream((value) => value + event.data.content);
-          if (event.event === "agent") appendAgentMessage(event.data);
-          if (event.event === "completed") {
-            const nextMessage = event.data.message as ChatMessage;
-            if (nextMessage?.id)
-              setMessages((items) => [...items, nextMessage]);
-            if (event.data.document)
-              setDocument(event.data.document as DesignDocument);
-          }
-          if (event.event === "failed" || event.event === "interrupted")
-            setError(
-              event.event === "interrupted"
-                ? "生成已停止，可重新生成。"
-                : "生成失败，可重新生成。",
-            );
         },
       );
     } catch (reason) {
@@ -164,47 +178,62 @@ const WorkspaceChat = ({
       }
     } finally {
       controller.current = null;
-      setGenerationId(null);
       setStream("");
       setStatus((value) => (value === "loading" ? "idle" : value));
       // 首次生成后保留当前工作台，避免路由切换中断 SSE。
     }
   };
+  const answer = (answers: { questionId: string; content: string }[]) => {
+    if (!project || !generationId || !inputRequest || status === "loading") return;
+    const request = new AbortController();
+    controller.current = request;
+    setStatus("loading");
+    setError(null);
+    clearReasoning();
+    void answerInput(
+      project.id,
+      generationId,
+      inputRequest.id,
+      {
+        response_id: crypto.randomUUID(),
+        answers: answers.map(({ questionId, content }) => ({ question_id: questionId, content })),
+      },
+      request.signal,
+      (event) => {
+        handleGenerationEvent(event);
+        if (event.event === "delta" && typeof event.data.content === "string")
+          setStream((value) => value + event.data.content);
+      },
+    ).catch(() => setError("提交回答失败，可重试。"))
+      .finally(() => {
+        controller.current = null;
+        setStream("");
+        setStatus((value) => (value === "loading" ? "idle" : value));
+      });
+  };
   sendRef.current = (content) => void send(content);
   const retry = (messageId: string) => {
-    if (!project || status === "loading") return;
+    if (!project || status === "loading" || status === "awaiting_input") return;
     const request = new AbortController();
     controller.current = request;
     setStatus("loading");
     setError(null);
     setStream("");
+    setInputRequest(null);
     clearReasoning();
     void generate(
       `/projects/${project.id}/messages/${messageId}/generations`,
       undefined,
       request.signal,
       (event) => {
-        if (
-          event.event === "generation" &&
-          typeof event.data.generation_id === "string"
-        )
-          setGenerationId(event.data.generation_id);
+        handleGenerationEvent(event);
         if (event.event === "delta" && typeof event.data.content === "string")
           setStream((value) => value + event.data.content);
-        if (event.event === "agent") appendAgentMessage(event.data);
-        if (event.event === "completed") {
-          const nextMessage = event.data.message as ChatMessage;
-          if (nextMessage?.id) setMessages((items) => [...items, nextMessage]);
-          if (event.data.document) setDocument(event.data.document as DesignDocument);
-        }
-        if (event.event === "failed" || event.event === "interrupted")
-          setError("生成未完成，可重新生成。");
       },
     )
       .catch(() => setError("重新生成失败"))
       .finally(() => {
         controller.current = null;
-        setGenerationId(null);
         setStream("");
         setStatus("idle");
       });
@@ -214,6 +243,8 @@ const WorkspaceChat = ({
     controller.current?.abort();
     setStream("");
     clearReasoning();
+    setInputRequest(null);
+    setGenerationId(null);
     setStatus("idle");
   };
   const visibleMessages = stream
@@ -227,13 +258,20 @@ const WorkspaceChat = ({
       accountEmail={email}
       document={document}
       error={error}
-        messages={visibleMessages}
-        reasoning={reasoning}
+      messages={visibleMessages}
+      reasoning={reasoning}
+      inputRequest={inputRequest ? {
+        id: inputRequest.id,
+        generationId: inputRequest.generation_id,
+        round: inputRequest.round,
+        questions: inputRequest.questions,
+      } : null}
       projectTitle={project?.title || "新建项目"}
       status={status}
       onSend={(content) => void send(content)}
       onRetry={retry}
       onStop={stop}
+      onAnswer={answer}
       onLogout={() => void logout().then(() => router.replace("/login"))}
     />
   );

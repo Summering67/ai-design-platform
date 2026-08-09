@@ -1,0 +1,23 @@
+{
+  "version": "2.0.0",
+  "event": "input_required",
+  "runId": "run-1",
+  "taskId": "task-1",
+  "parentTaskId": "root",
+  "stage": "ui_design",
+  "attempt": 1,
+  "payload": {
+    "round": 1,
+    "isBlocking": true,
+    "questions": [{
+      "id": "brand-color",
+      "header": "品牌颜色",
+      "question": "品牌主色是什么？",
+      "isOther": true,
+      "options": [
+        {"label": "沿用现有蓝色（推荐）", "description": "保持产品视觉一致。"},
+        {"label": "改用紫色", "description": "增强设计工具的创意感。"}
+      ]
+    }]
+  }
+}

@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 from collections.abc import AsyncIterator
+from typing import Any
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.encoders import jsonable_encoder
@@ -18,6 +19,7 @@ from ..dto import (
     AttemptResponse,
     ClientMessageRequest,
     InputAnswersRequest,
+    InputRequestResponse,
     MessageResponse,
     ProjectDetailResponse,
     ProjectResponse,
@@ -48,9 +50,10 @@ async def get_project(
     service: ProjectService = Depends(get_project_service),
 ) -> ProjectDetailResponse:
     project, messages = await service.get(session, user.id, project_id)
-    pending = await service.pending_input(session, user.id, project_id)
+    pending_loader = getattr(service, "pending_input", None)
+    pending = await pending_loader(session, user.id, project_id) if pending_loader else None
     return ProjectDetailResponse(
-        project=_project(project), messages=[_message(item) for item in messages], pending_input_request=_input_request(pending) if pending else None
+        project=_project(project), messages=[_message(item) for item in messages], pending_input_request=InputRequestResponse(**_input_request(pending)) if pending else None
     )
 
 
@@ -177,8 +180,9 @@ async def _events(
     project: ProjectModel,
     message: MessageModel,
     attempt: AttemptModel,
-    input_context: list[dict[str, object]],
+    input_context: list[dict[str, object]] | None = None,
 ) -> AsyncIterator[str]:
+    input_context = input_context or []
     queue: asyncio.Queue[str | None] = asyncio.Queue()
     request.app.state.logger.info(
         "Agent generation started",
@@ -199,14 +203,14 @@ async def _events(
                 request.app.state.config.agent,
             ):
                 if agent_event["event"] == "input_required":
-                    payload = agent_event.get("payload", {})
+                    input_payload = agent_event.get("payload", {})
                     async with request.app.state.database.session() as input_session:
                         input_request = await service.await_input(
                             input_session,
                             attempt.id,
                             agent_event.get("stage", "root"),
                             agent_event.get("taskId", "root"),
-                            payload.get("questions", []),
+                            input_payload.get("questions", []),
                         )
                     awaiting_input = True
                     await queue.put(_event("input_required", {"generation_id": attempt.id, **_input_request(input_request)}))
@@ -316,7 +320,7 @@ def _attempt(item: AttemptModel) -> dict[str, object]:
     ).model_dump(mode="json", exclude_none=True)
 
 
-def _input_request(item: InputRequestModel) -> dict[str, object]:
+def _input_request(item: InputRequestModel) -> dict[str, Any]:
     return {
         "id": item.id,
         "generation_id": item.generation_id,
