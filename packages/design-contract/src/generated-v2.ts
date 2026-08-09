@@ -243,6 +243,7 @@ export interface ResponsiveLayout {
   justifyContent?: "flex-start" | "flex-end" | "center" | "space-between" | "space-around" | "space-evenly";
   alignItems?: "stretch" | "flex-start" | "flex-end" | "center" | "baseline";
   wrap?: "nowrap" | "wrap" | "wrap-reverse";
+  flexWrap?: "nowrap" | "wrap" | "wrap-reverse";
   gap?: number;
   rowGap?: number;
   columnGap?: number;
@@ -250,6 +251,7 @@ export interface ResponsiveLayout {
   layout?: FlexLayout;
   layoutItem?: FlexItem;
   computedLayout?: ComputedLayout;
+  sizing?: "fixed" | "fill" | "hug" | "minmax";
   visible?: boolean;
 }
 export interface Source {

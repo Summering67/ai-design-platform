@@ -37,13 +37,35 @@ def test_layout_rejects_unknown_node() -> None:
 def test_layout_applies_constrained_responsive_breakpoints() -> None:
     document = _read("packages/design-contract/fixtures/v2/login-page.document.json")
     contract = _read("packages/design-contract/fixtures/v1/team-default.generation-contract.json")
-    result, _ = apply_layout(document, [{"nodeId": "root", "breakpoints": {"mobile": {"direction": "column", "gap": 8}}}], contract)
+    result, _ = apply_layout(
+        document,
+        [
+            {
+                "nodeId": "root",
+                "breakpoints": {
+                    "mobile": {
+                        "direction": "column",
+                        "flexWrap": "wrap",
+                        "gap": 8,
+                        "sizing": "fill",
+                    }
+                },
+            }
+        ],
+        contract,
+    )
     validate_tree(result, contract)
     assert result["root"]["responsive"]["mobile"]["direction"] == "column"
+    assert result["root"]["responsive"]["mobile"]["flexWrap"] == "wrap"
+    assert result["root"]["responsive"]["mobile"]["sizing"] == "fill"
 
 
 def test_layout_rejects_unregistered_responsive_capability() -> None:
     document = _read("packages/design-contract/fixtures/v2/login-page.document.json")
     contract = _read("packages/design-contract/fixtures/v1/team-default.generation-contract.json")
     with pytest.raises(ContractError, match="未允许"):
-        apply_layout(document, [{"nodeId": "root", "breakpoints": {"mobile": {"mediaQuery": "@media"}}}], contract)
+        apply_layout(
+            document,
+            [{"nodeId": "root", "breakpoints": {"mobile": {"mediaQuery": "@media"}}}],
+            contract,
+        )

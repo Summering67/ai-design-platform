@@ -18,3 +18,12 @@
 
 - **WHEN** Root Agent 产生有效最终 DesignDocument
 - **THEN** 系统发送唯一 completed 事件及最终文档，并完成 generation 尝试
+
+### Requirement: Auto Layout 响应式文档契约
+
+最终 DesignDocument v2 Schema SHALL 接受 Auto Layout 已允许写入响应式断点的 `flexWrap` 和 `sizing` 字段；`flexWrap` MUST 限定为 `nowrap`、`wrap` 或 `wrap-reverse`，`sizing` MUST 限定为 GenerationContract 支持的尺寸模式。
+
+#### Scenario: Auto Layout 写入响应式能力
+
+- **WHEN** Auto Layout 在节点断点中写入合法 `flexWrap` 和 `sizing`
+- **THEN** 最终文档通过 DesignDocument v2 Schema 校验并继续进入 final gate

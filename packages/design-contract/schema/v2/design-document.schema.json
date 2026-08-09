@@ -297,6 +297,7 @@
         "justifyContent": { "enum": ["flex-start", "flex-end", "center", "space-between", "space-around", "space-evenly"] },
         "alignItems": { "enum": ["stretch", "flex-start", "flex-end", "center", "baseline"] },
         "wrap": { "enum": ["nowrap", "wrap", "wrap-reverse"] },
+        "flexWrap": { "enum": ["nowrap", "wrap", "wrap-reverse"] },
         "gap": { "type": "number", "minimum": 0 },
         "rowGap": { "type": "number", "minimum": 0 },
         "columnGap": { "type": "number", "minimum": 0 },
@@ -304,6 +305,7 @@
         "layout": { "$ref": "#/$defs/flexLayout" },
         "layoutItem": { "$ref": "#/$defs/flexItem" },
         "computedLayout": { "$ref": "#/$defs/computedLayout" },
+        "sizing": { "enum": ["fixed", "fill", "hug", "minmax"] },
         "visible": { "type": "boolean" }
       }
     },
