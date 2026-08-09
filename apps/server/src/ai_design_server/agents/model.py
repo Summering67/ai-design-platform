@@ -168,7 +168,7 @@ def create_openai_model(client: httpx.AsyncClient, config: AIConfig) -> ModelPor
                 client,
                 config,
                 [
-                    {"role": "system", "content": f"你是 {purpose}。只返回符合 JSON Schema 的 JSON 对象，不要 Markdown。Schema: {schema_text}"},
+                    {"role": "system", "content": f"你是 {purpose}。只返回符合 JSON Schema 的 JSON 对象，不要 Markdown。若缺少必须由用户确认且无法安全推断的信息，返回 kind=input_required 和问题列表；否则返回 kind=result 并将业务对象放入 result。reasoning 中不要向用户提问。Schema: {schema_text}"},
                     {"role": "user", "content": prompt},
                 ],
                 on_reasoning,

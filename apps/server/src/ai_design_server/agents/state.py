@@ -29,3 +29,4 @@ class RootState(TypedDict, total=False):
     terminal: str | None
     result: dict[str, Any]
     error: dict[str, str]
+    resolved_user_inputs: list[dict[str, Any]]

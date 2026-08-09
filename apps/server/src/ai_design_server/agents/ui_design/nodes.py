@@ -13,6 +13,7 @@ class UIDesignState(TypedDict, total=False):
     candidate: dict[str, Any]
     error: str
     attempt: int
+    resolved_user_inputs: list[dict[str, Any]]
 
 
 def _document_schema() -> dict[str, Any]:
@@ -22,7 +23,7 @@ def _document_schema() -> dict[str, Any]:
 async def generate(state: UIDesignState, *, model: ModelPort) -> UIDesignState:
     candidate = await model.structured(
         SYSTEM_PROMPT,
-        {"prd": state["prd"], "generationContract": state["contract"], "instruction": "生成完整初始 UI 树"},
+        {"prd": state["prd"], "resolvedUserInputs": state.get("resolved_user_inputs", []), "generationContract": state["contract"], "instruction": "生成完整初始 UI 树"},
         _document_schema(),
     )
     try:
@@ -37,7 +38,7 @@ async def generate(state: UIDesignState, *, model: ModelPort) -> UIDesignState:
 async def repair(state: UIDesignState, *, model: ModelPort) -> UIDesignState:
     candidate = await model.structured(
         SYSTEM_PROMPT,
-        {"prd": state["prd"], "candidate": state.get("candidate"), "error": state.get("error"), "instruction": "只修复契约错误，保持业务节点 ID"},
+        {"prd": state["prd"], "resolvedUserInputs": state.get("resolved_user_inputs", []), "candidate": state.get("candidate"), "error": state.get("error"), "instruction": "只修复契约错误，保持业务节点 ID"},
         _document_schema(),
     )
     validate_tree(candidate, state["contract"])

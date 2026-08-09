@@ -15,12 +15,13 @@ class AutoLayoutState(TypedDict, total=False):
     plan: list[dict[str, Any]]
     result: dict[str, Any]
     changes: list[dict[str, Any]]
+    resolved_user_inputs: list[dict[str, Any]]
 
 
 async def plan(state: AutoLayoutState, *, model: ModelPort) -> AutoLayoutState:
     response = await model.structured(
         SYSTEM_PROMPT,
-        {"document": state["document"], "prd": state["prd"], "contract": state["contract"], "instruction": "只生成合法 Flex operations"},
+        {"document": state["document"], "prd": state["prd"], "resolvedUserInputs": state.get("resolved_user_inputs", []), "contract": state["contract"], "instruction": "只生成合法 Flex operations"},
         {"type": "object", "required": ["operations"], "properties": {"operations": {"type": "array", "items": {"type": "object"}}}},
     )
     operations = response.get("operations", [])

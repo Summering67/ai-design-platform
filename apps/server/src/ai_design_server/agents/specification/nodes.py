@@ -15,6 +15,7 @@ class SpecificationState(TypedDict, total=False):
     contract: dict[str, Any]
     report: dict[str, Any]
     corrected: dict[str, Any]
+    resolved_user_inputs: list[dict[str, Any]]
 
 
 def _issue(error: ContractError, *, status: str = "unresolved") -> dict[str, Any]:
@@ -50,7 +51,7 @@ async def repair(state: SpecificationState, *, model: ModelPort, contract: dict[
         return state
     candidate = await model.structured(
         SYSTEM_PROMPT,
-        {"prd": state["prd"], "document": state["document"], "report": report, "instruction": "修复可修复问题"},
+        {"prd": state["prd"], "resolvedUserInputs": state.get("resolved_user_inputs", []), "document": state["document"], "report": report, "instruction": "修复可修复问题"},
         {"type": "object", "description": "DesignDocument v2"},
     )
     validate_tree(candidate, contract)

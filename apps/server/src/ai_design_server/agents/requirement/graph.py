@@ -24,6 +24,6 @@ def build(model: ModelPort) -> Any:
     return graph.compile()
 
 
-async def run(value: str, model: ModelPort) -> dict[str, Any]:
-    result = await build(model).ainvoke({"input": value, "attempt": 1})
+async def run(value: str, model: ModelPort, resolved_user_inputs: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    result = await build(model).ainvoke({"input": value, "attempt": 1, "resolved_user_inputs": resolved_user_inputs or []})
     return dict(result["candidate"])

@@ -19,6 +19,6 @@ def build(model: ModelPort) -> Any:
     return graph.compile()
 
 
-async def run(document: dict[str, Any], prd: dict[str, Any], contract: dict[str, Any], model: ModelPort) -> dict[str, Any]:
-    result = await build(model).ainvoke({"document": document, "prd": prd, "contract": contract})
+async def run(document: dict[str, Any], prd: dict[str, Any], contract: dict[str, Any], model: ModelPort, resolved_user_inputs: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    result = await build(model).ainvoke({"document": document, "prd": prd, "contract": contract, "resolved_user_inputs": resolved_user_inputs or []})
     return {"document": result["result"], "changes": result["changes"]}

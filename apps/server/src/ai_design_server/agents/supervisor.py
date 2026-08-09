@@ -71,15 +71,16 @@ async def _emit_input_required(emit: EventSink, state: RootState, error: InputRe
 async def _run_task(name: str, state: RootState, model: ModelPort, task_id: str, attempt: int) -> dict[str, Any]:
     completed = state.get("completed", {})
     contract = state["generation_contract"]
+    resolved_user_inputs = state.get("resolved_user_inputs", [])
     if name == "requirement":
-        return {"prd": await run_requirement(state["raw_requirement"], model)}
+        return {"prd": await run_requirement(state["raw_requirement"], model, resolved_user_inputs)}
     if name == "ui_design":
-        return {"initial_document": await run_ui_design(completed["prd"], contract, model)}
+        return {"initial_document": await run_ui_design(completed["prd"], contract, model, resolved_user_inputs)}
     if name == "specification":
-        result = await run_specification(completed["initial_document"], completed["prd"], contract, model)
+        result = await run_specification(completed["initial_document"], completed["prd"], contract, model, resolved_user_inputs)
         return {"validation": result["report"], "corrected_document": result["document"]}
     if name == "auto_layout":
-        return {"final_document": (await run_layout(completed["corrected_document"], completed["prd"], contract, model))["document"]}
+        return {"final_document": (await run_layout(completed["corrected_document"], completed["prd"], contract, model, resolved_user_inputs))["document"]}
     if name == "final_gate":
         validate_tree(completed["final_document"], contract)
         return {"result": {"prd": completed["prd"], "validation": completed["validation"], "document": completed["final_document"]}}
@@ -207,7 +208,7 @@ async def execute(state: RootState, *, model: ModelPort, config: AgentConfig, em
 
         try:
             selected = await bind_reasoning(model, on_root_reasoning, on_root_activity).select_tasks(
-                {"target": state.get("target", "design"), "completed": list(state["completed"]), "catalog": state["task_catalog"], "history": state["task_history"]}
+                {"target": state.get("target", "design"), "completed": list(state["completed"]), "resolvedUserInputs": state.get("resolved_user_inputs", []), "catalog": state["task_catalog"], "history": state["task_history"]}
             )
         except InputRequired as required:
             state["terminal"] = "awaiting_input"

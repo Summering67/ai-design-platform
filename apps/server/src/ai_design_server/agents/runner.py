@@ -18,6 +18,7 @@ class AgentInput(TypedDict, total=False):
     generation_contract: dict[str, Any]
     generation_id: str
     target: str
+    resolved_user_inputs: list[dict[str, Any]]
 
 
 async def run_agent(value: AgentInput, model: ModelPort, config: AgentConfig) -> AsyncIterator[AgentRunEvent]:
@@ -43,7 +44,7 @@ async def run_agent(value: AgentInput, model: ModelPort, config: AgentConfig) ->
             raise RuntimeError("Agent 输出超出大小限制")
         await queue.put(item)
 
-    state = {"run_id": run_id, "generation_id": value.get("generation_id"), "raw_requirement": requirement, "generation_contract": contract, "target": value.get("target", "design")}
+    state = {"run_id": run_id, "generation_id": value.get("generation_id"), "raw_requirement": requirement, "generation_contract": contract, "target": value.get("target", "design"), "resolved_user_inputs": value.get("resolved_user_inputs", [])}
     async def execute_graph() -> Any:
         return await build(model, config).ainvoke(state, context={"event_sink": emit})
 

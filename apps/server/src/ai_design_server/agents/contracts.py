@@ -59,7 +59,7 @@ def validate_profile_contract(contract: Mapping[str, Any]) -> None:
         raise ContractError("invalid_generation_contract", "生成契约 Profile 引用无效")
 
 
-def validate_prd(value: Any) -> None:
+def validate_prd(value: Any, *, allow_blocking: bool = False) -> None:
     validate("standardized-prd.schema.json", value)
     pages = value["pages"]
     page_ids = [page["id"] for page in pages]
@@ -68,7 +68,7 @@ def validate_prd(value: Any) -> None:
     page_set = set(page_ids)
     if any(step["pageId"] not in page_set for flow in value["flows"] for step in flow["steps"]):
         raise ContractError("prd_invalid_reference", "PRD 流程引用不存在的页面")
-    if value["blockingIssues"]:
+    if value["blockingIssues"] and not allow_blocking:
         raise ContractError("prd_blocking_issue", "PRD 存在未解决的阻断问题")
 
 
