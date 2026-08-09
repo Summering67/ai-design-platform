@@ -8,7 +8,7 @@ from typing import Any, Protocol, cast
 import httpx
 
 from ..config import AIConfig
-from .errors import AgentError
+from .errors import AgentError, InputQuestion, InputRequired
 
 ReasoningSink = Callable[[str], Awaitable[None]]
 ActivitySink = Callable[[], Awaitable[None]]
@@ -94,6 +94,64 @@ async def _stream_completion(
     return "".join(parts)
 
 
+def _response_schema(schema: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "oneOf": [
+            {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["kind", "result"],
+                "properties": {"kind": {"const": "result"}, "result": schema},
+            },
+            {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["kind", "questions"],
+                "properties": {
+                    "kind": {"const": "input_required"},
+                    "questions": {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {
+                            "type": "object",
+                            "additionalProperties": False,
+                            "required": ["id", "text"],
+                            "properties": {
+                                "id": {"type": "string", "minLength": 1},
+                                "text": {"type": "string", "minLength": 1},
+                            },
+                        },
+                    },
+                },
+            },
+        ]
+    }
+
+
+def _unwrap_response(value: dict[str, Any]) -> dict[str, Any]:
+    kind = value.get("kind")
+    if kind is None:
+        return value
+    if kind == "result" and isinstance(value.get("result"), dict):
+        return value["result"]
+    if kind != "input_required" or not isinstance(value.get("questions"), list):
+        raise AgentError("invalid_model_response", "Agent 返回包络无效", retryable=True)
+    questions: list[InputQuestion] = []
+    seen: set[str] = set()
+    for item in value["questions"]:
+        if not isinstance(item, dict) or not isinstance(item.get("id"), str) or not isinstance(item.get("text"), str):
+            raise AgentError("invalid_model_response", "Agent 问题格式无效", retryable=True)
+        question_id = item["id"].strip()
+        text = item["text"].strip()
+        if not question_id or not text or question_id in seen:
+            raise AgentError("invalid_model_response", "Agent 问题格式无效", retryable=True)
+        seen.add(question_id)
+        questions.append(InputQuestion(question_id, text))
+    if not questions:
+        raise AgentError("invalid_model_response", "Agent 问题不能为空", retryable=True)
+    raise InputRequired(questions)
+
+
 def create_openai_model(client: httpx.AsyncClient, config: AIConfig) -> ModelPort:
     async def structured(
         purpose: str,
@@ -104,7 +162,7 @@ def create_openai_model(client: httpx.AsyncClient, config: AIConfig) -> ModelPor
         on_activity: ActivitySink | None = None,
     ) -> dict[str, Any]:
         prompt = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
-        schema_text = json.dumps(schema, ensure_ascii=False, separators=(",", ":"))
+        schema_text = json.dumps(_response_schema(schema), ensure_ascii=False, separators=(",", ":"))
         try:
             content = await _stream_completion(
                 client,
@@ -119,7 +177,7 @@ def create_openai_model(client: httpx.AsyncClient, config: AIConfig) -> ModelPor
             value = json.loads(content)
             if not isinstance(value, dict):
                 raise TypeError("模型返回值不是对象")
-            return value
+            return _unwrap_response(value)
         except Exception as error:
             raise AgentError("model_unavailable", "Agent 模型不可用", retryable=True) from error
 

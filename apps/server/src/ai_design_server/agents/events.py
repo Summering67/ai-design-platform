@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Literal, TypedDict
 
-EventName = Literal["run", "stage", "progress", "result", "failed", "cancelled"]
+EventName = Literal["run", "stage", "progress", "result", "input_required", "failed", "cancelled"]
 
 
 class AgentRunEvent(TypedDict, total=False):

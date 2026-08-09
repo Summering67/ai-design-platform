@@ -19,6 +19,7 @@ from sqlalchemy import (
     text,
 )
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.engine import make_url
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import (
@@ -102,7 +103,7 @@ class AttemptModel(Base):
     __tablename__ = "generation_attempts"
     __table_args__ = (
         CheckConstraint(
-            "status IN ('running', 'completed', 'failed', 'interrupted')",
+            "status IN ('running', 'awaiting_input', 'completed', 'failed', 'interrupted')",
             name="generation_attempts_status_check",
         ),
         UniqueConstraint(
@@ -110,10 +111,10 @@ class AttemptModel(Base):
             name="generation_attempts_assistant_message_id_key",
         ),
         Index(
-            "generation_attempts_one_running_project_idx",
+            "generation_attempts_one_active_project_idx",
             "project_id",
             unique=True,
-            postgresql_where=text("status = 'running'"),
+            postgresql_where=text("status IN ('running', 'awaiting_input')"),
         ),
         Index(
             "generation_attempts_user_message_idx",
@@ -133,6 +134,35 @@ class AttemptModel(Base):
     lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class InputRequestModel(Base):
+    __tablename__ = "generation_input_requests"
+    __table_args__ = (
+        CheckConstraint("round BETWEEN 1 AND 3", name="generation_input_requests_round_check"),
+        CheckConstraint("status IN ('pending', 'answered')", name="generation_input_requests_status_check"),
+        UniqueConstraint("generation_id", "source_stage", "round", name="generation_input_requests_generation_stage_round_key"),
+        UniqueConstraint("response_id", name="generation_input_requests_response_id_key"),
+        Index(
+            "generation_input_requests_one_pending_idx",
+            "generation_id",
+            unique=True,
+            postgresql_where=text("status = 'pending'"),
+        ),
+        Index("generation_input_requests_generation_idx", "generation_id", "source_stage", "round"),
+    )
+
+    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True)
+    generation_id: Mapped[str] = mapped_column(ForeignKey("generation_attempts.id", ondelete="CASCADE"))
+    source_stage: Mapped[str] = mapped_column(Text)
+    source_task_id: Mapped[str] = mapped_column(Text)
+    round: Mapped[int] = mapped_column()
+    questions: Mapped[list[dict[str, str]]] = mapped_column(JSONB)
+    answers: Mapped[list[dict[str, str]] | None] = mapped_column(JSONB, nullable=True)
+    response_id: Mapped[str | None] = mapped_column(UUID(as_uuid=False), nullable=True)
+    status: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    answered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 @dataclass(slots=True)

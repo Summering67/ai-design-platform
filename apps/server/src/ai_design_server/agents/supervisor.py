@@ -10,7 +10,7 @@ from uuid import uuid4
 from ..config import AgentConfig
 from .auto_layout.graph import run as run_layout
 from .contracts import validate_tree
-from .errors import AgentError
+from .errors import AgentError, InputRequired
 from .events import AgentRunEvent, EventName, event
 from .model import ModelPort, bind_reasoning
 from .requirement.graph import run as run_requirement
@@ -51,6 +51,21 @@ def _catalog() -> dict[str, dict[str, Any]]:
 
 async def _emit(emit: EventSink, name: EventName, state: RootState, stage: str, *, task_id: str = "root", parent_task_id: str | None = None, attempt: int = 1, payload: dict[str, Any] | None = None) -> None:
     await emit(event(name, state["run_id"], stage, task_id=task_id, parent_task_id=parent_task_id, attempt=attempt, payload=payload))
+
+
+async def _emit_input_required(emit: EventSink, state: RootState, error: InputRequired, *, stage: str, task_id: str, attempt: int = 1) -> None:
+    await _emit(
+        emit,
+        "input_required",
+        state,
+        stage,
+        task_id=task_id,
+        attempt=attempt,
+        payload={
+            "questions": [{"id": question.id, "text": question.text} for question in error.questions],
+            "isBlocking": True,
+        },
+    )
 
 
 async def _run_task(name: str, state: RootState, model: ModelPort, task_id: str, attempt: int) -> dict[str, Any]:
@@ -190,9 +205,14 @@ async def execute(state: RootState, *, model: ModelPort, config: AgentConfig, em
         async def on_root_activity() -> None:
             await _emit(emit, "progress", state, "root", payload={"status": "activity"})
 
-        selected = await bind_reasoning(model, on_root_reasoning, on_root_activity).select_tasks(
-            {"target": state.get("target", "design"), "completed": list(state["completed"]), "catalog": state["task_catalog"], "history": state["task_history"]}
-        )
+        try:
+            selected = await bind_reasoning(model, on_root_reasoning, on_root_activity).select_tasks(
+                {"target": state.get("target", "design"), "completed": list(state["completed"]), "catalog": state["task_catalog"], "history": state["task_history"]}
+            )
+        except InputRequired as required:
+            state["terminal"] = "awaiting_input"
+            await _emit_input_required(emit, state, required, stage="root", task_id="root")
+            return state
         unknown = [name for name in selected if name not in state["task_catalog"]]
         if unknown:
             state["terminal"] = "failed"
@@ -225,6 +245,11 @@ async def execute(state: RootState, *, model: ModelPort, config: AgentConfig, em
             state["terminal"] = "cancelled"
             await _emit(emit, "cancelled", state, "root")
             raise
+        except InputRequired as required:
+            state["terminal"] = "awaiting_input"
+            name, task_id = task_pairs[0]
+            await _emit_input_required(emit, state, required, stage=name, task_id=task_id)
+            return state
         except AgentError as error:
             state["terminal"] = "failed"
             state["error"] = {"code": error.code, "message": error.message}

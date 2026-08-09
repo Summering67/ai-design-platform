@@ -39,6 +39,16 @@ class ClientMessageRequest(StrictModel):
     content: str
 
 
+class InputAnswer(StrictModel):
+    question_id: str = Field(min_length=1, max_length=200)
+    content: str = Field(min_length=1, max_length=32000)
+
+
+class InputAnswersRequest(StrictModel):
+    response_id: str = Field(min_length=36, max_length=36)
+    answers: list[InputAnswer] = Field(min_length=1, max_length=32)
+
+
 class ErrorBody(StrictModel):
     code: str
     message: str
@@ -77,6 +87,17 @@ class AttemptResponse(StrictModel):
     finished_at: datetime | None = None
 
 
+class InputRequestResponse(StrictModel):
+    id: str
+    generation_id: str
+    source_stage: str
+    source_task_id: str
+    round: int
+    questions: list[dict[str, str]]
+    status: str
+
+
 class ProjectDetailResponse(StrictModel):
     project: ProjectResponse
     messages: list[MessageResponse]
+    pending_input_request: InputRequestResponse | None = None

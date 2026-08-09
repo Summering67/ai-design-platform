@@ -6,7 +6,7 @@
   "additionalProperties": false,
   "properties": {
     "version": { "const": "2.0.0" },
-    "event": { "enum": ["run", "stage", "progress", "result", "failed", "cancelled"] },
+    "event": { "enum": ["run", "stage", "progress", "result", "input_required", "failed", "cancelled"] },
     "runId": { "type": "string", "minLength": 1 },
     "taskId": { "type": "string", "minLength": 1 },
     "parentTaskId": { "type": ["string", "null"] },

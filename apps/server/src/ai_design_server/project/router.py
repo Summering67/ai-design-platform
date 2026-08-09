@@ -12,11 +12,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..agents.contracts import load_default_generation_contract
 from ..agents.runner import run_agent
 from ..auth.router import current_user
-from ..database import AttemptModel, MessageModel, ProjectModel, UserModel
+from ..database import AttemptModel, InputRequestModel, MessageModel, ProjectModel, UserModel
 from ..dependencies import get_session
 from ..dto import (
     AttemptResponse,
     ClientMessageRequest,
+    InputAnswersRequest,
     MessageResponse,
     ProjectDetailResponse,
     ProjectResponse,
@@ -47,8 +48,9 @@ async def get_project(
     service: ProjectService = Depends(get_project_service),
 ) -> ProjectDetailResponse:
     project, messages = await service.get(session, user.id, project_id)
+    pending = await service.pending_input(session, user.id, project_id)
     return ProjectDetailResponse(
-        project=_project(project), messages=[_message(item) for item in messages]
+        project=_project(project), messages=[_message(item) for item in messages], pending_input_request=_input_request(pending) if pending else None
     )
 
 
@@ -118,15 +120,39 @@ async def stop(
     return {"generation": _attempt(attempt)}
 
 
+@router.post("/{project_id}/generations/{generation_id}/input-requests/{request_id}/answers")
+async def answer_input(
+    project_id: str,
+    generation_id: str,
+    request_id: str,
+    body: InputAnswersRequest,
+    request: Request,
+    user: UserModel = Depends(current_user),
+    session: AsyncSession = Depends(get_session),
+    service: ProjectService = Depends(get_project_service),
+) -> StreamingResponse:
+    project, message, attempt, inputs = await service.answer_input(
+        session,
+        user.id,
+        project_id,
+        generation_id,
+        request_id,
+        body.response_id,
+        [item.model_dump() for item in body.answers],
+    )
+    return _stream(request, service, project, message, attempt, inputs)
+
+
 def _stream(
     request: Request,
     service: ProjectService,
     project: ProjectModel,
     message: MessageModel,
     attempt: AttemptModel,
+    input_context: list[dict[str, object]] | None = None,
 ) -> StreamingResponse:
     return StreamingResponse(
-        _events(request, service, project, message, attempt),
+        _events(request, service, project, message, attempt, input_context or []),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache"},
     )
@@ -151,6 +177,7 @@ async def _events(
     project: ProjectModel,
     message: MessageModel,
     attempt: AttemptModel,
+    input_context: list[dict[str, object]],
 ) -> AsyncIterator[str]:
     queue: asyncio.Queue[str | None] = asyncio.Queue()
     request.app.state.logger.info(
@@ -164,12 +191,26 @@ async def _events(
     async def run() -> None:
         failure: BaseException | None = None
         document: object | None = None
+        awaiting_input = False
         try:
             async for agent_event in run_agent(
-                {"requirement": message.content, "generation_contract": load_default_generation_contract(), "generation_id": attempt.id},
+                {"requirement": message.content, "generation_contract": load_default_generation_contract(), "generation_id": attempt.id, "resolved_user_inputs": input_context},
                 request.app.state.agent_model,
                 request.app.state.config.agent,
             ):
+                if agent_event["event"] == "input_required":
+                    payload = agent_event.get("payload", {})
+                    async with request.app.state.database.session() as input_session:
+                        input_request = await service.await_input(
+                            input_session,
+                            attempt.id,
+                            agent_event.get("stage", "root"),
+                            agent_event.get("taskId", "root"),
+                            payload.get("questions", []),
+                        )
+                    awaiting_input = True
+                    await queue.put(_event("input_required", {"generation_id": attempt.id, **_input_request(input_request)}))
+                    continue
                 await queue.put(_event("agent", agent_event))
                 if agent_event["event"] == "result":
                     document = agent_event.get("payload", {}).get("document")
@@ -187,6 +228,9 @@ async def _events(
             return
         except BaseException as error:
             failure = error
+        if awaiting_input:
+            await queue.put(None)
+            return
         async with request.app.state.database.session() as finish_session:
             assistant, finished = await service.finish(
                 finish_session, attempt.id, "设计已生成。" if document is not None else "", failure
@@ -270,3 +314,15 @@ def _attempt(item: AttemptModel) -> dict[str, object]:
         created_at=item.created_at,
         finished_at=item.finished_at,
     ).model_dump(mode="json", exclude_none=True)
+
+
+def _input_request(item: InputRequestModel) -> dict[str, object]:
+    return {
+        "id": item.id,
+        "generation_id": item.generation_id,
+        "source_stage": item.source_stage,
+        "source_task_id": item.source_task_id,
+        "round": item.round,
+        "questions": item.questions,
+        "status": item.status,
+    }

@@ -67,7 +67,7 @@ async def run_agent(value: AgentInput, model: ModelPort, config: AgentConfig) ->
                 break
             if item is None:
                 break
-            terminal_emitted = item.get("event") in {"result", "failed", "cancelled"}
+            terminal_emitted = item.get("event") in {"result", "input_required", "failed", "cancelled"}
             yield item
         try:
             if not timed_out:

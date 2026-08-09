@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import (
     AttemptModel,
+    InputRequestModel,
     MessageModel,
     ProjectModel,
     database_operation,
@@ -27,7 +28,7 @@ from ..errors import TimeoutError as AiTimeoutError
 MAX_CONTENT_RUNES = 32000
 MAX_HISTORY_RUNES = 120000
 LEASE_DURATION = timedelta(minutes=2)
-RUNNING_ATTEMPT_CONSTRAINT = "generation_attempts_one_running_project_idx"
+RUNNING_ATTEMPT_CONSTRAINT = "generation_attempts_one_active_project_idx"
 
 
 def _project_integrity_error(error: IntegrityError) -> Exception:
@@ -48,6 +49,19 @@ class ProjectService:
             raise NotFoundError
         messages = list(await session.scalars(select(MessageModel).where(MessageModel.project_id == project_id).order_by(MessageModel.created_at.asc(), MessageModel.id.asc())))
         return project, messages
+
+    @database_operation(_project_integrity_error)
+    async def pending_input(self, session: AsyncSession, user_id: str, project_id: str) -> InputRequestModel | None:
+        _validate_uuid(project_id)
+        result = await session.execute(
+            select(InputRequestModel)
+            .join(AttemptModel, AttemptModel.id == InputRequestModel.generation_id)
+            .join(ProjectModel, ProjectModel.id == AttemptModel.project_id)
+            .where(ProjectModel.id == project_id, ProjectModel.user_id == user_id, InputRequestModel.status == "pending")
+            .order_by(InputRequestModel.created_at.desc())
+            .limit(1)
+        )
+        return result.scalar_one_or_none()
 
     @database_operation(_project_integrity_error)
     async def create_with_message(self, session: AsyncSession, user_id: str, message_id: str, content: str) -> tuple[ProjectModel, MessageModel, AttemptModel]:
@@ -80,7 +94,7 @@ class ProjectService:
                 if attempt is None:
                     raise RuntimeError("消息生成记录不存在")
                 return existing, attempt, True
-            running = await session.scalar(select(AttemptModel).where(AttemptModel.project_id == project_id, AttemptModel.status == "running"))
+            running = await session.scalar(select(AttemptModel).where(AttemptModel.project_id == project_id, AttemptModel.status.in_(["running", "awaiting_input"])))
             if running is not None:
                 raise ConflictError
             message = MessageModel(id=str(uuid4()), project_id=project_id, client_message_id=message_id, role="user", content=content.strip(), created_at=now)
@@ -107,12 +121,94 @@ class ProjectService:
             completed = await session.scalar(select(func.count()).select_from(AttemptModel).where(AttemptModel.user_message_id == message.id, AttemptModel.status == "completed"))
             if completed:
                 raise NotRetryableError("消息不可重新生成")
-            running = await session.scalar(select(AttemptModel).where(AttemptModel.project_id == project_id, AttemptModel.status == "running"))
+            running = await session.scalar(select(AttemptModel).where(AttemptModel.project_id == project_id, AttemptModel.status.in_(["running", "awaiting_input"])))
             if running is not None:
                 raise ConflictError
             attempt = _new_attempt(project_id, message.id, now)
             session.add(attempt)
             return project, message, attempt
+
+    @database_operation(_project_integrity_error)
+    async def await_input(
+        self,
+        session: AsyncSession,
+        attempt_id: str,
+        source_stage: str,
+        source_task_id: str,
+        questions: list[dict[str, str]],
+    ) -> InputRequestModel:
+        _validate_uuid(attempt_id)
+        if not questions or len({item.get("id") for item in questions}) != len(questions):
+            raise InvalidRequestError("Agent 问题无效")
+        async with session.begin():
+            attempt = await session.scalar(select(AttemptModel).where(AttemptModel.id == attempt_id).with_for_update())
+            if attempt is None:
+                raise NotFoundError
+            if attempt.status != "running":
+                raise ConflictError
+            previous = await session.scalar(
+                select(func.max(InputRequestModel.round)).where(
+                    InputRequestModel.generation_id == attempt_id,
+                    InputRequestModel.source_stage == source_stage,
+                )
+            )
+            round_number = int(previous or 0) + 1
+            if round_number > 3:
+                raise InvalidRequestError("该 Agent 的追问次数已达上限")
+            request = InputRequestModel(
+                id=str(uuid4()),
+                generation_id=attempt_id,
+                source_stage=source_stage,
+                source_task_id=source_task_id,
+                round=round_number,
+                questions=questions,
+                status="pending",
+            )
+            session.add(request)
+            attempt.status = "awaiting_input"
+            attempt.lease_expires_at = None
+            attempt.finished_at = None
+            await session.flush()
+            return request
+
+    @database_operation(_project_integrity_error)
+    async def answer_input(
+        self,
+        session: AsyncSession,
+        user_id: str,
+        project_id: str,
+        generation_id: str,
+        request_id: str,
+        response_id: str,
+        answers: list[dict[str, str]],
+    ) -> tuple[ProjectModel, MessageModel, AttemptModel, list[dict[str, object]]]:
+        for value in (project_id, generation_id, request_id, response_id):
+            _validate_uuid(value)
+        async with session.begin():
+            project = await session.scalar(select(ProjectModel).where(ProjectModel.id == project_id, ProjectModel.user_id == user_id).with_for_update())
+            if project is None:
+                raise NotFoundError
+            attempt = await session.scalar(select(AttemptModel).where(AttemptModel.id == generation_id, AttemptModel.project_id == project_id).with_for_update())
+            request = await session.scalar(select(InputRequestModel).where(InputRequestModel.id == request_id, InputRequestModel.generation_id == generation_id).with_for_update())
+            if attempt is None or request is None:
+                raise NotFoundError
+            if attempt.status != "awaiting_input" or request.status != "pending":
+                raise ConflictError
+            expected = {item["id"] for item in request.questions}
+            received = [item.get("question_id", "") for item in answers]
+            if len(received) != len(set(received)) or set(received) != expected or any(not item.get("content", "").strip() for item in answers):
+                raise InvalidRequestError("回答必须覆盖所有问题且不能为空")
+            request.answers = answers
+            request.response_id = response_id
+            request.status = "answered"
+            request.answered_at = _now()
+            attempt.status = "running"
+            attempt.lease_expires_at = _now() + LEASE_DURATION
+            attempt.finished_at = None
+            inputs = list(await session.scalars(select(InputRequestModel).where(InputRequestModel.generation_id == generation_id, InputRequestModel.status == "answered").order_by(InputRequestModel.source_stage, InputRequestModel.round)))
+            return project, await session.get(MessageModel, attempt.user_message_id), attempt, [
+                {"source_stage": item.source_stage, "questions": item.questions, "answers": item.answers or []} for item in inputs
+            ]
 
     @database_operation(_project_integrity_error)
     async def context(self, session: AsyncSession, project_id: str, message_id: str) -> list[MessageModel]:
