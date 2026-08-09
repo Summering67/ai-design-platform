@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import json
+import logging
+import time
 from collections.abc import Awaitable, Callable, Mapping
 from types import SimpleNamespace
-from typing import Any, Protocol, cast
+from typing import Any, Protocol, TypedDict, cast
 
 import httpx
 
@@ -12,6 +14,13 @@ from .errors import AgentError, InputQuestion, InputQuestionOption, InputRequire
 
 ReasoningSink = Callable[[str], Awaitable[None]]
 ActivitySink = Callable[[], Awaitable[None]]
+LOGGER = logging.getLogger("ai_design_server.agents.model")
+
+
+class _StreamStats(TypedDict):
+    response_bytes: int
+    stream_event_count: int
+    http_status: int | None
 
 
 class ModelPort(Protocol):
@@ -66,6 +75,7 @@ async def _stream_completion(
     on_activity: ActivitySink | None,
     *,
     thinking: bool = True,
+    stats: _StreamStats,
 ) -> str:
     parts: list[str] = []
     async with client.stream(
@@ -78,8 +88,14 @@ async def _stream_completion(
             "stream": True,
             "thinking": {"type": "enabled" if thinking else "disabled"},
         },
-        timeout=config.request_timeout,
+        timeout=httpx.Timeout(
+            connect=config.request_timeout,
+            read=None,
+            write=config.request_timeout,
+            pool=config.request_timeout,
+        ),
     ) as response:
+        stats["http_status"] = response.status_code
         response.raise_for_status()
         async for line in response.aiter_lines():
             line = line.strip()
@@ -90,14 +106,116 @@ async def _stream_completion(
             data = line.removeprefix("data:").strip()
             if data == "[DONE]":
                 break
+            stats["stream_event_count"] += 1
             reasoning, content = _stream_delta(json.loads(data))
             if (reasoning or content) and on_activity is not None:
                 await on_activity()
             if thinking and reasoning and on_reasoning is not None:
                 await on_reasoning(reasoning)
             if content:
+                stats["response_bytes"] += len(content.encode())
                 parts.append(content)
     return "".join(parts)
+
+
+def _classify_model_error(error: Exception) -> AgentError:
+    if isinstance(error, AgentError):
+        return error
+    if isinstance(error, httpx.ConnectTimeout):
+        return AgentError("model_connect_timeout", "Agent 模型连接超时", retryable=True)
+    if isinstance(error, httpx.ReadTimeout):
+        return AgentError("model_read_timeout", "Agent 模型读取超时", retryable=True)
+    if isinstance(error, httpx.TimeoutException):
+        return AgentError("model_transport_timeout", "Agent 模型传输超时", retryable=True)
+    if isinstance(error, TimeoutError):
+        return AgentError("model_request_timeout", "Agent 模型请求超时", retryable=True)
+    if isinstance(error, httpx.HTTPStatusError):
+        status = error.response.status_code
+        if status == 429:
+            return AgentError("model_rate_limited", "Agent 模型请求被限流", retryable=True)
+        if status in {401, 403}:
+            return AgentError("model_unauthorized", "Agent 模型认证失败")
+        return AgentError(
+            "model_http_error",
+            "Agent 模型服务响应异常",
+            retryable=status >= 500,
+        )
+    if isinstance(error, (json.JSONDecodeError, TypeError, ValueError)):
+        return AgentError("invalid_model_stream", "Agent 模型响应流无效", retryable=True)
+    if isinstance(error, httpx.TransportError):
+        return AgentError("model_transport_error", "Agent 模型传输失败", retryable=True)
+    return AgentError("model_unavailable", "Agent 模型不可用")
+
+
+def _log_model_attempt(
+    config: AIConfig,
+    phase: str,
+    status: str,
+    started: float,
+    stats: _StreamStats,
+    error: AgentError | None = None,
+) -> None:
+    extra = {
+        "event_type": "agent_model_attempt",
+        "model_phase": phase,
+        "status": status,
+        "duration_ms": round((time.monotonic() - started) * 1000, 2),
+        "response_bytes": stats["response_bytes"],
+        "stream_event_count": stats["stream_event_count"],
+        "http_status": stats["http_status"] or 0,
+        "error_code": error.code if error is not None else "",
+        "retryable": error.retryable if error is not None else False,
+        "model": config.model,
+    }
+    log = LOGGER.info if error is None else LOGGER.warning
+    log("Agent 模型子调用完成", extra=extra)
+
+
+async def _structured_attempt(
+    client: httpx.AsyncClient,
+    config: AIConfig,
+    messages: list[dict[str, str]],
+    on_reasoning: ReasoningSink | None,
+    on_activity: ActivitySink | None,
+    *,
+    phase: str,
+    thinking: bool,
+) -> dict[str, Any]:
+    started = time.monotonic()
+    stats: _StreamStats = {
+        "response_bytes": 0,
+        "stream_event_count": 0,
+        "http_status": None,
+    }
+    try:
+        content = await _stream_completion(
+            client,
+            config,
+            messages,
+            on_reasoning,
+            on_activity,
+            thinking=thinking,
+            stats=stats,
+        )
+        if not content.strip():
+            raise AgentError("model_empty_response", "Agent 模型返回空响应", retryable=True)
+        try:
+            value = json.loads(content)
+        except json.JSONDecodeError as error:
+            raise AgentError(
+                "invalid_model_json", "Agent 模型返回非 JSON", retryable=True
+            ) from error
+        if not isinstance(value, dict):
+            raise AgentError("invalid_model_json", "Agent 模型返回值不是对象", retryable=True)
+    except AgentError as error:
+        _log_model_attempt(config, phase, "failed", started, stats, error)
+        raise
+    except Exception as error:
+        classified = _classify_model_error(error)
+        _log_model_attempt(config, phase, "failed", started, stats, classified)
+        raise classified from error
+    _log_model_attempt(config, phase, "success", started, stats)
+    return value
 
 
 def _response_schema(schema: Mapping[str, Any]) -> dict[str, Any]:
@@ -156,7 +274,7 @@ def _unwrap_response(value: dict[str, Any]) -> dict[str, Any]:
     if kind is None:
         return value
     if kind == "result" and isinstance(value.get("result"), dict):
-        return value["result"]
+        return cast(dict[str, Any], value["result"])
     if kind != "input_required" or not isinstance(value.get("questions"), list):
         raise AgentError("invalid_model_response", "Agent 返回包络无效", retryable=True)
     questions: list[InputQuestion] = []
@@ -227,39 +345,29 @@ def create_openai_model(client: httpx.AsyncClient, config: AIConfig) -> ModelPor
             },
             {"role": "user", "content": prompt},
         ]
-        fallback_used = False
         try:
-            content = await _stream_completion(
+            value = await _structured_attempt(
                 client,
                 config,
                 messages,
                 on_reasoning,
                 on_activity,
+                phase="thinking",
+                thinking=True,
             )
-            try:
-                value = json.loads(content)
-                if not isinstance(value, dict):
-                    raise TypeError("模型返回值不是对象")
-            except (json.JSONDecodeError, TypeError):
-                fallback_used = True
-                content = await _stream_completion(
-                    client,
-                    config,
-                    messages,
-                    None,
-                    on_activity,
-                    thinking=False,
-                )
-                value = json.loads(content)
-                if not isinstance(value, dict):
-                    raise TypeError("模型返回值不是对象")
-            return _unwrap_response(value)
-        except InputRequired:
-            raise
-        except Exception as error:
-            raise AgentError(
-                "model_unavailable", "Agent 模型不可用", retryable=not fallback_used
-            ) from error
+        except AgentError as error:
+            if error.code not in {"model_empty_response", "invalid_model_json"}:
+                raise
+            value = await _structured_attempt(
+                client,
+                config,
+                messages,
+                None,
+                on_activity,
+                phase="fallback",
+                thinking=False,
+            )
+        return _unwrap_response(value)
 
     async def select_tasks(
         state: Mapping[str, Any],
@@ -284,7 +392,14 @@ def create_openai_model(client: httpx.AsyncClient, config: AIConfig) -> ModelPor
             raise AgentError("invalid_task_selection", "Root 任务选择无效", retryable=True)
         return tasks
 
-    return cast(ModelPort, SimpleNamespace(structured=structured, select_tasks=select_tasks))
+    return cast(
+        ModelPort,
+        SimpleNamespace(
+            structured=structured,
+            select_tasks=select_tasks,
+            model_name=config.model,
+        ),
+    )
 
 
 def bind_reasoning(
@@ -301,4 +416,11 @@ def bind_reasoning(
     async def select_tasks(state: Mapping[str, Any], **_: Any) -> list[str]:
         return await model.select_tasks(state, on_reasoning=on_reasoning, on_activity=on_activity)
 
-    return cast(ModelPort, SimpleNamespace(structured=structured, select_tasks=select_tasks))
+    return cast(
+        ModelPort,
+        SimpleNamespace(
+            structured=structured,
+            select_tasks=select_tasks,
+            model_name=getattr(model, "model_name", type(model).__name__),
+        ),
+    )

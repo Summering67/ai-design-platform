@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import time
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -24,7 +25,7 @@ def _read(path: str) -> dict[str, Any]:
 
 def _fake_model() -> SimpleNamespace:
     prd = _read("packages/design-contract/fixtures/v2/standardized-prd.valid.json")
-    document = _read("packages/design-contract/fixtures/v2/login-page.document.json")
+    initial = _read("packages/design-contract/fixtures/v2/initial-ui-document.valid.json")
 
     async def structured(
         purpose: str,
@@ -37,11 +38,17 @@ def _fake_model() -> SimpleNamespace:
             await on_reasoning(f"{purpose} 的 reasoning")
         if "需求解析 Agent" in purpose:
             return prd
-        if "Auto Layout" in purpose:
+        if schema.get("title") == "Layout Plan v1":
             return {
-                "operations": [{"nodeId": "root", "mode": "flex", "direction": "column", "gap": 16}]
+                "version": "1.0.0",
+                "viewport": {"width": 1440, "height": 900},
+                "operations": [
+                    {"nodeId": "root", "layout": {"mode": "flex", "direction": "column", "gap": 16}}
+                ],
             }
-        return document
+        if schema.get("title") == "Initial UI Document v1":
+            return initial
+        return initial
 
     async def select_tasks(state: dict[str, Any], on_reasoning: Any = None, **_: Any) -> list[str]:
         if on_reasoning is not None:
@@ -51,12 +58,8 @@ def _fake_model() -> SimpleNamespace:
             "requirement"
             if "prd" not in completed
             else "ui_design"
-            if "initial_document" not in completed
-            else "specification"
-            if "corrected_document" not in completed
+            if "initial_ui_document" not in completed
             else "auto_layout"
-            if "final_document" not in completed
-            else "final_gate"
         ]
 
     return SimpleNamespace(structured=structured, select_tasks=select_tasks)
@@ -88,16 +91,14 @@ async def test_root_runs_dynamic_v2_pipeline(caplog: pytest.LogCaptureFixture) -
     ]
     assert {next(iter(output)) for output in outputs} == {
         "prd",
-        "initial_document",
-        "validation",
+        "initial_ui_document",
         "final_document",
-        "result",
     }
     assert [
         record.agent
         for record in caplog.records
         if record.getMessage().startswith("调用子 Agent：")
-    ] == ["requirement", "ui_design", "specification", "auto_layout"]
+    ] == ["requirement", "ui_design", "auto_layout"]
     assert {
         record.generation_id
         for record in caplog.records
@@ -107,7 +108,7 @@ async def test_root_runs_dynamic_v2_pipeline(caplog: pytest.LogCaptureFixture) -
         record.agent
         for record in caplog.records
         if record.getMessage().startswith("子 Agent 输出：")
-    } == {"requirement", "ui_design", "specification", "auto_layout"}
+    } == {"requirement", "ui_design", "auto_layout"}
     reasoning_events = [event for event in events if event["payload"].get("status") == "reasoning"]
     assert reasoning_events
     assert {event["stage"] for event in reasoning_events} >= {"root", "requirement", "ui_design"}
@@ -185,7 +186,7 @@ async def test_agent_continues_pipeline_after_user_answers_input_request() -> No
         event["stage"]
         for event in resumed_events
         if event["event"] == "progress" and event["payload"].get("status") == "completed"
-    ] == ["requirement", "ui_design", "specification", "auto_layout", "final_gate"]
+    ] == ["requirement", "ui_design", "auto_layout"]
     assert resumed_events[-1]["event"] == "result"
     assert resumed_events[-1]["payload"]["document"]["version"] == "2.0.0"
 
@@ -215,6 +216,34 @@ async def test_agent_returns_timeout_when_child_agent_does_not_respond() -> None
         event["event"] == "progress" and event["payload"].get("status") == "requesting"
         for event in events
     )
+    assert events[-1]["event"] == "failed"
+    assert events[-1]["payload"]["code"] == "agent_timeout"
+
+
+@pytest.mark.asyncio
+async def test_agent_total_timeout_is_not_extended_by_reasoning_activity() -> None:
+    contract = _read("packages/design-contract/fixtures/v1/team-default.generation-contract.json")
+
+    async def structured(*_: Any, on_reasoning: Any = None, **__: Any) -> dict[str, Any]:
+        while True:
+            await on_reasoning("持续推理")
+            await asyncio.sleep(0.005)
+
+    async def select_tasks(_: dict[str, Any], **__: Any) -> list[str]:
+        return ["requirement"]
+
+    started = time.monotonic()
+    events = [
+        event
+        async for event in run_agent(
+            {"requirement": "设计一个项目列表", "generation_contract": contract},
+            SimpleNamespace(structured=structured, select_tasks=select_tasks),
+            AgentConfig(node_timeout=0.2, total_timeout=0.03, max_retries=0),
+        )
+    ]
+
+    assert time.monotonic() - started < 0.2
+    assert any(event["payload"].get("status") == "reasoning" for event in events)
     assert events[-1]["event"] == "failed"
     assert events[-1]["payload"]["code"] == "agent_timeout"
 

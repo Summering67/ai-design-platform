@@ -21,20 +21,40 @@ class AgentInput(TypedDict, total=False):
     resolved_user_inputs: list[dict[str, Any]]
 
 
-async def run_agent(value: AgentInput, model: ModelPort, config: AgentConfig) -> AsyncIterator[AgentRunEvent]:
+async def run_agent(
+    value: AgentInput, model: ModelPort, config: AgentConfig
+) -> AsyncIterator[AgentRunEvent]:
     run_id = str(uuid4())
     requirement = value.get("requirement", "").strip()
     if not requirement or len(requirement.encode()) > config.max_input_bytes:
-        yield event("failed", run_id, "root", payload={"code": "invalid_requirement", "message": "产品需求为空或超出大小限制"})
+        yield event(
+            "failed",
+            run_id,
+            "root",
+            payload={"code": "invalid_requirement", "message": "产品需求为空或超出大小限制"},
+        )
         return
     contract = value.get("generation_contract")
     if not isinstance(contract, dict):
-        yield event("failed", run_id, "root", payload={"code": "invalid_generation_contract", "message": "生成契约无效"})
+        yield event(
+            "failed",
+            run_id,
+            "root",
+            payload={"code": "invalid_generation_contract", "message": "生成契约无效"},
+        )
         return
     try:
         validate_profile_contract(contract)
     except Exception as error:
-        yield event("failed", run_id, "root", payload={"code": getattr(error, "code", "invalid_generation_contract"), "message": "生成契约无效"})
+        yield event(
+            "failed",
+            run_id,
+            "root",
+            payload={
+                "code": getattr(error, "code", "invalid_generation_contract"),
+                "message": "生成契约无效",
+            },
+        )
         return
     queue: asyncio.Queue[AgentRunEvent | None] = asyncio.Queue()
 
@@ -44,7 +64,15 @@ async def run_agent(value: AgentInput, model: ModelPort, config: AgentConfig) ->
             raise RuntimeError("Agent 输出超出大小限制")
         await queue.put(item)
 
-    state = {"run_id": run_id, "generation_id": value.get("generation_id"), "raw_requirement": requirement, "generation_contract": contract, "target": value.get("target", "design"), "resolved_user_inputs": value.get("resolved_user_inputs", [])}
+    state = {
+        "run_id": run_id,
+        "generation_id": value.get("generation_id"),
+        "raw_requirement": requirement,
+        "generation_contract": contract,
+        "target": value.get("target", "design"),
+        "resolved_user_inputs": value.get("resolved_user_inputs", []),
+    }
+
     async def execute_graph() -> Any:
         return await build(model, config).ainvoke(state, context={"event_sink": emit})
 
@@ -53,32 +81,72 @@ async def run_agent(value: AgentInput, model: ModelPort, config: AgentConfig) ->
     await queue.put(event("run", run_id, "root", payload={"status": "started"}))
     terminal_emitted = False
     timed_out = False
+    deadline = asyncio.get_running_loop().time() + config.total_timeout
     try:
         while True:
             if task.done() and queue.empty():
                 break
-            try:
-                item = await asyncio.wait_for(queue.get(), config.node_timeout)
-            except TimeoutError:
+            remaining = deadline - asyncio.get_running_loop().time()
+            if remaining <= 0:
                 timed_out = True
                 task.cancel()
                 await asyncio.gather(task, return_exceptions=True)
                 if not terminal_emitted:
-                    yield event("failed", run_id, "root", payload={"code": "agent_timeout", "message": "Agent 长时间未返回内容"})
+                    yield event(
+                        "failed",
+                        run_id,
+                        "root",
+                        payload={"code": "agent_timeout", "message": "Agent 运行超时"},
+                    )
+                break
+            try:
+                item = await asyncio.wait_for(queue.get(), min(config.node_timeout, remaining))
+            except TimeoutError:
+                timed_out = True
+                total_expired = asyncio.get_running_loop().time() >= deadline
+                task.cancel()
+                await asyncio.gather(task, return_exceptions=True)
+                if not terminal_emitted:
+                    yield event(
+                        "failed",
+                        run_id,
+                        "root",
+                        payload={
+                            "code": "agent_timeout",
+                            "message": "Agent 运行超时"
+                            if total_expired
+                            else "Agent 长时间未返回内容",
+                        },
+                    )
                 break
             if item is None:
                 break
-            terminal_emitted = item.get("event") in {"result", "input_required", "failed", "cancelled"}
+            terminal_emitted = item.get("event") in {
+                "result",
+                "input_required",
+                "failed",
+                "cancelled",
+            }
             yield item
         try:
             if not timed_out:
                 await task
         except TimeoutError:
             if not terminal_emitted:
-                yield event("failed", run_id, "root", payload={"code": "agent_timeout", "message": "Agent 运行超时"})
+                yield event(
+                    "failed",
+                    run_id,
+                    "root",
+                    payload={"code": "agent_timeout", "message": "Agent 运行超时"},
+                )
         except Exception:
             if not terminal_emitted:
-                yield event("failed", run_id, "root", payload={"code": "agent_failed", "message": "Agent 运行失败"})
+                yield event(
+                    "failed",
+                    run_id,
+                    "root",
+                    payload={"code": "agent_failed", "message": "Agent 运行失败"},
+                )
     except asyncio.CancelledError:
         task.cancel()
         await asyncio.gather(task, return_exceptions=True)

@@ -1,10 +1,4 @@
-# design-document-canvas-delivery Specification
-
-## Purpose
-
-定义最终设计文档到工作台画布的交付、门禁与渲染。
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: 最终设计文档画布交付
 系统 SHALL 在 Auto Layout Agent 成功终态将最终 DesignDocument 作为 JSON 交付工作台。Auto Layout Agent MUST 在返回前执行与 Web v2 设计文档渲染器一致的 render model 校验，并确认基础 viewport 所需的布局已经投影为渲染器可消费的合法 style；Web SHALL 使用 v2 设计文档渲染器显示在画布区域。仅通过后端 Schema 但无法派生 render model 的文档不得作为成功结果交付。

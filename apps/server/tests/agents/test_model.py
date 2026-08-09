@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
+from typing import Any
 
 import httpx
 import pytest
 
+from ai_design_server.agents import model as model_module
 from ai_design_server.agents.errors import AgentError, InputRequired
 from ai_design_server.agents.model import create_openai_model
 from ai_design_server.config import AIConfig
@@ -61,10 +64,13 @@ async def test_structured_rejects_malformed_stream() -> None:
         )
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
-        with pytest.raises(AgentError, match="Agent 模型不可用"):
+        with pytest.raises(AgentError, match="Agent 模型响应流无效") as raised:
             await create_openai_model(client, _config()).structured(
                 "需求分析", {"input": "后台管理页面"}, {"type": "object"}
             )
+
+    assert raised.value.code == "invalid_model_stream"
+    assert raised.value.retryable is True
 
 
 @pytest.mark.asyncio
@@ -183,3 +189,100 @@ async def test_structured_propagates_cancellation() -> None:
         task.cancel()
         with pytest.raises(asyncio.CancelledError):
             await task
+
+
+@pytest.mark.asyncio
+async def test_structured_thinking_is_not_limited_by_request_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    activities = 0
+
+    async def stream_slowly(
+        _client: Any,
+        _config: Any,
+        _messages: Any,
+        _on_reasoning: Any,
+        on_activity: Any,
+        *,
+        thinking: bool,
+        stats: dict[str, Any],
+    ) -> str:
+        assert thinking is True
+        nonlocal activities
+        stats["stream_event_count"] += 1
+        activities += 1
+        if on_activity is not None:
+            await on_activity()
+        await asyncio.sleep(0.05)
+        return '{"kind":"result","result":{}}'
+
+    async def on_activity() -> None:
+        return None
+
+    monkeypatch.setattr(model_module, "_stream_completion", stream_slowly)
+    config = _config().model_copy(update={"request_timeout": 0.03})
+    async with httpx.AsyncClient() as client:
+        result = await create_openai_model(client, config).structured(
+            "UI Design", {}, {"type": "object"}, on_activity=on_activity
+        )
+
+    assert activities == 1
+    assert result == {}
+
+
+@pytest.mark.asyncio
+async def test_fallback_read_timeout_keeps_retryable_cause(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    caplog.set_level(logging.INFO, logger="ai_design_server.agents.model")
+    requests = 0
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal requests
+        requests += 1
+        if requests == 1:
+            return httpx.Response(
+                200,
+                headers={"content-type": "text/event-stream"},
+                content=b'data: {"choices":[{"delta":{"content":"not-json"}}]}\n\ndata: [DONE]\n',
+            )
+        raise httpx.ReadTimeout("read timed out", request=request)
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        with pytest.raises(AgentError) as raised:
+            await create_openai_model(client, _config()).structured(
+                "UI Design", {}, {"type": "object"}
+            )
+
+    traces = [
+        record
+        for record in caplog.records
+        if getattr(record, "event_type", "") == "agent_model_attempt"
+    ]
+    assert raised.value.code == "model_read_timeout"
+    assert raised.value.retryable is True
+    assert [(record.model_phase, record.error_code) for record in traces] == [
+        ("thinking", "invalid_model_json"),
+        ("fallback", "model_read_timeout"),
+    ]
+    assert all(not hasattr(record, "response_body") for record in traces)
+
+
+@pytest.mark.asyncio
+async def test_authentication_failure_is_not_retried() -> None:
+    requests = 0
+
+    async def handler(_: httpx.Request) -> httpx.Response:
+        nonlocal requests
+        requests += 1
+        return httpx.Response(401, content=b'{"error":"unauthorized"}')
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        with pytest.raises(AgentError) as raised:
+            await create_openai_model(client, _config()).structured(
+                "UI Design", {}, {"type": "object"}
+            )
+
+    assert requests == 1
+    assert raised.value.code == "model_unauthorized"
+    assert raised.value.retryable is False

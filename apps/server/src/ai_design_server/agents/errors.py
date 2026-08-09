@@ -30,11 +30,19 @@ class InputRequired(Exception):
 
 
 class AgentError(Exception):
-    def __init__(self, code: str, message: str, *, retryable: bool = False) -> None:
+    def __init__(
+        self,
+        code: str,
+        message: str,
+        *,
+        retryable: bool = False,
+        path: str | None = None,
+    ) -> None:
         super().__init__(message)
         self.code = code
         self.message = message
         self.retryable = retryable
+        self.path = path
 
 
 class ContractError(AgentError):

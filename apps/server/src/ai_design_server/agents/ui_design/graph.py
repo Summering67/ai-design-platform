@@ -24,8 +24,14 @@ async def run(
     contract: dict[str, Any],
     model: ModelPort,
     resolved_user_inputs: list[dict[str, Any]] | None = None,
+    run_id: str | None = None,
 ) -> dict[str, Any]:
     result = await build(model).ainvoke(
-        {"prd": prd, "contract": contract, "resolved_user_inputs": resolved_user_inputs or []}
+        {
+            "prd": prd,
+            "contract": contract,
+            "resolved_user_inputs": resolved_user_inputs or [],
+            "run_id": run_id or "",
+        }
     )
     return dict(result["candidate"])

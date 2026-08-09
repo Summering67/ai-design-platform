@@ -1,6 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://ai-design-platform.dev/schema/v2/ui-validation-report.schema.json",
+  "$comment": "Deprecated compatibility projection. New agents must use internal ValidationResult and return DesignDocument.",
   "type": "object",
   "required": ["version", "passed", "issues", "summary"],
   "additionalProperties": false,

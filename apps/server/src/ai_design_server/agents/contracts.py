@@ -34,7 +34,9 @@ def load_schema(name: str) -> dict[str, Any]:
 
 def load_default_generation_contract() -> dict[str, Any]:
     try:
-        value = json.loads(Path(__file__).with_name("default-generation-contract.json").read_text(encoding="utf-8"))
+        value = json.loads(
+            Path(__file__).with_name("default-generation-contract.json").read_text(encoding="utf-8")
+        )
     except (OSError, json.JSONDecodeError) as error:
         raise ContractError("contract_unavailable", "默认生成契约不可用") from error
     if not isinstance(value, dict):
@@ -48,14 +50,17 @@ def validate(name: str, value: Any) -> None:
     error = next(Draft202012Validator(schema).iter_errors(value), None)
     if error is not None:
         path = "/" + "/".join(str(item) for item in error.absolute_path)
-        raise ContractError("invalid_contract", f"契约校验失败: {path or '/'}")
+        raise ContractError("invalid_contract", "契约校验失败", path=path or "/")
 
 
 def validate_profile_contract(contract: Mapping[str, Any]) -> None:
     if not isinstance(contract.get("profile"), Mapping):
         raise ContractError("invalid_generation_contract", "生成契约缺少 Profile")
     profile = contract["profile"]
-    if any(not isinstance(profile.get(key), str) or not profile[key].strip() for key in ("id", "version", "digest")):
+    if any(
+        not isinstance(profile.get(key), str) or not profile[key].strip()
+        for key in ("id", "version", "digest")
+    ):
         raise ContractError("invalid_generation_contract", "生成契约 Profile 引用无效")
 
 
@@ -87,7 +92,9 @@ def validate_event(value: Any) -> None:
 
 
 def validate_tree(value: Any, contract: Mapping[str, Any]) -> None:
-    schema_path_v2 = _root() / "packages" / "design-contract" / "schema" / "v2" / "design-document.schema.json"
+    schema_path_v2 = (
+        _root() / "packages" / "design-contract" / "schema" / "v2" / "design-document.schema.json"
+    )
     try:
         schema = json.loads(schema_path_v2.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
@@ -97,10 +104,15 @@ def validate_tree(value: Any, contract: Mapping[str, Any]) -> None:
         raise ContractError("invalid_ui_document", "UI 文档结构无效") from schema_error
     profile = contract.get("profile", {})
     document_profile = value.get("designSystem")
-    if not isinstance(document_profile, Mapping) or any(document_profile.get(key) != profile.get(key) for key in ("id", "version", "digest")):
+    if not isinstance(document_profile, Mapping) or any(
+        document_profile.get(key) != profile.get(key) for key in ("id", "version", "digest")
+    ):
         raise ContractError("profile_drift", "UI 文档 Profile 与运行契约不一致")
     kind_mapping = {"frame": "element", "component-instance": "component"}
-    allowed_kinds = {kind_mapping.get(kind, kind) for kind in contract.get("nodeKinds", ["element", "text", "image", "component"])}
+    allowed_kinds = {
+        kind_mapping.get(kind, kind)
+        for kind in contract.get("nodeKinds", ["element", "text", "image", "component"])
+    }
     components = set(contract.get("components", {})) | set(document_profile.get("components", {}))
     allowed_tags = set(document_profile.get("allowedTags", []))
     icons = set(contract.get("icons", []))
@@ -117,7 +129,11 @@ def validate_tree(value: Any, contract: Mapping[str, Any]) -> None:
         kind = node.get("kind")
         if kind not in allowed_kinds:
             raise ContractError("ui_kind_forbidden", f"UI 节点类型未被允许: {path}")
-        if kind == "component" and node.get("tag") not in components and node.get("tag") not in allowed_tags:
+        if (
+            kind == "component"
+            and node.get("tag") not in components
+            and node.get("tag") not in allowed_tags
+        ):
             raise ContractError("ui_component_forbidden", f"组件未被允许: {path}")
         if kind == "element" and allowed_tags and node.get("tag") not in allowed_tags:
             raise ContractError("ui_tag_forbidden", f"标签未被允许: {path}")
@@ -129,9 +145,49 @@ def validate_tree(value: Any, contract: Mapping[str, Any]) -> None:
         children = node.get("children", [])
         if kind in {"text", "image"} and children:
             raise ContractError("ui_leaf_children", f"叶子节点不能包含 children: {path}")
-        return 1 + sum(visit(child, f"{path}/children/{index}", depth + 1) for index, child in enumerate(children))
+        return 1 + sum(
+            visit(child, f"{path}/children/{index}", depth + 1)
+            for index, child in enumerate(children)
+        )
 
     total = 0
     total = visit(value["root"], "/root", 1)
     if total > 500:
         raise ContractError("ui_node_limit", "UI 节点数量超限")
+
+
+def validate_initial_ui_document(value: Any, contract: Mapping[str, Any]) -> None:
+    validate("initial-ui-document.schema.json", value)
+    profile = contract.get("profile", {})
+    components = set(contract.get("components", {})) | set(profile.get("components", {}))
+    allowed_tags = set(profile.get("allowedTags", []))
+    tokens = set(contract.get("tokens", []))
+    assets = value.get("assets", {})
+    seen: set[str] = set()
+
+    def visit(node: Mapping[str, Any], path: str, depth: int) -> None:
+        if depth > 32:
+            raise ContractError("ui_depth_limit", "初始 UI JSON 嵌套过深")
+        node_id = node.get("id")
+        if not isinstance(node_id, str) or not node_id or node_id in seen:
+            raise ContractError("ui_duplicate_id", "初始 UI 节点 ID 无效", path=path)
+        seen.add(node_id)
+        kind = node.get("kind")
+        if (
+            kind == "component"
+            and node.get("tag") not in components
+            and node.get("tag") not in allowed_tags
+        ):
+            raise ContractError("ui_component_forbidden", "组件未被允许", path=path)
+        if kind == "element" and allowed_tags and node.get("tag") not in allowed_tags:
+            raise ContractError("ui_tag_forbidden", "标签未被允许", path=path)
+        if kind == "image" and node.get("assetId") not in assets:
+            raise ContractError("ui_asset_forbidden", "图片资源未被允许", path=path)
+        if any(token not in tokens for token in node.get("tokens", [])):
+            raise ContractError("ui_token_forbidden", "Token 未被允许", path=path)
+        for index, child in enumerate(node.get("children", [])):
+            visit(child, f"{path}/children/{index}", depth + 1)
+
+    visit(value["root"], "/root", 1)
+    if len(seen) > 500:
+        raise ContractError("ui_node_limit", "初始 UI 节点数量超限")

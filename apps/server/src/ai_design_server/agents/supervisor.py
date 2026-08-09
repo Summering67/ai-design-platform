@@ -9,12 +9,10 @@ from uuid import uuid4
 
 from ..config import AgentConfig
 from .auto_layout.graph import run as run_layout
-from .contracts import validate_tree
 from .errors import AgentError, InputRequired
 from .events import AgentRunEvent, EventName, event
 from .model import ModelPort, bind_reasoning
 from .requirement.graph import run as run_requirement
-from .specification.graph import run as run_specification
 from .state import RootState, TaskRecord
 from .ui_design.graph import run as run_ui_design
 
@@ -23,22 +21,17 @@ LOGGER = logging.getLogger("ai_design_server.agents")
 AGENT_LABELS = {
     "requirement": "需求分析",
     "ui_design": "UI 设计",
-    "specification": "规范校验",
     "auto_layout": "自动布局",
 }
-TASK_ORDER = ("requirement", "ui_design", "specification", "auto_layout", "final_gate")
+TASK_ORDER = ("requirement", "ui_design", "auto_layout")
 
 
 def _ready(name: str, state: RootState) -> bool:
     completed = state.get("completed", {})
     return {
         "requirement": "prd" not in completed,
-        "ui_design": "prd" in completed and "initial_document" not in completed,
-        "specification": "initial_document" in completed and "corrected_document" not in completed,
-        "auto_layout": "corrected_document" in completed
-        and completed.get("validation", {}).get("passed") is True
-        and "final_document" not in completed,
-        "final_gate": "final_document" in completed,
+        "ui_design": "prd" in completed and "initial_ui_document" not in completed,
+        "auto_layout": "initial_ui_document" in completed and "final_document" not in completed,
     }.get(name, False)
 
 
@@ -49,13 +42,11 @@ def _ready_tasks(state: RootState) -> list[str]:
 def _catalog() -> dict[str, dict[str, Any]]:
     return {
         "requirement": {"requires": [], "provides": ["prd"]},
-        "ui_design": {"requires": ["prd"], "provides": ["initial_document"]},
-        "specification": {
-            "requires": ["initial_document", "prd"],
-            "provides": ["validation", "corrected_document"],
+        "ui_design": {"requires": ["prd"], "provides": ["initial_ui_document"]},
+        "auto_layout": {
+            "requires": ["initial_ui_document", "prd"],
+            "provides": ["validation", "final_document", "result"],
         },
-        "auto_layout": {"requires": ["corrected_document", "prd"], "provides": ["final_document"]},
-        "final_gate": {"requires": ["final_document"], "provides": ["result"]},
     }
 
 
@@ -132,35 +123,31 @@ async def _run_task(
         return {"prd": await run_requirement(state["raw_requirement"], model, resolved_user_inputs)}
     if name == "ui_design":
         return {
-            "initial_document": await run_ui_design(
-                completed["prd"], contract, model, resolved_user_inputs
+            "initial_ui_document": await run_ui_design(
+                completed["prd"],
+                contract,
+                model,
+                resolved_user_inputs,
+                run_id=state["run_id"],
             )
         }
-    if name == "specification":
-        result = await run_specification(
-            completed["initial_document"], completed["prd"], contract, model, resolved_user_inputs
-        )
-        return {"validation": result["report"], "corrected_document": result["document"]}
     if name == "auto_layout":
+        result = await run_layout(
+            completed["initial_ui_document"],
+            completed["prd"],
+            contract,
+            model,
+            resolved_user_inputs,
+            run_id=state["run_id"],
+        )
         return {
-            "final_document": (
-                await run_layout(
-                    completed["corrected_document"],
-                    completed["prd"],
-                    contract,
-                    model,
-                    resolved_user_inputs,
-                )
-            )["document"]
-        }
-    if name == "final_gate":
-        validate_tree(completed["final_document"], contract)
-        return {
+            "final_document": result["document"],
+            "validation": result["validation"],
             "result": {
                 "prd": completed["prd"],
-                "validation": completed["validation"],
-                "document": completed["final_document"],
-            }
+                "validation": result["validation"],
+                "document": result["document"],
+            },
         }
     raise AgentError("capability_unavailable", "Agent 能力未注册")
 
@@ -369,19 +356,18 @@ async def execute(
                 attempt=1,
                 depth=1,
             )
-            if name != "final_gate":
-                LOGGER.info(
-                    "调用子 Agent：%s（%s）",
-                    AGENT_LABELS[name],
-                    name,
-                    extra={
-                        "generation_id": state.get("generation_id"),
-                        "run_id": state["run_id"],
-                        "agent": name,
-                        "task_id": task_id,
-                        "attempt": 1,
-                    },
-                )
+            LOGGER.info(
+                "调用子 Agent：%s（%s）",
+                AGENT_LABELS[name],
+                name,
+                extra={
+                    "generation_id": state.get("generation_id"),
+                    "run_id": state["run_id"],
+                    "agent": name,
+                    "task_id": task_id,
+                    "attempt": 1,
+                },
+            )
             await _emit(
                 emit,
                 "stage",
@@ -445,7 +431,7 @@ async def execute(
             state["completed"].update(output)
             state["tasks"][task_id]["status"] = "completed"
             state["task_history"].append(name)
-            if name != "final_gate" and LOGGER.isEnabledFor(logging.DEBUG):
+            if LOGGER.isEnabledFor(logging.DEBUG):
                 LOGGER.debug(
                     "子 Agent 输出：%s（%s）",
                     AGENT_LABELS[name],
@@ -469,7 +455,7 @@ async def execute(
         if "result" in state["completed"]:
             state["result"] = state["completed"]["result"]
             state["terminal"] = "result"
-            await _emit(emit, "result", state, "final_gate", payload=state["result"])
+            await _emit(emit, "result", state, "auto_layout", payload=state["result"])
             return state
     state["terminal"] = "failed"
     state["error"] = {"code": "task_limit", "message": "Agent 任务数量超限"}

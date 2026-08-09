@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./generated-v2": "./src/generated-v2.ts",
+    "./intermediate": "./src/intermediate.ts",
     "./schema/v2/*": "./schema/v2/*",
     "./fixtures/v2/*": "./fixtures/v2/*",
     "./legacy/schema/v1/*": "./schema/v1/*",

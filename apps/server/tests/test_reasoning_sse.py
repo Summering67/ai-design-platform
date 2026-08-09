@@ -1,17 +1,18 @@
 from __future__ import annotations
 
-import json
 import importlib
+import json
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from types import SimpleNamespace
-from typing import AsyncIterator
 
 import pytest
 from fastapi import Request
 
 from ai_design_server.agents.events import event
 from ai_design_server.database import AttemptModel, MessageModel, ProjectModel
+
 project_router = importlib.import_module("ai_design_server.project.router")
 
 NOW = datetime(2026, 8, 8, 12, 0, tzinfo=UTC)
@@ -73,7 +74,7 @@ async def test_project_sse_forwards_reasoning_and_keeps_final_result_separate(mo
         yield event(
             "result",
             "run-1",
-            "final_gate",
+            "auto_layout",
             payload={"document": {"version": "2.0.0"}},
         )
 

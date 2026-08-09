@@ -18,6 +18,7 @@ log:
 
 ai:
   model: deepseek-v4-flash
+  # 仅限制连接、写入和连接池等待；流式 thinking/read 没有固定截止时间。
   request_timeout: 60s
 
 agent:

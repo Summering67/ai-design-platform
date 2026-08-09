@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from typing import Any, TypedDict
 
-from ..contracts import validate_tree
+from ..contracts import load_schema, validate, validate_tree
+from ..errors import ContractError
+from ..harness import run_structured_harness
 from ..model import ModelPort
 from .layout import apply_layout
 from .prompts import SYSTEM_PROMPT
@@ -16,17 +18,35 @@ class AutoLayoutState(TypedDict, total=False):
     result: dict[str, Any]
     changes: list[dict[str, Any]]
     resolved_user_inputs: list[dict[str, Any]]
+    run_id: str
 
 
 async def plan(state: AutoLayoutState, *, model: ModelPort) -> AutoLayoutState:
-    response = await model.structured(
+    def validate_plan(response: dict[str, Any]) -> None:
+        validate("layout-plan.schema.json", response)
+        operations = response.get("operations", [])
+        if not isinstance(operations, list) or any(
+            not isinstance(item, dict) for item in operations
+        ):
+            raise ContractError("invalid_layout_plan", "布局计划无效", path="/operations")
+        result, _ = apply_layout(state["document"], operations, state["contract"])
+        validate_tree(result, state["contract"])
+
+    response = await run_structured_harness(
+        model,
         SYSTEM_PROMPT,
-        {"document": state["document"], "prd": state["prd"], "resolvedUserInputs": state.get("resolved_user_inputs", []), "contract": state["contract"], "instruction": "只生成合法 Flex operations"},
-        {"type": "object", "required": ["operations"], "properties": {"operations": {"type": "array", "items": {"type": "object"}}}},
+        {
+            "document": state["document"],
+            "prd": state["prd"],
+            "resolvedUserInputs": state.get("resolved_user_inputs", []),
+            "contract": state["contract"],
+            "instruction": "只生成合法 Flex operations",
+        },
+        load_schema("layout-plan.schema.json"),
+        validate_plan,
+        stage="auto_layout",
+        run_id=state.get("run_id"),
     )
     operations = response.get("operations", [])
-    if not isinstance(operations, list) or any(not isinstance(item, dict) for item in operations):
-        raise ValueError("布局计划无效")
     result, changes = apply_layout(state["document"], operations, state["contract"])
-    validate_tree(result, state["contract"])
     return {"result": result, "changes": changes, "plan": operations}

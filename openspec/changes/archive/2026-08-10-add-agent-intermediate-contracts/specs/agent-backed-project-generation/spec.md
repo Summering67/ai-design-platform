@@ -1,10 +1,4 @@
-# agent-backed-project-generation Specification
-
-## Purpose
-
-定义由 Root Agent 驱动、UI Design 与 Auto Layout 两个专业 Agent 执行的项目级设计生成。
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Root Agent 项目生成
 系统 SHALL 在项目 generation 的前台 SSE 请求内，以当前目标用户消息作为需求启动 Root Agent，并使用仅服务端可见的固定 GenerationContract。Root SHALL 按 `StandardizedPRD → UI Design InitialUIDocument → Auto Layout final DesignDocument` 的两个 Agent 依赖推进；Auto Layout MUST 在内部完成确定性编译、Flex 布局规划与应用及最终门禁，系统不得新增 Specification、独立 Compiler、Layout Engine 或 Final Gate 阶段。系统 MUST 将停止、断开和超时取消传播给 Root Agent，且不得启动后台运行。
