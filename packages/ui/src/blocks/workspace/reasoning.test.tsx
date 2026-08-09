@@ -30,6 +30,7 @@ test("工作台展示已完成阶段的模型思考过程", () => {
     />,
   )
   assert.match(markup, /模型真实 reasoning/)
+  assert.doesNotMatch(markup, />requirement</)
 })
 
 test("工作台不展示尚未完成阶段的模型思考过程", () => {

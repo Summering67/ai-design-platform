@@ -149,7 +149,12 @@ Web 应用 SHALL 从项目接口加载完整消息历史，并使用项目级 SS
 
 ### Requirement: 受控且可访问的工作台对话界面
 
-共享 `Workspace` SHALL 通过 Props 与回调接收带稳定 ID 的持久化消息、临时流式文本、generation 状态、已完成阶段的 reasoning、结构化追问、错误、发送、停止和重新生成动作，MUST NOT 读取应用环境变量或自行请求接口。对话栏 SHALL 使用 `react-virtuoso` 虚拟化展示用户、助手消息及已完成阶段的 reasoning，并 SHALL 在与消息分离的生成区域展示生成态、错误态、结构化追问按钮以及支持键盘操作的多行输入区。UI MUST NOT 展示尚未完成阶段的 reasoning；只有合法 `input_required` 中的问题和选项可以作为用户需要回答的内容。
+共享 `Workspace` SHALL 通过 Props 与回调接收带稳定 ID 的持久化消息、临时流式文本、generation 状态、已完成阶段的 reasoning、结构化追问、错误、发送、停止和重新生成动作，MUST NOT 读取应用环境变量或自行请求接口。对话栏 SHALL 使用 `react-virtuoso` 虚拟化展示用户、助手消息及已完成阶段的 reasoning，并 SHALL 在与消息分离的生成区域展示生成态、错误态、结构化追问按钮以及支持键盘操作的多行输入区。UI MUST NOT 展示 Agent 名称、任务标识或阶段名称，MUST NOT 展示尚未完成阶段的 reasoning；只有合法 `input_required` 中的问题和选项可以作为用户需要回答的内容。
+
+#### Scenario: 隐藏 Agent 调用信息
+
+- **WHEN** reasoning 数据包含 Agent 阶段和任务标识
+- **THEN** 对话栏仅使用通用“思考过程”标题展示内容，不展示 Agent 名称、任务标识或阶段名称
 
 #### Scenario: 正式追问替换未完成 reasoning
 

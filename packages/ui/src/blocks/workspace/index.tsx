@@ -109,7 +109,6 @@ const ReasoningMessageItem = ({ item }: { item: WorkspaceReasoning }) => (
       <span>设计助手 · 模型思考（无需回复）</span>
     </div>
     <details>
-      <summary>{item.stage}</summary>
       <p className={styles.messageContent}>{item.content}</p>
     </details>
   </article>
