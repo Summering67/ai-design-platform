@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from typing import Any, TypedDict
 
-from ..contracts import load_schema, validate_initial_ui_document
+from ..contracts import (
+    collect_initial_ui_document_issues,
+    load_schema,
+    validate_initial_ui_document,
+)
 from ..harness import run_structured_harness
 from ..model import ModelPort
 from .prompts import SYSTEM_PROMPT
@@ -30,5 +34,8 @@ async def generate(state: UIDesignState, *, model: ModelPort) -> UIDesignState:
         lambda value: validate_initial_ui_document(value, state["contract"]),
         stage="ui_design",
         run_id=state.get("run_id"),
+        collect_candidate_issues=lambda value: collect_initial_ui_document_issues(
+            value, state["contract"]
+        ),
     )
     return {"candidate": candidate}

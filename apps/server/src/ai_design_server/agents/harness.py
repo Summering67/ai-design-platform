@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import time
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from copy import deepcopy
 from typing import Any
 
@@ -18,6 +18,7 @@ from .errors import AgentError, ContractError, InputRequired
 from .model import ModelPort
 
 CandidateValidator = Callable[[dict[str, Any]], None]
+CandidateIssueCollector = Callable[[dict[str, Any]], list[DiagnosticIssue]]
 MAX_FEEDBACK_LENGTH = 240
 LOGGER = logging.getLogger("ai_design_server.agents.harness")
 
@@ -30,7 +31,7 @@ def short_error_summary(error: AgentError) -> str:
     return summary[:MAX_FEEDBACK_LENGTH]
 
 
-def short_issue_summary(issues: list[Mapping[str, Any]]) -> str:
+def short_issue_summary(issues: Sequence[Mapping[str, Any]]) -> str:
     if not issues:
         return "validation_failed"
     issue = issues[0]
@@ -52,6 +53,7 @@ async def run_structured_harness(
     max_attempts: int = 2,
     stage: str | None = None,
     run_id: str | None = None,
+    collect_candidate_issues: CandidateIssueCollector | None = None,
 ) -> dict[str, Any]:
     if max_attempts < 1:
         raise ValueError("Harness 尝试次数必须大于零")
@@ -67,7 +69,14 @@ async def run_structured_harness(
         try:
             candidate = await model.structured(purpose, request, schema)
             issues = collect_schema_issues(schema, candidate)
+            if collect_candidate_issues is not None:
+                issues.extend(collect_candidate_issues(deepcopy(candidate)))
             if issues:
+                if all(issue["keyword"] == "semantic" for issue in issues):
+                    issue = issues[0]
+                    raise ContractError(
+                        issue["code"], issue.get("message", "候选语义校验失败"), path=issue["path"]
+                    )
                 raise ContractError(
                     "invalid_contract", "候选不符合 JSON Schema", path=issues[0]["path"]
                 )
@@ -139,7 +148,7 @@ async def run_structured_harness(
             ) or attempt + 1 >= max_attempts:
                 error.retryable = False
                 raise
-            feedback = short_error_summary(error)
+            feedback = short_issue_summary(issues)
     if last_error is not None:
         raise last_error
     raise AgentError("harness_exhausted", "Harness 校验循环已耗尽")

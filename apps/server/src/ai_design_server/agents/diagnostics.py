@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Iterable, Mapping
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from jsonschema import Draft202012Validator
 
@@ -21,6 +21,7 @@ class DiagnosticIssue(TypedDict):
     keyword: str
     expected: str
     actual: str
+    message: NotRequired[str]
 
 
 def stable_digest(value: Any) -> str:

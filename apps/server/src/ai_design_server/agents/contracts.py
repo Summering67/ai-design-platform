@@ -7,6 +7,7 @@ from typing import Any
 
 from jsonschema import Draft202012Validator
 
+from .diagnostics import MAX_ISSUES, DiagnosticIssue
 from .errors import ContractError
 
 
@@ -156,38 +157,90 @@ def validate_tree(value: Any, contract: Mapping[str, Any]) -> None:
         raise ContractError("ui_node_limit", "UI 节点数量超限")
 
 
-def validate_initial_ui_document(value: Any, contract: Mapping[str, Any]) -> None:
-    validate("initial-ui-document.schema.json", value)
+def collect_initial_ui_document_issues(
+    value: Any, contract: Mapping[str, Any], *, limit: int = MAX_ISSUES
+) -> list[DiagnosticIssue]:
+    if limit < 1 or not isinstance(value, Mapping):
+        return []
     profile = contract.get("profile", {})
     components = set(contract.get("components", {})) | set(profile.get("components", {}))
     allowed_tags = set(profile.get("allowedTags", []))
     tokens = set(contract.get("tokens", []))
     assets = value.get("assets", {})
+    asset_ids = set(assets) if isinstance(assets, Mapping) else set()
     seen: set[str] = set()
+    issues: list[DiagnosticIssue] = []
+    node_count = 0
 
     def visit(node: Mapping[str, Any], path: str, depth: int) -> None:
+        nonlocal node_count
+        if len(issues) >= limit:
+            return
+        node_count += 1
         if depth > 32:
-            raise ContractError("ui_depth_limit", "初始 UI JSON 嵌套过深")
+            issues.append(_semantic_issue("ui_depth_limit", "初始 UI JSON 嵌套过深", path))
+            return
         node_id = node.get("id")
-        if not isinstance(node_id, str) or not node_id or node_id in seen:
-            raise ContractError("ui_duplicate_id", "初始 UI 节点 ID 无效", path=path)
-        seen.add(node_id)
+        if isinstance(node_id, str) and node_id:
+            if node_id in seen:
+                issues.append(
+                    _semantic_issue("ui_duplicate_id", "初始 UI 节点 ID 重复", f"{path}/id")
+                )
+            seen.add(node_id)
         kind = node.get("kind")
         if (
             kind == "component"
             and node.get("tag") not in components
             and node.get("tag") not in allowed_tags
         ):
-            raise ContractError("ui_component_forbidden", "组件未被允许", path=path)
+            issues.append(_semantic_issue("ui_component_forbidden", "组件未被允许", f"{path}/tag"))
         if kind == "element" and allowed_tags and node.get("tag") not in allowed_tags:
-            raise ContractError("ui_tag_forbidden", "标签未被允许", path=path)
-        if kind == "image" and node.get("assetId") not in assets:
-            raise ContractError("ui_asset_forbidden", "图片资源未被允许", path=path)
-        if any(token not in tokens for token in node.get("tokens", [])):
-            raise ContractError("ui_token_forbidden", "Token 未被允许", path=path)
-        for index, child in enumerate(node.get("children", [])):
-            visit(child, f"{path}/children/{index}", depth + 1)
+            issues.append(_semantic_issue("ui_tag_forbidden", "标签未被允许", f"{path}/tag"))
+        if (
+            kind == "image"
+            and isinstance(node.get("assetId"), str)
+            and node["assetId"] not in asset_ids
+        ):
+            issues.append(
+                _semantic_issue("ui_asset_forbidden", "图片资源未被允许", f"{path}/assetId")
+            )
+        node_tokens = node.get("tokens", [])
+        if isinstance(node_tokens, list):
+            issues.extend(
+                _semantic_issue("ui_token_forbidden", "Token 未被允许", f"{path}/tokens/{index}")
+                for index, token in enumerate(node_tokens)
+                if isinstance(token, str) and token not in tokens
+            )
+            del issues[limit:]
+        children = node.get("children", [])
+        if not isinstance(children, list):
+            return
+        for index, child in enumerate(children):
+            if isinstance(child, Mapping):
+                visit(child, f"{path}/children/{index}", depth + 1)
 
-    visit(value["root"], "/root", 1)
-    if len(seen) > 500:
-        raise ContractError("ui_node_limit", "初始 UI 节点数量超限")
+    root = value.get("root")
+    if isinstance(root, Mapping):
+        visit(root, "/root", 1)
+    if node_count > 500 and len(issues) < limit:
+        issues.append(_semantic_issue("ui_node_limit", "初始 UI 节点数量超限", "/root"))
+    return issues[:limit]
+
+
+def _semantic_issue(code: str, message: str, path: str) -> DiagnosticIssue:
+    return {
+        "code": code,
+        "path": path,
+        "keyword": "semantic",
+        "expected": "",
+        "actual": "",
+        "message": message,
+    }
+
+
+def validate_initial_ui_document(value: Any, contract: Mapping[str, Any]) -> None:
+    validate("initial-ui-document.schema.json", value)
+    issues = collect_initial_ui_document_issues(value, contract, limit=1)
+    if issues:
+        issue = issues[0]
+        raise ContractError(issue["code"], issue["message"], path=issue["path"])

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -37,6 +38,42 @@ async def test_ui_design_returns_strict_initial_ui_json() -> None:
 
     assert result == initial
     assert schemas[0]["title"] == "Initial UI Document v1"
+
+
+@pytest.mark.asyncio
+async def test_ui_design_harness_collects_schema_and_semantic_issues(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    caplog.set_level(logging.WARNING, logger="ai_design_server.agents.harness")
+    initial = _read("packages/design-contract/fixtures/v2/initial-ui-document.valid.json")
+    contract = _read("packages/design-contract/fixtures/v1/team-default.generation-contract.json")
+    initial["root"]["layout"]["gap"] = "8px"
+    initial["root"]["children"][1]["id"] = "root"
+    initial["root"]["children"][1]["tag"] = "ui.unknown"
+    initial["root"]["children"][1]["tokens"] = ["color.unknown"]
+
+    async def structured(*_: Any, **__: Any) -> dict[str, Any]:
+        return initial
+
+    with pytest.raises(ContractError):
+        await run_ui_design(
+            {}, contract, type("Model", (), {"structured": staticmethod(structured)})()
+        )
+
+    traces = [
+        record
+        for record in caplog.records
+        if getattr(record, "event_type", "") == "agent_harness_attempt"
+    ]
+    issues = json.loads(traces[-1].issues)
+
+    assert traces[-1].failure_phase == "json_schema"
+    assert {issue["code"] for issue in issues} >= {
+        "schema_type",
+        "ui_duplicate_id",
+        "ui_component_forbidden",
+        "ui_token_forbidden",
+    }
 
 
 def test_auto_layout_compiler_is_deterministic_and_valid() -> None:
