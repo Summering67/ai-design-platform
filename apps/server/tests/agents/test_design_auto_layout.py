@@ -79,6 +79,7 @@ async def test_ui_design_harness_collects_schema_and_semantic_issues(
 def test_auto_layout_compiler_is_deterministic_and_valid() -> None:
     initial = _read("packages/design-contract/fixtures/v2/initial-ui-document.valid.json")
     contract = _read("packages/design-contract/fixtures/v2/team-default.generation-contract.json")
+    initial["root"]["tokens"] = ["color.primary"]
 
     first = compile_initial_ui_document(initial, contract)
     second = compile_initial_ui_document(initial, contract)
@@ -86,6 +87,7 @@ def test_auto_layout_compiler_is_deterministic_and_valid() -> None:
     assert first == second
     validate_tree(first, contract)
     assert first["root"]["id"] == initial["root"]["id"]
+    assert first["root"]["tokens"] == ["color.primary"]
     assert first["root"]["children"][0]["text"] == "欢迎登录"
     assert "layoutIntent" not in first["root"]
     assert "layout" not in first["root"]

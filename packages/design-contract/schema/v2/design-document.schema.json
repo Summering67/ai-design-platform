@@ -414,6 +414,7 @@
         "layoutItem": { "$ref": "#/$defs/flexItem" },
         "computedLayout": { "$ref": "#/$defs/computedLayout" },
         "props": { "$ref": "#/$defs/jsonObject" },
+        "tokens": { "type": "array", "items": { "$ref": "#/$defs/id" }, "uniqueItems": true },
         "children": { "type": "array", "items": { "$ref": "#/$defs/node" } },
         "responsive": {
           "type": "object",

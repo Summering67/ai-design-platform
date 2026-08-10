@@ -37,7 +37,7 @@ def test_validate_tree_logs_schema_failure_path(caplog: pytest.LogCaptureFixture
     caplog.set_level(logging.WARNING, logger="ai_design_server.agents.contracts")
     contract = _read("packages/design-contract/fixtures/v2/team-default.generation-contract.json")
     document = _read("packages/design-contract/fixtures/v2/login-page.document.json")
-    document["root"]["tokens"] = ["color.primary"]
+    document["root"]["unknownField"] = True
 
     with pytest.raises(ContractError) as raised:
         validate_tree(document, contract)
@@ -47,11 +47,11 @@ def test_validate_tree_logs_schema_failure_path(caplog: pytest.LogCaptureFixture
         for item in caplog.records
         if getattr(item, "event_type", "") == "design_document_schema_failure"
     )
-    assert raised.value.path == "/root/tokens"
+    assert raised.value.path == "/root/unknownField"
     assert record.code == "invalid_ui_document"
-    assert record.path == "/root/tokens"
+    assert record.path == "/root/unknownField"
     assert record.keyword == "additionalProperties"
-    assert record.schema_fields == "tokens"
+    assert record.schema_fields == "unknownField"
 
 
 def test_default_generation_contract_exposes_all_ant_design_components() -> None:

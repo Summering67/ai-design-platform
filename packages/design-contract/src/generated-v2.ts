@@ -28,6 +28,7 @@ export type Node = {
   layoutItem?: FlexItem;
   computedLayout?: ComputedLayout;
   props: JsonObject;
+  tokens?: Id[];
   children: Node[];
   responsive?: {
     [k: string]: ResponsiveLayout;
