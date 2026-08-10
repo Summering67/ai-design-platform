@@ -18,8 +18,8 @@
     "surface.canvas"
   ],
   "components": {
-    "ui.button": {
-      "id": "ui.button",
+    "Button": {
+      "id": "Button",
       "allowedVariants": {
         "type": [
           "default",
@@ -35,240 +35,312 @@
         "children": {
           "type": "string"
         }
-      }
+      },
+      "packageName": "antd"
     },
-    "ui.float-button": {
-      "id": "ui.float-button"
+    "FloatButton": {
+      "id": "FloatButton",
+      "packageName": "antd"
     },
-    "ui.icon": {
-      "id": "ui.icon"
+    "Icon": {
+      "id": "Icon",
+      "packageName": "antd"
     },
-    "ui.typography": {
-      "id": "ui.typography"
+    "Typography": {
+      "id": "Typography",
+      "packageName": "antd"
     },
-    "ui.divider": {
-      "id": "ui.divider"
+    "Divider": {
+      "id": "Divider",
+      "packageName": "antd"
     },
-    "ui.flex": {
-      "id": "ui.flex"
+    "Flex": {
+      "id": "Flex",
+      "packageName": "antd"
     },
-    "ui.grid": {
-      "id": "ui.grid"
+    "Grid": {
+      "id": "Grid",
+      "packageName": "antd"
     },
-    "ui.layout": {
-      "id": "ui.layout"
+    "Layout": {
+      "id": "Layout",
+      "packageName": "antd"
     },
-    "ui.masonry": {
-      "id": "ui.masonry"
+    "Masonry": {
+      "id": "Masonry",
+      "packageName": "antd"
     },
-    "ui.space": {
-      "id": "ui.space"
+    "Space": {
+      "id": "Space",
+      "packageName": "antd"
     },
-    "ui.splitter": {
-      "id": "ui.splitter"
+    "Splitter": {
+      "id": "Splitter",
+      "packageName": "antd"
     },
-    "ui.anchor": {
-      "id": "ui.anchor"
+    "Anchor": {
+      "id": "Anchor",
+      "packageName": "antd"
     },
-    "ui.breadcrumb": {
-      "id": "ui.breadcrumb"
+    "Breadcrumb": {
+      "id": "Breadcrumb",
+      "packageName": "antd"
     },
-    "ui.dropdown": {
-      "id": "ui.dropdown"
+    "Dropdown": {
+      "id": "Dropdown",
+      "packageName": "antd"
     },
-    "ui.menu": {
-      "id": "ui.menu",
+    "Menu": {
+      "id": "Menu",
       "overrides": {
         "items": {
           "type": "array"
         }
-      }
+      },
+      "packageName": "antd"
     },
-    "ui.pagination": {
-      "id": "ui.pagination"
+    "Pagination": {
+      "id": "Pagination",
+      "packageName": "antd"
     },
-    "ui.steps": {
-      "id": "ui.steps"
+    "Steps": {
+      "id": "Steps",
+      "packageName": "antd"
     },
-    "ui.tabs": {
-      "id": "ui.tabs"
+    "Tabs": {
+      "id": "Tabs",
+      "packageName": "antd"
     },
-    "ui.auto-complete": {
-      "id": "ui.auto-complete"
+    "AutoComplete": {
+      "id": "AutoComplete",
+      "packageName": "antd"
     },
-    "ui.cascader": {
-      "id": "ui.cascader"
+    "Cascader": {
+      "id": "Cascader",
+      "packageName": "antd"
     },
-    "ui.checkbox": {
-      "id": "ui.checkbox"
+    "Checkbox": {
+      "id": "Checkbox",
+      "packageName": "antd"
     },
-    "ui.color-picker": {
-      "id": "ui.color-picker"
+    "ColorPicker": {
+      "id": "ColorPicker",
+      "packageName": "antd"
     },
-    "ui.date-picker": {
-      "id": "ui.date-picker"
+    "DatePicker": {
+      "id": "DatePicker",
+      "packageName": "antd"
     },
-    "ui.form": {
-      "id": "ui.form",
+    "Form": {
+      "id": "Form",
       "slots": {
         "children": {
           "type": "nodes"
         }
-      }
+      },
+      "packageName": "antd"
     },
-    "ui.input": {
-      "id": "ui.input",
+    "Input": {
+      "id": "Input",
       "overrides": {
         "placeholder": {
           "type": "string"
         }
-      }
+      },
+      "packageName": "antd"
     },
-    "ui.input-number": {
-      "id": "ui.input-number"
+    "InputNumber": {
+      "id": "InputNumber",
+      "packageName": "antd"
     },
-    "ui.mentions": {
-      "id": "ui.mentions"
+    "Mentions": {
+      "id": "Mentions",
+      "packageName": "antd"
     },
-    "ui.radio": {
-      "id": "ui.radio"
+    "Radio": {
+      "id": "Radio",
+      "packageName": "antd"
     },
-    "ui.rate": {
-      "id": "ui.rate"
+    "Rate": {
+      "id": "Rate",
+      "packageName": "antd"
     },
-    "ui.select": {
-      "id": "ui.select"
+    "Select": {
+      "id": "Select",
+      "packageName": "antd"
     },
-    "ui.slider": {
-      "id": "ui.slider"
+    "Slider": {
+      "id": "Slider",
+      "packageName": "antd"
     },
-    "ui.switch": {
-      "id": "ui.switch"
+    "Switch": {
+      "id": "Switch",
+      "packageName": "antd"
     },
-    "ui.time-picker": {
-      "id": "ui.time-picker"
+    "TimePicker": {
+      "id": "TimePicker",
+      "packageName": "antd"
     },
-    "ui.transfer": {
-      "id": "ui.transfer"
+    "Transfer": {
+      "id": "Transfer",
+      "packageName": "antd"
     },
-    "ui.tree-select": {
-      "id": "ui.tree-select"
+    "TreeSelect": {
+      "id": "TreeSelect",
+      "packageName": "antd"
     },
-    "ui.upload": {
-      "id": "ui.upload"
+    "Upload": {
+      "id": "Upload",
+      "packageName": "antd"
     },
-    "ui.avatar": {
-      "id": "ui.avatar"
+    "Avatar": {
+      "id": "Avatar",
+      "packageName": "antd"
     },
-    "ui.badge": {
-      "id": "ui.badge"
+    "Badge": {
+      "id": "Badge",
+      "packageName": "antd"
     },
-    "ui.calendar": {
-      "id": "ui.calendar"
+    "Calendar": {
+      "id": "Calendar",
+      "packageName": "antd"
     },
-    "ui.card": {
-      "id": "ui.card",
+    "Card": {
+      "id": "Card",
       "slots": {
         "children": {
           "type": "nodes"
         }
-      }
+      },
+      "packageName": "antd"
     },
-    "ui.carousel": {
-      "id": "ui.carousel"
+    "Carousel": {
+      "id": "Carousel",
+      "packageName": "antd"
     },
-    "ui.collapse": {
-      "id": "ui.collapse"
+    "Collapse": {
+      "id": "Collapse",
+      "packageName": "antd"
     },
-    "ui.descriptions": {
-      "id": "ui.descriptions"
+    "Descriptions": {
+      "id": "Descriptions",
+      "packageName": "antd"
     },
-    "ui.empty": {
-      "id": "ui.empty"
+    "Empty": {
+      "id": "Empty",
+      "packageName": "antd"
     },
-    "ui.image": {
-      "id": "ui.image"
+    "Image": {
+      "id": "Image",
+      "packageName": "antd"
     },
-    "ui.list": {
-      "id": "ui.list"
+    "List": {
+      "id": "List",
+      "packageName": "antd"
     },
-    "ui.popover": {
-      "id": "ui.popover"
+    "Popover": {
+      "id": "Popover",
+      "packageName": "antd"
     },
-    "ui.qr-code": {
-      "id": "ui.qr-code"
+    "QRCode": {
+      "id": "QRCode",
+      "packageName": "antd"
     },
-    "ui.segmented": {
-      "id": "ui.segmented"
+    "Segmented": {
+      "id": "Segmented",
+      "packageName": "antd"
     },
-    "ui.statistic": {
-      "id": "ui.statistic"
+    "Statistic": {
+      "id": "Statistic",
+      "packageName": "antd"
     },
-    "ui.table": {
-      "id": "ui.table"
+    "Table": {
+      "id": "Table",
+      "packageName": "antd"
     },
-    "ui.tag": {
-      "id": "ui.tag"
+    "Tag": {
+      "id": "Tag",
+      "packageName": "antd"
     },
-    "ui.timeline": {
-      "id": "ui.timeline"
+    "Timeline": {
+      "id": "Timeline",
+      "packageName": "antd"
     },
-    "ui.tooltip": {
-      "id": "ui.tooltip"
+    "Tooltip": {
+      "id": "Tooltip",
+      "packageName": "antd"
     },
-    "ui.tour": {
-      "id": "ui.tour"
+    "Tour": {
+      "id": "Tour",
+      "packageName": "antd"
     },
-    "ui.tree": {
-      "id": "ui.tree"
+    "Tree": {
+      "id": "Tree",
+      "packageName": "antd"
     },
-    "ui.alert": {
-      "id": "ui.alert"
+    "Alert": {
+      "id": "Alert",
+      "packageName": "antd"
     },
-    "ui.drawer": {
-      "id": "ui.drawer"
+    "Drawer": {
+      "id": "Drawer",
+      "packageName": "antd"
     },
-    "ui.message": {
-      "id": "ui.message"
+    "Message": {
+      "id": "Message",
+      "packageName": "antd"
     },
-    "ui.modal": {
-      "id": "ui.modal"
+    "Modal": {
+      "id": "Modal",
+      "packageName": "antd"
     },
-    "ui.notification": {
-      "id": "ui.notification"
+    "Notification": {
+      "id": "Notification",
+      "packageName": "antd"
     },
-    "ui.popconfirm": {
-      "id": "ui.popconfirm"
+    "Popconfirm": {
+      "id": "Popconfirm",
+      "packageName": "antd"
     },
-    "ui.progress": {
-      "id": "ui.progress"
+    "Progress": {
+      "id": "Progress",
+      "packageName": "antd"
     },
-    "ui.result": {
-      "id": "ui.result"
+    "Result": {
+      "id": "Result",
+      "packageName": "antd"
     },
-    "ui.skeleton": {
-      "id": "ui.skeleton"
+    "Skeleton": {
+      "id": "Skeleton",
+      "packageName": "antd"
     },
-    "ui.spin": {
-      "id": "ui.spin"
+    "Spin": {
+      "id": "Spin",
+      "packageName": "antd"
     },
-    "ui.watermark": {
-      "id": "ui.watermark"
+    "Watermark": {
+      "id": "Watermark",
+      "packageName": "antd"
     },
-    "ui.affix": {
-      "id": "ui.affix"
+    "Affix": {
+      "id": "Affix",
+      "packageName": "antd"
     },
-    "ui.app": {
-      "id": "ui.app"
+    "App": {
+      "id": "App",
+      "packageName": "antd"
     },
-    "ui.border-beam": {
-      "id": "ui.border-beam"
+    "BorderBeam": {
+      "id": "BorderBeam",
+      "packageName": "antd"
     },
-    "ui.config-provider": {
-      "id": "ui.config-provider"
+    "ConfigProvider": {
+      "id": "ConfigProvider",
+      "packageName": "antd"
     },
-    "ui.util": {
-      "id": "ui.util"
+    "Util": {
+      "id": "Util",
+      "packageName": "antd"
     }
   },
   "layout": {

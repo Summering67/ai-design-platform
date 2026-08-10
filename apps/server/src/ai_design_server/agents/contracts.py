@@ -143,8 +143,6 @@ def validate_tree(value: Any, contract: Mapping[str, Any]) -> None:
             and node.get("tag") not in allowed_tags
         ):
             raise ContractError("ui_component_forbidden", f"组件未被允许: {path}")
-        if kind == "element" and allowed_tags and node.get("tag") not in allowed_tags:
-            raise ContractError("ui_tag_forbidden", f"标签未被允许: {path}")
         if kind == "icon" and node.get("name") not in icons:
             raise ContractError("ui_icon_forbidden", f"图标未被允许: {path}")
         for token in node.get("tokens", []):
@@ -195,14 +193,26 @@ def collect_initial_ui_document_issues(
                 )
             seen.add(node_id)
         kind = node.get("kind")
+        component = contract.get("components", {}).get(node.get("tag"), {})
         if (
             kind == "component"
             and node.get("tag") not in components
             and node.get("tag") not in allowed_tags
         ):
             issues.append(_semantic_issue("ui_component_forbidden", "组件未被允许", f"{path}/tag"))
-        if kind == "element" and allowed_tags and node.get("tag") not in allowed_tags:
-            issues.append(_semantic_issue("ui_tag_forbidden", "标签未被允许", f"{path}/tag"))
+        if (
+            kind == "component"
+            and isinstance(component, Mapping)
+            and isinstance(component.get("packageName"), str)
+            and node.get("packageName") != component["packageName"]
+        ):
+            issues.append(
+                _semantic_issue(
+                    "ui_component_package_forbidden",
+                    "组件包名与生成契约不一致",
+                    f"{path}/packageName",
+                )
+            )
         if (
             kind == "image"
             and isinstance(node.get("assetId"), str)

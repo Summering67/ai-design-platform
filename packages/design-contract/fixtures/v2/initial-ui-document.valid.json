@@ -6,7 +6,7 @@
     "layoutIntent": { "role": "page", "grouping": "cluster", "adaptivity": "reflow", "density": "comfortable" },
     "props": {}, "children": [
       { "id": "title", "kind": "text", "name": "标题", "tag": "h1", "style": { "fontSize": 32 }, "props": {}, "children": [], "text": "欢迎登录" },
-      { "id": "submit", "kind": "component", "name": "提交", "tag": "ui.button", "packageName": "ui", "style": {}, "props": { "type": "primary" }, "layoutIntent": { "role": "actions" }, "children": [] }
+      { "id": "submit", "kind": "component", "name": "提交", "tag": "Button", "packageName": "antd", "style": {}, "props": { "type": "primary" }, "layoutIntent": { "role": "actions" }, "children": [] }
     ]
   }
 }

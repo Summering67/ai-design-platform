@@ -13,6 +13,11 @@ def compile_initial_ui_document(
     components = {
         key: {
             "id": value.get("id", key),
+            **(
+                {"packageName": value["packageName"]}
+                if isinstance(value.get("packageName"), str)
+                else {}
+            ),
             **({"slots": value["slots"]} if isinstance(value.get("slots"), dict) else {}),
         }
         for key, value in contract.get("components", {}).items()
@@ -52,9 +57,7 @@ def compile_initial_ui_document(
             "digest": profile["digest"],
             "tokens": {token: token for token in contract.get("tokens", [])},
             "components": components,
-            "allowedTags": sorted(
-                set(components) | {"div", "span", "img", "h1", "p", "main", "section", "form"}
-            ),
+            "allowedTags": sorted(components),
         },
         "assets": initial["assets"],
         "root": convert(initial["root"]),

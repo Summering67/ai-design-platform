@@ -1,7 +1,7 @@
 {
   "version": "1.0.0", "id": "invalid", "name": "无效", "assets": {},
   "root": {
-    "id": "root", "kind": "component", "name": "错误组件", "tag": "ui.button", "style": {}, "props": {},
+    "id": "root", "kind": "component", "name": "错误组件", "tag": "Button", "style": {}, "props": {},
     "layout": { "mode": "flex" }, "children": [], "computedLayout": { "x": 0, "y": 0, "width": 1, "height": 1 }
   }
 }

@@ -12,6 +12,7 @@ SYSTEM_PROMPT = """
 * 边框宽度和 fontSize 使用非负数字，不带 px、rem 等单位，例如 8 而不是 "8px"。
 * 仅可用 layoutIntent 表达容器角色、内容分组、适配倾向和视觉密度等非几何语义。
 * 不得生成 layout、layoutItem、responsive、computedLayout，也不得在 style 中生成 display、position、尺寸、间距、Flex、对齐、换行、overflow 或层级字段。
+* component 只使用契约中的组件库原始名称和 packageName，例如 Button/antd，不得使用 HTML 名称或自造 ui.xxx 别名。
 * image 仅引用已有 assets；component 仅使用契约允许的 tag/package。
 * 优先使用已有 Design Token。
 * 不生成 designSystem、computedLayout 或运行时字段。

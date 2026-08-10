@@ -89,6 +89,8 @@ def test_auto_layout_compiler_is_deterministic_and_valid() -> None:
     assert first["root"]["children"][0]["text"] == "欢迎登录"
     assert "layoutIntent" not in first["root"]
     assert "layout" not in first["root"]
+    assert set(first["designSystem"]["allowedTags"]) == set(contract["components"])
+    assert "div" not in first["designSystem"]["allowedTags"]
 
 
 @pytest.mark.asyncio

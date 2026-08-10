@@ -29,6 +29,17 @@ def test_initial_ui_and_layout_plan_valid_fixtures() -> None:
         assert list(Draft202012Validator(load_schema(schema)).iter_errors(_fixture(fixture))) == []
 
 
+def test_generation_contract_uses_component_library_names() -> None:
+    contract = load_default_generation_contract()
+
+    assert {"Button", "DatePicker", "QRCode"} <= set(contract["components"])
+    assert all(not name.startswith("ui.") for name in contract["components"])
+    assert all(
+        component.get("id") == name and component.get("packageName") == "antd"
+        for name, component in contract["components"].items()
+    )
+
+
 def test_initial_ui_and_layout_plan_reject_forbidden_fields() -> None:
     for schema, fixture in (
         ("initial-ui-document.schema.json", "initial-ui-document.invalid.json"),
