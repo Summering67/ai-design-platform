@@ -20,6 +20,8 @@
 ### Requirement: 严格的初始 UI JSON 契约
 系统 SHALL 提供版本化 `initial-ui-document.schema.json`，并将其作为 UI Design 模型结构化输出和阶段交接的唯一契约。Schema MUST 禁止未知字段，要求顶层身份、名称、资产集合和根节点，并递归要求稳定节点 ID、kind、name、tag、style、props、layout、layoutItem 和 children；component、text、image 节点 MUST 分别满足组件引用、文本内容和资产引用条件，同时禁止 designSystem、computedLayout 和框架代码字段。
 
+默认 DesignGenerationContract SHALL 注册 Ant Design Components Overview 的 72 项基础能力。UI Design 只能使用该注册目录中的稳定 `ui.*` tag；其中命令式或组合式能力 SHALL 在画布渲染器中使用确定性的静态预览投影，不得在渲染阶段触发消息、通知或其他副作用。
+
 #### Scenario: 合法设计意图进入 Auto Layout
 - **WHEN** 模型返回符合 initial-ui-document Schema、ID 唯一且所有组件、Token 与资产引用合法的初始 UI JSON
 - **THEN** 系统将初始 UI JSON 以 `initial_ui_document` 写入 Root State 并允许 Auto Layout 执行
@@ -27,6 +29,10 @@
 #### Scenario: 任意对象被拒绝
 - **WHEN** 模型返回缺少版本或根节点、包含未知字段、重复 ID、非法 componentId 或叶子节点 children 的对象
 - **THEN** UI Design 门禁返回路径明确的结构化错误且不把该对象写入 Root State
+
+#### Scenario: 使用 Ant Design 基础能力
+- **WHEN** UI Design 输出引用默认目录中的任一 Ant Design 基础组件 tag
+- **THEN** GenerationContract 接受该 tag，最终 v2 画布渲染器使用对应组件或声明的静态预览投影渲染
 
 ### Requirement: Auto Layout 内部确定性编译
 Auto Layout Agent 内部 SHALL 使用纯函数把合法初始 UI JSON 与固定 DesignGenerationContract 编译为 DesignDocument v2。编译器 MUST 固定注入版本和 Profile 引用，从 contract 构建设计系统快照，保留稳定 ID，映射 kind/tag、style、layout 和 layoutItem，并补齐 DesignDocument 必需字段；编译器不得新增业务需求、发明组件或 Token、调用模型猜测可确定字段或静默删除业务节点。编译结果只在 Auto Layout 内部流转。

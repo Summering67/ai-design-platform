@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from ai_design_server.agents.contracts import (
+    load_default_generation_contract,
     validate_event,
     validate_prd,
     validate_report,
@@ -21,12 +22,98 @@ def _read(path: str) -> dict:
 
 
 def test_v2_fixtures_validate() -> None:
-    contract = _read("packages/design-contract/fixtures/v1/team-default.generation-contract.json")
+    contract = _read("packages/design-contract/fixtures/v2/team-default.generation-contract.json")
     validate_prd(_read("packages/design-contract/fixtures/v2/standardized-prd.valid.json"))
     validate_report(_read("packages/design-contract/fixtures/v2/ui-validation-report.valid.json"))
     validate_event(_read("packages/design-contract/fixtures/v2/agent-run-event.valid.json"))
-    validate_event(_read("packages/design-contract/fixtures/v2/agent-run-event.input-required.json"))
+    validate_event(
+        _read("packages/design-contract/fixtures/v2/agent-run-event.input-required.json")
+    )
     validate_tree(_read("packages/design-contract/fixtures/v2/login-page.document.json"), contract)
+
+
+def test_default_generation_contract_exposes_all_ant_design_components() -> None:
+    contract = load_default_generation_contract()
+    fixture = _read("packages/design-contract/fixtures/v2/team-default.generation-contract.json")
+    names = [
+        "button",
+        "float-button",
+        "icon",
+        "typography",
+        "divider",
+        "flex",
+        "grid",
+        "layout",
+        "masonry",
+        "space",
+        "splitter",
+        "anchor",
+        "breadcrumb",
+        "dropdown",
+        "menu",
+        "pagination",
+        "steps",
+        "tabs",
+        "auto-complete",
+        "cascader",
+        "checkbox",
+        "color-picker",
+        "date-picker",
+        "form",
+        "input",
+        "input-number",
+        "mentions",
+        "radio",
+        "rate",
+        "select",
+        "slider",
+        "switch",
+        "time-picker",
+        "transfer",
+        "tree-select",
+        "upload",
+        "avatar",
+        "badge",
+        "calendar",
+        "card",
+        "carousel",
+        "collapse",
+        "descriptions",
+        "empty",
+        "image",
+        "list",
+        "popover",
+        "qr-code",
+        "segmented",
+        "statistic",
+        "table",
+        "tag",
+        "timeline",
+        "tooltip",
+        "tour",
+        "tree",
+        "alert",
+        "drawer",
+        "message",
+        "modal",
+        "notification",
+        "popconfirm",
+        "progress",
+        "result",
+        "skeleton",
+        "spin",
+        "watermark",
+        "affix",
+        "app",
+        "border-beam",
+        "config-provider",
+        "util",
+    ]
+    expected = {f"ui.{name}" for name in names}
+
+    assert len(expected) == 72
+    assert set(contract["components"]) == expected
+    assert set(fixture["components"]) == expected
 
 
 def test_v2_prd_rejects_unknown_fields_and_duplicate_ids() -> None:

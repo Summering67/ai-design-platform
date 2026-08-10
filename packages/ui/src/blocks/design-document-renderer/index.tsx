@@ -5,6 +5,7 @@ import {
   type DesignNode,
   type V2RenderModel,
 } from "@repo/design-dsl";
+import { renderAntDesignComponent } from "./ant-design-components";
 
 export type DesignDocumentRendererProps = {
   document: DesignDocument;
@@ -24,8 +25,21 @@ const renderNode = (node: DesignNode, model: V2RenderModel): ReactNode => {
       ? createElement("img", { ...props, src: asset.src, alt: node.alt ?? asset.alt ?? node.name })
       : null;
   }
-  if (node.kind === "component")
-    return createElement("span", { ...props, "data-design-component": node.tag }, node.children.map((child) => renderNode(child, model)));
+  if (node.kind === "component") {
+    const component = renderAntDesignComponent(
+      node.tag,
+      { ...props, "data-design-component": node.tag },
+      node.children.map((child) => renderNode(child, model)),
+    );
+    return (
+      component ??
+      createElement(
+        "span",
+        { ...props, "data-design-component": node.tag },
+        node.children.map((child) => renderNode(child, model)),
+      )
+    );
+  }
   return createElement(node.tag, props, node.children.map((child) => renderNode(child, model)));
 };
 
