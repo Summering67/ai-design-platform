@@ -33,7 +33,7 @@ test("工作台展示已完成阶段的模型思考过程", () => {
   assert.doesNotMatch(markup, />requirement</)
 })
 
-test("工作台不展示尚未完成阶段的模型思考过程", () => {
+test("工作台展示任意 Agent 尚未完成的模型思考过程", () => {
   const markup = renderToStaticMarkup(
     <Workspace
       accountEmail="developer@local.test"
@@ -47,16 +47,16 @@ test("工作台不展示尚未完成阶段的模型思考过程", () => {
       projectTitle="测试项目"
       reasoning={[{
         id: "run:task:1",
-        stage: "requirement",
+        stage: "ui_design",
         taskId: "task",
         attempt: 1,
-        content: "尚未完成的 reasoning 追问",
+        content: "UI Design Agent 正在分析界面结构",
         status: "reasoning",
       }]}
       status="loading"
     />,
   )
-  assert.doesNotMatch(markup, /尚未完成的 reasoning 追问/)
+  assert.match(markup, /UI Design Agent 正在分析界面结构/)
 })
 
 test("工作台展示阻断问题并要求逐题回答", () => {

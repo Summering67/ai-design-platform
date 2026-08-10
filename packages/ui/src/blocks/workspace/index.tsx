@@ -141,7 +141,7 @@ const ChatPanel = ({
     .reverse()
     .find((message) => message.role === "user")?.id;
   const reasoningItems = reasoning
-    .filter((item) => item.status === "completed")
+    .filter((item) => item.content.trim())
     .map((item) => ({ kind: "reasoning" as const, reasoning: item }));
   const conversation = messages.flatMap((message) =>
     message.id === "streaming"
