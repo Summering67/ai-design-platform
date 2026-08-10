@@ -63,7 +63,7 @@ const legacyProfile = (document: Document): DesignSystemProfile => ({
   ),
   layout: {
     modes: ["flex", "absolute"],
-    sizing: ["fixed", "fill", "hug", "minmax"],
+    sizing: ["fixed", "fill", "hug"],
   },
   icons: {},
 });

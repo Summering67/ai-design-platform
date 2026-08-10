@@ -25,6 +25,9 @@ async def run(
     contract: dict[str, Any],
     model: ModelPort,
     run_id: str | None = None,
+    layout_requirements: list[dict[str, Any]] | None = None,
+    viewports: list[dict[str, Any]] | None = None,
+    measurements: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     compiled = compile_initial_ui_document(initial_ui_document, contract)
     result = await build(model).ainvoke(
@@ -33,6 +36,9 @@ async def run(
             "initial_ui_document": initial_ui_document,
             "contract": contract,
             "run_id": run_id or "",
+            "layout_requirements": layout_requirements or [],
+            "viewports": viewports or [],
+            "measurements": measurements or {},
         }
     )
     return {

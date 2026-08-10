@@ -3,9 +3,7 @@
 ## Purpose
 
 定义 UI Design 与 Auto Layout 两个专业 Agent 的中间契约、确定性处理边界、Harness 诊断与模型调用稳定性要求。
-
 ## Requirements
-
 ### Requirement: 专业 Agent 单一职责边界
 系统 SHALL 将 UI Design 和 Auto Layout 限制在声明的专业职责内。UI Design SHALL 只生成通过严格 Schema 的初始 UI JSON；Auto Layout Agent SHALL 在自身内部确定性编译 InitialUIDocument、生成并应用 Flex 布局计划，并对外返回最终 DesignDocument；Root Supervisor SHALL 只负责任务依赖、状态推进和有限重试，不得代替专业阶段补写字段或新增 Specification、Compiler、Layout Engine、Final Gate 阶段。
 
@@ -68,26 +66,31 @@ Auto Layout Agent 的内部 `ValidationResult` SHALL 收集一次校验中的全
 - **THEN** 最终报告保持 failed 并包含新问题，系统不得把原问题标记 fixed 后直接放行
 
 ### Requirement: 严格的 LayoutPlan 契约
-系统 SHALL 提供版本化 `LayoutPlan` JSON Schema，并将其作为 Auto Layout Agent 内部规划值的唯一契约。每个 operation MUST 引用非空 nodeId，并至少提供 layout、layoutItem 或 responsive 之一；其结构和枚举 MUST 与 DesignDocument 的布局定义一致。Schema MUST 禁止未知字段、内容字段、结构字段、视觉 style、props 和 computedLayout；LayoutPlan 不作为 Root State 或公开 Agent 输出。
 
-#### Scenario: 合法布局计划被应用
-- **WHEN** LayoutPlan 只引用现有节点且所有 mode、sizing、断点和非负数值均被 GenerationContract 允许
-- **THEN** Auto Layout Agent 在内部接受计划并交给自己的确定性布局模块
+LayoutPlan SHALL 删除模型 viewport，使用输入声明的 viewport ID；sizing SHALL 使用 fixed/fill/hug 加可选 min/max；layoutItem.position SHALL 为 auto/absolute，且 offset 与 inset 组合必须满足语义约束。模型不得输出 Geometry、CSS 或 DesignDocument。
 
-#### Scenario: 未知节点计划被拒绝
-- **WHEN** LayoutPlan operation 引用输入 DesignDocument 中不存在的 nodeId
-- **THEN** 系统返回定位到该 operation nodeId 的错误，不创建猜测节点且不修改文档
+#### Scenario: 未知 viewport 被拒绝
+
+- **WHEN** LayoutPlan 引用输入未声明的响应式 viewport
+- **THEN** Schema 或语义门禁拒绝该 operation
+
+### Requirement: 固定视口 Geometry 解析
+
+Auto Layout SHALL 接收固定 viewport 和独立 measurement 输入，并在内部使用确定性 Flex 模块生成每个 viewport 的完整 `resolvedLayouts`。模型不得生成 Geometry；缺少必要 measurement、约束冲突或快照不完整时不得产生成功结果。
+
+#### Scenario: 多 viewport 解析
+
+- **WHEN** 输入包含多个固定 viewport 和对应 responsive 覆盖
+- **THEN** 每个 viewport 都生成覆盖全部节点的稳定 Geometry 快照
 
 ### Requirement: 确定性布局应用与渲染投影
-Auto Layout Agent 内部的纯函数布局模块 SHALL 将已校验的 LayoutPlan 应用为 DesignDocument 的 layout、layoutItem 和 responsive 字段，并同步生成当前 v2 画布渲染器可消费的合法基础 style 投影。布局模块 MUST 保留节点集合、层级、ID、内容、组件、非布局视觉样式和 Profile；只有在 viewport 与所有测量输入足以确定几何结果时才能写入 computedLayout。Agent 对外 SHALL 只返回应用后的完整 DesignDocument。
 
-#### Scenario: Flex 计划形成可渲染样式
-- **WHEN** 计划为容器指定 column、gap、padding 和 fill 尺寸策略
-- **THEN** 最终文档同时包含合法布局元数据及对应 display、flexDirection、间距和尺寸样式，并能派生 v2 render model
+Auto Layout 内部 SHALL 使用纯函数 Flex 模块解析已校验 LayoutPlan，并为每个固定 viewport 生成完整 `resolvedLayouts`；缺少测量或 Geometry 不完整时不得产生成功 result。
 
-#### Scenario: 无法确定几何测量
-- **WHEN** 节点尺寸依赖当前输入未提供的字体、图片或组件固有测量
-- **THEN** 布局引擎省略该节点 computedLayout，不生成猜测坐标，但仍产出通过基础 viewport 渲染门禁的声明式布局
+#### Scenario: 多视口解析
+
+- **WHEN** 输入包含多个固定 viewport 和对应 responsive 覆盖
+- **THEN** 每个 viewport 都产生独立完整 Geometry 快照
 
 ### Requirement: 阶段产物门禁与不可绕过顺序
 两个 Agent SHALL 各自完成其输出的 JSON Schema、GenerationContract、引用完整性和渲染可用性校验。Auto Layout 只有在内部编译文档与最终 DesignDocument 均通过完整校验后才能产生 result。系统不得新增 Specification 或独立 Final Gate Agent/任务。
@@ -140,3 +143,4 @@ UI Design Harness SHALL 为每次尝试生成服务端结构化诊断 Trace，�
 #### Scenario: Agent 总时限不被活动刷新
 - **WHEN** Agent 持续产生 reasoning/activity 事件但完整运行超过 `AgentConfig.total_timeout`
 - **THEN** Root 取消图执行并返回稳定 `agent_timeout`，且不产生成功结果
+

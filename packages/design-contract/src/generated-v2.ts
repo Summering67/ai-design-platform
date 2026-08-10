@@ -42,16 +42,17 @@ export type Sizing =
   | {
       mode: "fixed";
       value: number;
+      min?: number;
+      max?: number;
     }
   | {
       mode: "fill";
+      min?: number;
+      max?: number;
     }
   | {
       mode: "hug";
-    }
-  | {
-      mode: "minmax";
-      min: number;
+      min?: number;
       max?: number;
     };
 
@@ -65,6 +66,9 @@ export interface DesignDocumentV2 {
     [k: string]: Asset;
   };
   root: Node;
+  resolvedLayouts?: {
+    [k: string]: ResolvedLayout;
+  };
 }
 export interface DesignSystem {
   id: Id;
@@ -219,8 +223,27 @@ export interface FlexItem {
   flexBasis?: StyleValue;
   alignSelf?: "auto" | "flex-start" | "flex-end" | "center" | "baseline" | "stretch";
   margin?: EdgeInsets;
-  position?: "flow" | "absolute";
+  position?: "auto" | "flow" | "absolute";
+  offset?: {
+    x?: number;
+    y?: number;
+  };
   inset?: EdgeInsets;
+}
+export interface Geometry {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+export interface ResolvedLayout {
+  viewport: {
+    width: number;
+    height: number;
+  };
+  nodes: {
+    [k: string]: Geometry;
+  };
 }
 export interface ComputedLayout {
   x: number;
@@ -251,7 +274,7 @@ export interface ResponsiveLayout {
   layout?: FlexLayout;
   layoutItem?: FlexItem;
   computedLayout?: ComputedLayout;
-  sizing?: "fixed" | "fill" | "hug" | "minmax";
+  sizing?: "fixed" | "fill" | "hug";
   visible?: boolean;
 }
 export interface Source {

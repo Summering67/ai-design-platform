@@ -1,14 +1,18 @@
 from __future__ import annotations
 
 import json
+import logging
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
 from jsonschema import Draft202012Validator
+from jsonschema.exceptions import ValidationError
 
 from .diagnostics import MAX_ISSUES, DiagnosticIssue
 from .errors import ContractError
+
+LOGGER = logging.getLogger("ai_design_server.agents.contracts")
 
 
 def _root() -> Path:
@@ -109,7 +113,19 @@ def validate_tree(value: Any, contract: Mapping[str, Any]) -> None:
         raise ContractError("contract_unavailable", "v2 DesignDocument 契约不可用") from error
     schema_error = next(Draft202012Validator(schema).iter_errors(value), None)
     if schema_error is not None:
-        raise ContractError("invalid_ui_document", "UI 文档结构无效") from schema_error
+        fields = _schema_error_fields(schema_error)
+        path = _schema_error_path(schema_error, fields)
+        LOGGER.warning(
+            "DesignDocument Schema 校验失败",
+            extra={
+                "event_type": "design_document_schema_failure",
+                "code": "invalid_ui_document",
+                "path": path,
+                "keyword": str(schema_error.validator or "validation"),
+                "schema_fields": ",".join(fields),
+            },
+        )
+        raise ContractError("invalid_ui_document", "UI 文档结构无效", path=path) from schema_error
     profile = contract.get("profile", {})
     document_profile = value.get("designSystem")
     if not isinstance(document_profile, Mapping) or any(
@@ -160,6 +176,35 @@ def validate_tree(value: Any, contract: Mapping[str, Any]) -> None:
     total = visit(value["root"], "/root", 1)
     if total > 500:
         raise ContractError("ui_node_limit", "UI 节点数量超限")
+    resolved = value.get("resolvedLayouts")
+    if resolved is not None:
+        if not isinstance(resolved, Mapping) or not resolved:
+            raise ContractError("layout_geometry_missing", "UI 文档缺少 resolvedLayouts")
+        expected = seen
+        for viewport_id, snapshot in resolved.items():
+            if not isinstance(viewport_id, str) or not isinstance(snapshot, Mapping):
+                raise ContractError("layout_geometry_invalid", "Geometry viewport 无效")
+            nodes = snapshot.get("nodes")
+            if not isinstance(nodes, Mapping) or set(nodes) != expected:
+                raise ContractError("layout_geometry_incomplete", "Geometry 未覆盖全部 UI 节点")
+
+
+def _schema_error_fields(error: ValidationError) -> list[str]:
+    if error.validator == "additionalProperties" and isinstance(error.instance, Mapping):
+        properties = error.schema.get("properties", {}) if isinstance(error.schema, Mapping) else {}
+        return sorted(str(key) for key in error.instance if key not in properties)
+    if error.validator == "required" and isinstance(error.instance, Mapping):
+        required = error.validator_value
+        if isinstance(required, list):
+            return sorted(str(key) for key in required if key not in error.instance)
+    return []
+
+
+def _schema_error_path(error: ValidationError, fields: list[str]) -> str:
+    parts = [str(item).replace("~", "~0").replace("/", "~1") for item in error.absolute_path]
+    if fields:
+        parts.append(fields[0].replace("~", "~0").replace("/", "~1"))
+    return "/" + "/".join(parts) if parts else "/"
 
 
 def collect_initial_ui_document_issues(

@@ -351,8 +351,7 @@
     "sizing": [
       "fixed",
       "fill",
-      "hug",
-      "minmax"
+      "hug"
     ]
   },
   "icons": [

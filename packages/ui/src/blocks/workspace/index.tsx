@@ -400,7 +400,7 @@ const Canvas = ({ document, node }: { document?: DesignDocument | null; node: Ca
     </div>
     <div className={styles.canvasSurface}>
       {document ? (
-        <DesignDocumentRenderer document={document} onError={(message) => <p>{message}</p>} />
+        <DesignDocumentRenderer document={document} viewportId="desktop" onError={(message) => <p>{message}</p>} />
       ) : !node ? (
         <Empty className={styles.canvasEmpty}>
           <EmptyHeader>

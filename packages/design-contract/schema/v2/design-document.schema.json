@@ -15,7 +15,11 @@
       "type": "object",
       "additionalProperties": { "$ref": "#/$defs/asset" }
     },
-    "root": { "$ref": "#/$defs/node" }
+    "root": { "$ref": "#/$defs/node" },
+    "resolvedLayouts": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/resolvedLayout" }
+    }
   },
   "$defs": {
     "id": { "type": "string", "minLength": 1 },
@@ -263,10 +267,8 @@
     },
     "sizing": {
       "oneOf": [
-        { "type": "object", "additionalProperties": false, "required": ["mode", "value"], "properties": { "mode": { "const": "fixed" }, "value": { "type": "number", "minimum": 0 } } },
-        { "type": "object", "additionalProperties": false, "required": ["mode"], "properties": { "mode": { "const": "fill" } } },
-        { "type": "object", "additionalProperties": false, "required": ["mode"], "properties": { "mode": { "const": "hug" } } },
-        { "type": "object", "additionalProperties": false, "required": ["mode", "min"], "properties": { "mode": { "const": "minmax" }, "min": { "type": "number", "minimum": 0 }, "max": { "type": "number", "minimum": 0 } } }
+        { "type": "object", "additionalProperties": false, "required": ["mode", "value"], "properties": { "mode": { "const": "fixed" }, "value": { "type": "number", "minimum": 0 }, "min": { "type": "number", "minimum": 0 }, "max": { "type": "number", "minimum": 0 } } },
+        { "type": "object", "additionalProperties": false, "required": ["mode"], "properties": { "mode": { "enum": ["fill", "hug"] }, "min": { "type": "number", "minimum": 0 }, "max": { "type": "number", "minimum": 0 } } }
       ]
     },
     "flexLayout": {
@@ -311,7 +313,15 @@
         "flexBasis": { "$ref": "#/$defs/styleValue" },
         "alignSelf": { "enum": ["auto", "flex-start", "flex-end", "center", "baseline", "stretch"] },
         "margin": { "$ref": "#/$defs/edgeInsets" },
-        "position": { "enum": ["flow", "absolute"] },
+        "position": { "enum": ["auto", "flow", "absolute"] },
+        "offset": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "x": { "type": "number" },
+            "y": { "type": "number" }
+          }
+        },
         "inset": { "$ref": "#/$defs/edgeInsets" }
       }
     },
@@ -334,6 +344,38 @@
         "padding": { "$ref": "#/$defs/edgeInsets" }
       }
     },
+    "geometry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y", "width", "height"],
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "width": { "type": "number", "minimum": 0 },
+        "height": { "type": "number", "minimum": 0 }
+      }
+    },
+    "resolvedLayout": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["viewport", "nodes"],
+      "properties": {
+        "viewport": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["width", "height"],
+          "properties": {
+            "width": { "type": "number", "exclusiveMinimum": 0 },
+            "height": { "type": "number", "exclusiveMinimum": 0 }
+          }
+        },
+        "nodes": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": { "$ref": "#/$defs/geometry" }
+        }
+      }
+    },
     "responsiveLayout": {
       "type": "object",
       "additionalProperties": false,
@@ -352,7 +394,7 @@
         "layout": { "$ref": "#/$defs/flexLayout" },
         "layoutItem": { "$ref": "#/$defs/flexItem" },
         "computedLayout": { "$ref": "#/$defs/computedLayout" },
-        "sizing": { "enum": ["fixed", "fill", "hug", "minmax"] },
+        "sizing": { "enum": ["fixed", "fill", "hug"] },
         "visible": { "type": "boolean" }
       }
     },

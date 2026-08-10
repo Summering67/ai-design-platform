@@ -52,7 +52,7 @@ UI Design Agent 禁止决定或生成：
 
 - `direction`、`wrap`、`justifyContent`、`alignItems`、`alignSelf`。
 - `gap`、`rowGap`、`columnGap`、布局 `padding` 和响应式断点。
-- `fixed`、`fill`、`hug`、`minmax`、`flexGrow`、`flexShrink`、`flexBasis`。
+- `fixed`、`fill`、`hug`、`flexGrow`、`flexShrink`、`flexBasis`。
 - 最终 `layout`、`layoutItem`、`responsive`、布局 style 投影或 `computedLayout` 坐标。
 
 InitialUIDocument Schema 不得强制 UI Design Agent 填写上述最终布局字段。若需要传递布局偏好，必须使用专门的布局意图字段，并保持其为非几何、非最终排版语义。
@@ -62,12 +62,13 @@ InitialUIDocument Schema 不得强制 UI Design Agent 填写上述最终布局�
 Auto Layout Agent 负责：
 
 - 在内部将合法 InitialUIDocument 确定性编译为 DesignDocument。
-- 根据既有图层结构和布局意图生成、校验并应用 LayoutPlan。
+- 根据既有图层结构、布局要求和布局意图生成、校验并应用 LayoutPlan。
+- 接收固定 viewport 与独立 measurement 输入，由内部纯函数 Flex 模块为每个 viewport 生成完整 `resolvedLayouts` Geometry 快照。
 - 生成 Flex 的方向、换行、对齐、间距、内边距、尺寸策略和响应式规则。
-- 将布局结果投影为渲染器可消费的 `layout`、`layoutItem`、`responsive` 和布局 style。
+- 将布局事实写入 `layout`、`layoutItem`、`responsive`，将 Geometry 写入 `resolvedLayouts`；Renderer 只消费 Geometry。
 - 返回通过完整契约及渲染门禁的 final DesignDocument。
 
-Auto Layout Agent 禁止创建、删除、移动、重排或重新挂载节点，禁止修改稳定 ID、组件、内容、业务 props 和非布局视觉样式；模型不得生成 `computedLayout` 或其他几何坐标。
+Auto Layout Agent 禁止创建、删除、移动、重排或重新挂载节点，禁止修改稳定 ID、组件、内容、业务 props 和非布局视觉样式；模型不得生成 `computedLayout`、`resolvedLayouts` 或其他几何坐标。
 
 ### Harness
 

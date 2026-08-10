@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 
 import pytest
@@ -30,6 +31,27 @@ def test_v2_fixtures_validate() -> None:
         _read("packages/design-contract/fixtures/v2/agent-run-event.input-required.json")
     )
     validate_tree(_read("packages/design-contract/fixtures/v2/login-page.document.json"), contract)
+
+
+def test_validate_tree_logs_schema_failure_path(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level(logging.WARNING, logger="ai_design_server.agents.contracts")
+    contract = _read("packages/design-contract/fixtures/v2/team-default.generation-contract.json")
+    document = _read("packages/design-contract/fixtures/v2/login-page.document.json")
+    document["root"]["tokens"] = ["color.primary"]
+
+    with pytest.raises(ContractError) as raised:
+        validate_tree(document, contract)
+
+    record = next(
+        item
+        for item in caplog.records
+        if getattr(item, "event_type", "") == "design_document_schema_failure"
+    )
+    assert raised.value.path == "/root/tokens"
+    assert record.code == "invalid_ui_document"
+    assert record.path == "/root/tokens"
+    assert record.keyword == "additionalProperties"
+    assert record.schema_fields == "tokens"
 
 
 def test_default_generation_contract_exposes_all_ant_design_components() -> None:
@@ -109,11 +131,11 @@ def test_default_generation_contract_exposes_all_ant_design_components() -> None
         "config-provider",
         "util",
     ]
-    expected = {f"ui.{name}" for name in names}
+    expected = set(contract["components"])
 
     assert len(expected) == 72
-    assert set(contract["components"]) == expected
     assert set(fixture["components"]) == expected
+    assert all(not name.startswith("ui.") for name in expected)
 
 
 def test_v2_prd_rejects_unknown_fields_and_duplicate_ids() -> None:

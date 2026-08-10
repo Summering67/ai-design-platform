@@ -3,25 +3,24 @@
 ## Purpose
 
 定义由 Root Agent 驱动、UI Design 与 Auto Layout 两个专业 Agent 执行的项目级设计生成。
-
 ## Requirements
-
 ### Requirement: Root Agent 项目生成
-系统 SHALL 在项目 generation 的前台 SSE 请求内，以当前目标用户消息作为需求启动 Root Agent，并使用仅服务端可见的固定 GenerationContract。Root SHALL 按 `StandardizedPRD → UI Design InitialUIDocument → Auto Layout final DesignDocument` 的两个 Agent 依赖推进；Auto Layout MUST 在内部完成确定性编译、Flex 布局规划与应用及最终门禁，系统不得新增 Specification、独立 Compiler、Layout Engine 或 Final Gate 阶段。系统 MUST 将停止、断开和超时取消传播给 Root Agent，且不得启动后台运行。
 
-两个专业 Agent MAY 复用非 Agent 的执行 Harness 进行有限生成与校验 Loop。该 Harness 不得出现在任务 catalog 中，不得改变阶段产物，只能将短错误摘要传给同一 Agent 的下一次尝试。
+Auto Layout 阶段 SHALL 接收 InitialUIDocument、布局要求、布局能力、固定 viewport 和 measurement 输入，在内部生成 LayoutPlan、解析 Geometry，并返回包含完整 `resolvedLayouts` 的 final DesignDocument。
 
-#### Scenario: 用户消息启动 Root
-- **WHEN** 项目所有者提交有效用户消息
-- **THEN** 系统保存用户消息与 generation 尝试、发送 generation 事件并启动 Root Agent
+#### Scenario: Geometry 门禁
 
-#### Scenario: Agent 成功完成
-- **WHEN** UI Design 和 Auto Layout 两个 Agent 均通过自身门禁，且 Auto Layout 返回的最终 DesignDocument 通过后端契约与 v2 render model 校验
-- **THEN** 系统发送唯一 completed 事件及最终文档，并完成 generation 尝试
+- **WHEN** 任一固定 viewport 的布局无法解析或快照不完整
+- **THEN** Root 不发送 completed result
 
-#### Scenario: 中间产物无效
-- **WHEN** 任一 Agent 输出不符合声明 Schema 或越过职责边界
-- **THEN** Root 不把该输出写入有效状态，并按有限重试规则重试或以稳定错误结束，不得由后续 Agent 猜测修复任意结构
+### Requirement: Auto Layout Geometry 交付
+
+Auto Layout SHALL 在返回 final DesignDocument 前，为每个固定 viewport 生成完整 `resolvedLayouts`，并将 layout/layoutItem/responsive 作为布局事实。缺少 Geometry 的文档不得发送 completed 事件。
+
+#### Scenario: Geometry 快照完整
+
+- **WHEN** Auto Layout 完成所有已声明 viewport 的布局解析
+- **THEN** final DesignDocument 为每个 viewport 提供覆盖全部可见节点的 `resolvedLayouts`，并允许发送 completed 事件
 
 ### Requirement: Auto Layout 响应式文档契约
 最终 DesignDocument v2 Schema SHALL 接受由 Auto Layout Agent 内部合法 LayoutPlan 和布局模块写入的响应式 layout、layoutItem、flexWrap、sizing 和可选 computedLayout 字段；所有枚举与尺寸模式 MUST 受 GenerationContract 限制。Auto Layout Agent MUST 同步提供当前画布可消费的基础 style 投影，并在返回前完成最终文档校验。
@@ -33,3 +32,4 @@
 #### Scenario: 模型尝试写入坐标
 - **WHEN** Auto Layout 模型输出包含 computedLayout、x、y、width 或 height 几何结果而非 LayoutPlan 允许的尺寸意图
 - **THEN** LayoutPlan Schema 拒绝输出且最终文档保持不变
+

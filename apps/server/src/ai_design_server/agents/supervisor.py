@@ -137,6 +137,10 @@ async def _run_task(
             contract,
             model,
             run_id=state["run_id"],
+            layout_requirements=[
+                *completed["prd"].get("responsive", []),
+                *completed["prd"].get("constraints", []),
+            ],
         )
         return {
             "final_document": result["document"],

@@ -120,8 +120,11 @@ async def test_auto_layout_model_receives_only_initial_ui_document() -> None:
         type("Model", (), {"structured": staticmethod(structured)})(),
     )
 
-    assert payloads == [{"initialUiDocument": initial}]
+    assert payloads[0]["initialUiDocument"] == initial
+    assert payloads[0]["layoutCapabilities"] == contract["layout"]
+    assert payloads[0]["viewports"] == []
     assert result["validation"]["passed"] is True
+    assert set(result["document"]["resolvedLayouts"]) == {"desktop"}
     validate_tree(result["document"], contract)
 
 

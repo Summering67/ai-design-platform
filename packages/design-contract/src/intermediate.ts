@@ -42,8 +42,18 @@ export type InitialUINode = {
 };
 export type LayoutPlan = {
   version: "1.0.0";
-  viewport: { width: number; height: number };
+  viewport?: { width: number; height: number };
   operations: Array<{ nodeId: string; layout?: Record<string, JsonValue>; layoutItem?: Record<string, JsonValue>; responsive?: Record<string, Record<string, JsonValue>> }>;
+};
+
+export type LayoutViewport = { id: string; width: number; height: number };
+export type LayoutMeasurement = { width: number; height: number; baseline?: number };
+export type AutoLayoutInput = {
+  initialUiDocument: InitialUIDocument;
+  layoutRequirements?: JsonValue[];
+  layoutCapabilities?: Record<string, JsonValue>;
+  viewports: LayoutViewport[];
+  measurements?: Record<string, LayoutMeasurement>;
 };
 
 export { initialUiDocumentSchema, layoutPlanSchema };

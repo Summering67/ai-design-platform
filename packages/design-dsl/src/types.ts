@@ -38,7 +38,7 @@ export type DesignSystemProfile = {
   components: Record<string, ProfileComponentContract>;
   layout: {
     modes?: Array<"flex" | "absolute">;
-    sizing?: Array<"fixed" | "fill" | "hug" | "minmax">;
+    sizing?: Array<"fixed" | "fill" | "hug">;
   };
   icons?: Record<string, unknown>;
   assets?: { mimeTypes?: string[]; sources?: string[] };
@@ -53,16 +53,16 @@ export type DesignGenerationContract = {
   icons: string[];
 };
 export type Sizing =
-  | { mode: "fixed"; value: number }
-  | { mode: "fill" }
-  | { mode: "hug" }
-  | { mode: "minmax"; min: number; max?: number };
+  | { mode: "fixed"; value: number; min?: number; max?: number }
+  | { mode: "fill"; min?: number; max?: number }
+  | { mode: "hug"; min?: number; max?: number };
 export type LayoutItem = {
   width?: Sizing;
   height?: Sizing;
   grow?: number;
   shrink?: number;
-  position?: "flow" | "absolute";
+  position?: "auto" | "flow" | "absolute";
+  offset?: Partial<Record<"x" | "y", number>>;
   inset?: Partial<Record<"top" | "right" | "bottom" | "left", number>>;
 };
 export type FlexLayout = {

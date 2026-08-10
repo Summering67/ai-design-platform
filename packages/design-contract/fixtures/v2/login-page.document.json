@@ -35,6 +35,17 @@
       "alt": "品牌 Logo"
     }
   },
+  "resolvedLayouts": {
+    "desktop": {
+      "viewport": {"width": 1440, "height": 900},
+      "nodes": {
+        "root": {"x": 0, "y": 0, "width": 1440, "height": 900},
+        "logo-node": {"x": 0, "y": 0, "width": 320, "height": 40},
+        "title": {"x": 0, "y": 40, "width": 320, "height": 0},
+        "submit": {"x": 0, "y": 40, "width": 320, "height": 40}
+      }
+    }
+  },
   "root": {
     "id": "root",
     "kind": "element",
