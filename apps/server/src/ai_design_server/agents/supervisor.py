@@ -134,10 +134,8 @@ async def _run_task(
     if name == "auto_layout":
         result = await run_layout(
             completed["initial_ui_document"],
-            completed["prd"],
             contract,
             model,
-            resolved_user_inputs,
             run_id=state["run_id"],
         )
         return {

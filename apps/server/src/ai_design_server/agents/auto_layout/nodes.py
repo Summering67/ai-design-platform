@@ -12,12 +12,11 @@ from .prompts import SYSTEM_PROMPT
 
 class AutoLayoutState(TypedDict, total=False):
     document: dict[str, Any]
-    prd: dict[str, Any]
+    initial_ui_document: dict[str, Any]
     contract: dict[str, Any]
     plan: list[dict[str, Any]]
     result: dict[str, Any]
     changes: list[dict[str, Any]]
-    resolved_user_inputs: list[dict[str, Any]]
     run_id: str
 
 
@@ -35,17 +34,12 @@ async def plan(state: AutoLayoutState, *, model: ModelPort) -> AutoLayoutState:
     response = await run_structured_harness(
         model,
         SYSTEM_PROMPT,
-        {
-            "document": state["document"],
-            "prd": state["prd"],
-            "resolvedUserInputs": state.get("resolved_user_inputs", []),
-            "contract": state["contract"],
-            "instruction": "只生成合法 Flex operations",
-        },
+        {"initialUiDocument": state["initial_ui_document"]},
         load_schema("layout-plan.schema.json"),
         validate_plan,
         stage="auto_layout",
         run_id=state.get("run_id"),
+        trace_contract=state["contract"],
     )
     operations = response.get("operations", [])
     result, changes = apply_layout(state["document"], operations, state["contract"])

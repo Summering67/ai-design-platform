@@ -21,20 +21,17 @@ def build(model: ModelPort) -> Any:
 
 
 async def run(
-    document: dict[str, Any],
-    prd: dict[str, Any],
+    initial_ui_document: dict[str, Any],
     contract: dict[str, Any],
     model: ModelPort,
-    resolved_user_inputs: list[dict[str, Any]] | None = None,
     run_id: str | None = None,
 ) -> dict[str, Any]:
-    compiled = compile_initial_ui_document(document, contract)
+    compiled = compile_initial_ui_document(initial_ui_document, contract)
     result = await build(model).ainvoke(
         {
             "document": compiled,
-            "prd": prd,
+            "initial_ui_document": initial_ui_document,
             "contract": contract,
-            "resolved_user_inputs": resolved_user_inputs or [],
             "run_id": run_id or "",
         }
     )

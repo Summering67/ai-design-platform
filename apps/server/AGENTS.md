@@ -25,6 +25,53 @@
 - Pydantic 请求模型使用 `extra="forbid"`；validation/领域异常统一转换为现有 API 错误结构。
 - SSE 使用 `StreamingResponse`，客户端断开必须取消上游并终结 generation。
 
+## UI 生成 Agent 职责边界
+
+项目生成流水线固定为：
+
+```text
+PRD
+  → UI Design Agent
+  → InitialUIDocument
+  → Auto Layout Agent
+  → final DesignDocument
+```
+
+禁止增加 Specification、独立 Compiler、Layout Engine 或 Final Gate Agent/任务。确定性编译器、Flex 布局引擎和 Harness 只能作为两个 Agent 的内部普通模块。
+
+### UI Design Agent
+
+UI Design Agent 负责：
+
+- 图层节点、稳定 ID、父子层级和节点顺序。
+- 组件选择、内容、业务 props、交互意图和资源引用。
+- 颜色、字体、边框、阴影、圆角等非布局视觉样式。
+- 必要的容器语义和布局意图，但不得提前生成最终排版参数。
+
+UI Design Agent 禁止决定或生成：
+
+- `direction`、`wrap`、`justifyContent`、`alignItems`、`alignSelf`。
+- `gap`、`rowGap`、`columnGap`、布局 `padding` 和响应式断点。
+- `fixed`、`fill`、`hug`、`minmax`、`flexGrow`、`flexShrink`、`flexBasis`。
+- 最终 `layout`、`layoutItem`、`responsive`、布局 style 投影或 `computedLayout` 坐标。
+
+InitialUIDocument Schema 不得强制 UI Design Agent 填写上述最终布局字段。若需要传递布局偏好，必须使用专门的布局意图字段，并保持其为非几何、非最终排版语义。
+
+### Auto Layout Agent
+
+Auto Layout Agent 负责：
+
+- 在内部将合法 InitialUIDocument 确定性编译为 DesignDocument。
+- 根据既有图层结构和布局意图生成、校验并应用 LayoutPlan。
+- 生成 Flex 的方向、换行、对齐、间距、内边距、尺寸策略和响应式规则。
+- 将布局结果投影为渲染器可消费的 `layout`、`layoutItem`、`responsive` 和布局 style。
+- 返回通过完整契约及渲染门禁的 final DesignDocument。
+
+Auto Layout Agent 禁止创建、删除、移动、重排或重新挂载节点，禁止修改稳定 ID、组件、内容、业务 props 和非布局视觉样式；模型不得生成 `computedLayout` 或其他几何坐标。
+
+### Harness
+
+Harness 只负责模型调用、候选校验、短错误摘要和有限重试。Harness 不是 Agent，不得修改 UI 图层结构、重写 DesignDocument、生成 LayoutPlan 或计算坐标，也不得把完整错误响应或失败候选再次传给模型。
 
 ## 检查
 

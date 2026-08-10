@@ -54,6 +54,7 @@ async def run_structured_harness(
     stage: str | None = None,
     run_id: str | None = None,
     collect_candidate_issues: CandidateIssueCollector | None = None,
+    trace_contract: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     if max_attempts < 1:
         raise ValueError("Harness 尝试次数必须大于零")
@@ -94,6 +95,7 @@ async def run_structured_harness(
                 duration_ms=(time.monotonic() - started) * 1000,
                 candidate=candidate,
                 issues=[],
+                trace_contract=trace_contract,
             )
             return candidate
         except InputRequired:
@@ -110,6 +112,7 @@ async def run_structured_harness(
                 duration_ms=(time.monotonic() - started) * 1000,
                 candidate=candidate,
                 issues=[],
+                trace_contract=trace_contract,
             )
             raise
         except AgentError as error:
@@ -142,6 +145,7 @@ async def run_structured_harness(
                 duration_ms=(time.monotonic() - started) * 1000,
                 candidate=candidate,
                 issues=issues,
+                trace_contract=trace_contract,
             )
             if (
                 not isinstance(error, ContractError) and not error.retryable
@@ -182,8 +186,9 @@ def _log_trace(
     duration_ms: float,
     candidate: dict[str, Any] | None,
     issues: list[DiagnosticIssue],
+    trace_contract: Mapping[str, Any] | None,
 ) -> None:
-    contract = payload.get("generationContract", payload.get("contract", {}))
+    contract = trace_contract or payload.get("generationContract", payload.get("contract", {}))
     extra = {
         "event_type": "agent_harness_attempt",
         "run_id": run_id or "",

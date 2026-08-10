@@ -23,7 +23,7 @@ def _read(path: str) -> dict[str, Any]:
 @pytest.mark.asyncio
 async def test_ui_design_returns_strict_initial_ui_json() -> None:
     initial = _read("packages/design-contract/fixtures/v2/initial-ui-document.valid.json")
-    contract = _read("packages/design-contract/fixtures/v1/team-default.generation-contract.json")
+    contract = _read("packages/design-contract/fixtures/v2/team-default.generation-contract.json")
     schemas: list[dict[str, Any]] = []
 
     async def structured(
@@ -46,8 +46,8 @@ async def test_ui_design_harness_collects_schema_and_semantic_issues(
 ) -> None:
     caplog.set_level(logging.WARNING, logger="ai_design_server.agents.harness")
     initial = _read("packages/design-contract/fixtures/v2/initial-ui-document.valid.json")
-    contract = _read("packages/design-contract/fixtures/v1/team-default.generation-contract.json")
-    initial["root"]["layout"]["gap"] = "8px"
+    contract = _read("packages/design-contract/fixtures/v2/team-default.generation-contract.json")
+    initial["root"]["style"]["display"] = "flex"
     initial["root"]["children"][1]["id"] = "root"
     initial["root"]["children"][1]["tag"] = "ui.unknown"
     initial["root"]["children"][1]["tokens"] = ["color.unknown"]
@@ -69,7 +69,7 @@ async def test_ui_design_harness_collects_schema_and_semantic_issues(
 
     assert traces[-1].failure_phase == "json_schema"
     assert {issue["code"] for issue in issues} >= {
-        "schema_type",
+        "schema_additionalProperties",
         "ui_duplicate_id",
         "ui_component_forbidden",
         "ui_token_forbidden",
@@ -78,7 +78,7 @@ async def test_ui_design_harness_collects_schema_and_semantic_issues(
 
 def test_auto_layout_compiler_is_deterministic_and_valid() -> None:
     initial = _read("packages/design-contract/fixtures/v2/initial-ui-document.valid.json")
-    contract = _read("packages/design-contract/fixtures/v1/team-default.generation-contract.json")
+    contract = _read("packages/design-contract/fixtures/v2/team-default.generation-contract.json")
 
     first = compile_initial_ui_document(initial, contract)
     second = compile_initial_ui_document(initial, contract)
@@ -87,18 +87,20 @@ def test_auto_layout_compiler_is_deterministic_and_valid() -> None:
     validate_tree(first, contract)
     assert first["root"]["id"] == initial["root"]["id"]
     assert first["root"]["children"][0]["text"] == "欢迎登录"
+    assert "layoutIntent" not in first["root"]
+    assert "layout" not in first["root"]
 
 
 @pytest.mark.asyncio
-async def test_auto_layout_compiles_before_requesting_layout_plan() -> None:
+async def test_auto_layout_model_receives_only_initial_ui_document() -> None:
     initial = _read("packages/design-contract/fixtures/v2/initial-ui-document.valid.json")
-    contract = _read("packages/design-contract/fixtures/v1/team-default.generation-contract.json")
-    documents: list[dict[str, Any]] = []
+    contract = _read("packages/design-contract/fixtures/v2/team-default.generation-contract.json")
+    payloads: list[dict[str, Any]] = []
 
     async def structured(
         _purpose: str, payload: dict[str, Any], _schema: dict[str, Any], **_: Any
     ) -> dict[str, Any]:
-        documents.append(payload["document"])
+        payloads.append(payload)
         return {
             "version": "1.0.0",
             "viewport": {"width": 1440, "height": 900},
@@ -112,12 +114,11 @@ async def test_auto_layout_compiles_before_requesting_layout_plan() -> None:
 
     result = await run_auto_layout(
         initial,
-        {},
         contract,
         type("Model", (), {"structured": staticmethod(structured)})(),
     )
 
-    assert documents[0]["version"] == "2.0.0"
+    assert payloads == [{"initialUiDocument": initial}]
     assert result["validation"]["passed"] is True
     validate_tree(result["document"], contract)
 
@@ -125,7 +126,7 @@ async def test_auto_layout_compiles_before_requesting_layout_plan() -> None:
 @pytest.mark.asyncio
 async def test_auto_layout_does_not_call_model_when_compilation_fails() -> None:
     initial = _read("packages/design-contract/fixtures/v2/initial-ui-document.valid.json")
-    contract = _read("packages/design-contract/fixtures/v1/team-default.generation-contract.json")
+    contract = _read("packages/design-contract/fixtures/v2/team-default.generation-contract.json")
     initial["root"]["children"][0]["id"] = "root"
     calls = 0
 
@@ -137,7 +138,6 @@ async def test_auto_layout_does_not_call_model_when_compilation_fails() -> None:
     with pytest.raises(ContractError):
         await run_auto_layout(
             initial,
-            {},
             contract,
             type("Model", (), {"structured": staticmethod(structured)})(),
         )

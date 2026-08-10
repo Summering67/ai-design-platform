@@ -68,7 +68,7 @@ def _fake_model() -> SimpleNamespace:
 @pytest.mark.asyncio
 async def test_root_runs_dynamic_v2_pipeline(caplog: pytest.LogCaptureFixture) -> None:
     caplog.set_level(logging.DEBUG, logger="ai_design_server.agents")
-    contract = _read("packages/design-contract/fixtures/v1/team-default.generation-contract.json")
+    contract = _read("packages/design-contract/fixtures/v2/team-default.generation-contract.json")
     events = [
         event
         async for event in run_agent(
@@ -116,7 +116,7 @@ async def test_root_runs_dynamic_v2_pipeline(caplog: pytest.LogCaptureFixture) -
 
 @pytest.mark.asyncio
 async def test_agent_continues_pipeline_after_user_answers_input_request() -> None:
-    contract = _read("packages/design-contract/fixtures/v1/team-default.generation-contract.json")
+    contract = _read("packages/design-contract/fixtures/v2/team-default.generation-contract.json")
     model = _fake_model()
     structured = model.structured
 
@@ -193,7 +193,7 @@ async def test_agent_continues_pipeline_after_user_answers_input_request() -> No
 
 @pytest.mark.asyncio
 async def test_agent_returns_timeout_when_child_agent_does_not_respond() -> None:
-    contract = _read("packages/design-contract/fixtures/v1/team-default.generation-contract.json")
+    contract = _read("packages/design-contract/fixtures/v2/team-default.generation-contract.json")
 
     async def structured(*_: Any, **__: Any) -> dict[str, Any]:
         await asyncio.sleep(1)
@@ -222,7 +222,7 @@ async def test_agent_returns_timeout_when_child_agent_does_not_respond() -> None
 
 @pytest.mark.asyncio
 async def test_agent_total_timeout_is_not_extended_by_reasoning_activity() -> None:
-    contract = _read("packages/design-contract/fixtures/v1/team-default.generation-contract.json")
+    contract = _read("packages/design-contract/fixtures/v2/team-default.generation-contract.json")
 
     async def structured(*_: Any, on_reasoning: Any = None, **__: Any) -> dict[str, Any]:
         while True:
@@ -250,7 +250,7 @@ async def test_agent_total_timeout_is_not_extended_by_reasoning_activity() -> No
 
 @pytest.mark.asyncio
 async def test_reasoning_is_truncated_without_blocking_final_output() -> None:
-    contract = _read("packages/design-contract/fixtures/v1/team-default.generation-contract.json")
+    contract = _read("packages/design-contract/fixtures/v2/team-default.generation-contract.json")
     prd = _read("packages/design-contract/fixtures/v2/standardized-prd.valid.json")
     task_id = "task-1"
     state: dict[str, Any] = {
@@ -302,7 +302,7 @@ async def test_reasoning_is_truncated_without_blocking_final_output() -> None:
 
 @pytest.mark.asyncio
 async def test_any_agent_input_request_stops_pipeline() -> None:
-    contract = _read("packages/design-contract/fixtures/v1/team-default.generation-contract.json")
+    contract = _read("packages/design-contract/fixtures/v2/team-default.generation-contract.json")
 
     async def structured(*_: Any, **__: Any) -> dict[str, Any]:
         raise InputRequired(
