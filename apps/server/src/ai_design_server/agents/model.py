@@ -21,6 +21,10 @@ class _StreamStats(TypedDict):
     response_bytes: int
     stream_event_count: int
     http_status: int | None
+    json_error_position: int
+    json_error_line: int
+    json_error_column: int
+    json_is_fenced: bool
 
 
 class ModelPort(Protocol):
@@ -163,6 +167,10 @@ def _log_model_attempt(
         "response_bytes": stats["response_bytes"],
         "stream_event_count": stats["stream_event_count"],
         "http_status": stats["http_status"] or 0,
+        "json_error_position": stats["json_error_position"],
+        "json_error_line": stats["json_error_line"],
+        "json_error_column": stats["json_error_column"],
+        "json_is_fenced": stats["json_is_fenced"],
         "error_code": error.code if error is not None else "",
         "retryable": error.retryable if error is not None else False,
         "model": config.model,
@@ -186,6 +194,10 @@ async def _structured_attempt(
         "response_bytes": 0,
         "stream_event_count": 0,
         "http_status": None,
+        "json_error_position": -1,
+        "json_error_line": 0,
+        "json_error_column": 0,
+        "json_is_fenced": False,
     }
     try:
         content = await _stream_completion(
@@ -202,6 +214,10 @@ async def _structured_attempt(
         try:
             value = json.loads(content)
         except json.JSONDecodeError as error:
+            stats["json_error_position"] = error.pos
+            stats["json_error_line"] = error.lineno
+            stats["json_error_column"] = error.colno
+            stats["json_is_fenced"] = content.lstrip().startswith("```")
             raise AgentError(
                 "invalid_model_json", "Agent 模型返回非 JSON", retryable=True
             ) from error

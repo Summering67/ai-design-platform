@@ -265,6 +265,10 @@ async def test_fallback_read_timeout_keeps_retryable_cause(
         ("thinking", "invalid_model_json"),
         ("fallback", "model_read_timeout"),
     ]
+    assert traces[0].json_error_position == 0
+    assert traces[0].json_error_line == 1
+    assert traces[0].json_error_column == 1
+    assert traces[0].json_is_fenced is False
     assert all(not hasattr(record, "response_body") for record in traces)
 
 
