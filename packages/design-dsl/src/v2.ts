@@ -15,8 +15,15 @@ export type DesignValidationError = {
   message: string;
 };
 
-const ajv = new Ajv2020({ allErrors: true, strict: true, strictSchema: false, strictRequired: false });
-const addFormats = addFormatsModule.default as unknown as (instance: Ajv2020) => void;
+const ajv = new Ajv2020({
+  allErrors: true,
+  strict: true,
+  strictSchema: false,
+  strictRequired: false,
+});
+const addFormats = addFormatsModule.default as unknown as (
+  instance: Ajv2020,
+) => void;
 addFormats(ajv);
 const validateSchema = ajv.compile<DesignDocument>(schema);
 const pathFor = (path: string | undefined): string =>
@@ -36,7 +43,9 @@ const componentFor = (document: DesignDocument, node: DesignNode) =>
   Object.values(document.designSystem.components).find(
     (component) => component.id === node.tag,
   ) ?? document.designSystem.components[node.tag];
-export const validateDesignDocument = (input: unknown): V2Result<DesignDocument> => {
+export const validateDesignDocument = (
+  input: unknown,
+): V2Result<DesignDocument> => {
   if (!validateSchema(input))
     return fail(
       ...(validateSchema.errors ?? []).map((item) => ({
@@ -49,13 +58,44 @@ export const validateDesignDocument = (input: unknown): V2Result<DesignDocument>
   const errors: DesignValidationError[] = [];
   const ids = new Set<string>();
   const visit = (node: DesignNode, path: string): void => {
-    if (ids.has(node.id)) errors.push({ code: "duplicate_id", path: `${path}/id`, message: "节点 ID 必须在文档内唯一" });
+    if (ids.has(node.id))
+      errors.push({
+        code: "duplicate_id",
+        path: `${path}/id`,
+        message: "节点 ID 必须在文档内唯一",
+      });
     ids.add(node.id);
-    if (node.kind === "image" && !document.assets[node.assetId!]) errors.push({ code: "unknown_asset", path: `${path}/assetId`, message: "资源不存在" });
-    if (node.kind === "component" && !componentFor(document, node)) errors.push({ code: "unknown_component", path: `${path}/tag`, message: "组件未在 designSystem 快照中注册" });
-    if (node.kind === "component" && document.designSystem.allowedTags && !document.designSystem.allowedTags.includes(node.tag)) errors.push({ code: "tag_not_allowed", path: `${path}/tag`, message: "节点 tag 未被 designSystem 允许" });
-    if (containsDesignNode(node.props)) errors.push({ code: "nested_design_node", path: `${path}/props`, message: "props 不得隐藏 DesignNode" });
-    node.children.forEach((child, index) => visit(child, `${path}/children/${index}`));
+    if (node.kind === "image" && !document.assets[node.assetId!])
+      errors.push({
+        code: "unknown_asset",
+        path: `${path}/assetId`,
+        message: "资源不存在",
+      });
+    if (node.kind === "component" && !componentFor(document, node))
+      errors.push({
+        code: "unknown_component",
+        path: `${path}/tag`,
+        message: "组件未在 designSystem 快照中注册",
+      });
+    if (
+      node.kind === "component" &&
+      document.designSystem.allowedTags &&
+      !document.designSystem.allowedTags.includes(node.tag)
+    )
+      errors.push({
+        code: "tag_not_allowed",
+        path: `${path}/tag`,
+        message: "节点 tag 未被 designSystem 允许",
+      });
+    if (containsDesignNode(node.props))
+      errors.push({
+        code: "nested_design_node",
+        path: `${path}/props`,
+        message: "props 不得隐藏 DesignNode",
+      });
+    node.children.forEach((child, index) =>
+      visit(child, `${path}/children/${index}`),
+    );
   };
   visit(document.root, "/root");
   return errors.length ? fail(...errors) : ok(document);
@@ -120,7 +160,11 @@ export const fromDesignGraph = (
   const visiting = new Set<string>();
   const visited = new Set<string>();
   const errors: DesignValidationError[] = [];
-  const build = (id: string, parentId: string | null, path: string): DesignNode | null => {
+  const build = (
+    id: string,
+    parentId: string | null,
+    path: string,
+  ): DesignNode | null => {
     const entry = graph.nodes[id];
     if (!entry) {
       errors.push({
@@ -134,7 +178,9 @@ export const fromDesignGraph = (
     visiting.add(id);
     visited.add(id);
     const node = clone(entry.node);
-    node.children = entry.childIds.map((childId) => build(childId, id, `${path}/children/${childId}`)).filter((child): child is DesignNode => Boolean(child));
+    node.children = entry.childIds
+      .map((childId) => build(childId, id, `${path}/children/${childId}`))
+      .filter((child): child is DesignNode => Boolean(child));
     visiting.delete(id);
     return node;
   };
@@ -152,15 +198,42 @@ export const fromDesignGraph = (
 };
 
 export type V2Operation =
-  | { type: "insert-subtree"; parentId: string; index: number; subtree: DesignNode }
-  | { type: "move-node"; nodeId: string; parentId: string; index: number; expectedParentId?: string }
+  | {
+      type: "insert-subtree";
+      parentId: string;
+      index: number;
+      subtree: DesignNode;
+    }
+  | {
+      type: "move-node";
+      nodeId: string;
+      parentId: string;
+      index: number;
+      expectedParentId?: string;
+    }
   | { type: "remove-node"; nodeId: string; expectedParentId?: string }
   | { type: "set-text"; nodeId: string; text: string }
-  | { type: "patch-style"; nodeId: string; patches: Record<string, unknown | null> };
+  | {
+      type: "patch-style";
+      nodeId: string;
+      patches: Record<string, unknown | null>;
+    }
+  | {
+      type: "patch-layout";
+      nodeId: string;
+      patches: Record<string, unknown | null>;
+    }
+  | {
+      type: "patch-layout-item";
+      nodeId: string;
+      patches: Record<string, unknown | null>;
+    };
 
 const subtreeIds = (graph: DesignGraph, id: string): string[] => {
   const entry = graph.nodes[id];
-  return entry ? [id, ...entry.childIds.flatMap((childId) => subtreeIds(graph, childId))] : [];
+  return entry
+    ? [id, ...entry.childIds.flatMap((childId) => subtreeIds(graph, childId))]
+    : [];
 };
 
 const treeIds = (node: DesignNode): string[] => [
@@ -168,7 +241,11 @@ const treeIds = (node: DesignNode): string[] => [
   ...node.children.flatMap(treeIds),
 ];
 
-const addSubtree = (graph: DesignGraph, node: DesignNode, parentId: string): void => {
+const addSubtree = (
+  graph: DesignGraph,
+  node: DesignNode,
+  parentId: string,
+): void => {
   graph.nodes[node.id] = graphEntry(node, parentId);
   node.children.forEach((child) => addSubtree(graph, child, node.id));
 };
@@ -187,58 +264,153 @@ export const applyV2Operations = (
   try {
     for (const [index, operation] of operations.entries()) {
       const target = graph.nodes["nodeId" in operation ? operation.nodeId : ""];
-      if ("nodeId" in operation && (!target || operation.nodeId === graph.rootId))
-        throw { code: "invalid_node", path: `/operations/${index}/nodeId`, message: "节点不存在或 Root 不可编辑" };
+      if ("nodeId" in operation && !target)
+        throw {
+          code: "invalid_node",
+          path: `/operations/${index}/nodeId`,
+          message: "节点不存在",
+        };
       if (operation.type === "insert-subtree") {
         const parent = graph.nodes[operation.parentId];
-        if (!parent || operation.index < 0 || operation.index > parent.childIds.length)
-          throw { code: "invalid_parent", path: `/operations/${index}/parentId`, message: "父节点或插入位置无效" };
+        if (
+          !parent ||
+          operation.index < 0 ||
+          operation.index > parent.childIds.length
+        )
+          throw {
+            code: "invalid_parent",
+            path: `/operations/${index}/parentId`,
+            message: "父节点或插入位置无效",
+          };
         const ids = treeIds(operation.subtree);
         const addedIds = new Set(ids);
-        if (addedIds.size !== ids.length || Object.keys(graph.nodes).some((id) => addedIds.has(id)))
-          throw { code: "duplicate_id", path: `/operations/${index}/subtree`, message: "子树包含重复或冲突 ID" };
+        if (
+          addedIds.size !== ids.length ||
+          Object.keys(graph.nodes).some((id) => addedIds.has(id))
+        )
+          throw {
+            code: "duplicate_id",
+            path: `/operations/${index}/subtree`,
+            message: "子树包含重复或冲突 ID",
+          };
         addSubtree(graph, operation.subtree, operation.parentId);
         parent.childIds.splice(operation.index, 0, operation.subtree.id);
         continue;
       }
       if (!target) continue;
       if (operation.type === "move-node") {
+        if (operation.nodeId === graph.rootId)
+          throw {
+            code: "invalid_node",
+            path: `/operations/${index}/nodeId`,
+            message: "Root 不可移动",
+          };
         const parent = graph.nodes[operation.parentId];
-        if (!parent || subtreeIds(graph, operation.nodeId).includes(operation.parentId))
-          throw { code: "invalid_parent", path: `/operations/${index}/parentId`, message: "父节点无效或会形成循环" };
-        if (operation.expectedParentId && target.parentId !== operation.expectedParentId)
-          throw { code: "parent_conflict", path: `/operations/${index}/expectedParentId`, message: "期望父节点不匹配" };
-        const oldParent = target.parentId ? graph.nodes[target.parentId] : undefined;
-        oldParent?.childIds.splice(oldParent.childIds.indexOf(operation.nodeId), 1);
+        if (
+          !parent ||
+          subtreeIds(graph, operation.nodeId).includes(operation.parentId)
+        )
+          throw {
+            code: "invalid_parent",
+            path: `/operations/${index}/parentId`,
+            message: "父节点无效或会形成循环",
+          };
+        if (
+          operation.expectedParentId &&
+          target.parentId !== operation.expectedParentId
+        )
+          throw {
+            code: "parent_conflict",
+            path: `/operations/${index}/expectedParentId`,
+            message: "期望父节点不匹配",
+          };
+        const oldParent = target.parentId
+          ? graph.nodes[target.parentId]
+          : undefined;
+        oldParent?.childIds.splice(
+          oldParent.childIds.indexOf(operation.nodeId),
+          1,
+        );
         target.parentId = operation.parentId;
         parent.childIds.splice(operation.index, 0, operation.nodeId);
         continue;
       }
       if (operation.type === "remove-node") {
-        if (operation.expectedParentId && target.parentId !== operation.expectedParentId)
-          throw { code: "parent_conflict", path: `/operations/${index}/expectedParentId`, message: "期望父节点不匹配" };
-        const parent = target.parentId ? graph.nodes[target.parentId] : undefined;
+        if (operation.nodeId === graph.rootId)
+          throw {
+            code: "invalid_node",
+            path: `/operations/${index}/nodeId`,
+            message: "Root 不可删除",
+          };
+        if (
+          operation.expectedParentId &&
+          target.parentId !== operation.expectedParentId
+        )
+          throw {
+            code: "parent_conflict",
+            path: `/operations/${index}/expectedParentId`,
+            message: "期望父节点不匹配",
+          };
+        const parent = target.parentId
+          ? graph.nodes[target.parentId]
+          : undefined;
         parent?.childIds.splice(parent.childIds.indexOf(operation.nodeId), 1);
         removeSubtree(graph, operation.nodeId);
         continue;
       }
       if (operation.type === "set-text") {
         if (target.node.kind !== "text")
-          throw { code: "invalid_node_kind", path: `/operations/${index}/nodeId`, message: "仅 text 节点可设置文本" };
+          throw {
+            code: "invalid_node_kind",
+            path: `/operations/${index}/nodeId`,
+            message: "仅 text 节点可设置文本",
+          };
         target.node.text = operation.text;
         continue;
       }
       if (operation.type === "patch-style") {
         Object.entries(operation.patches).forEach(([property, value]) => {
-          if (value === null) delete target.node.style[property as keyof typeof target.node.style];
+          if (value === null)
+            delete target.node.style[
+              property as keyof typeof target.node.style
+            ];
           else Object.assign(target.node.style, { [property]: value });
         });
+        continue;
+      }
+      if (operation.type === "patch-layout") {
+        const layout = {
+          ...(target.node.layout ?? { mode: "flex" }),
+          ...target.node.layout,
+        } as Record<string, unknown>;
+        Object.entries(operation.patches).forEach(([property, value]) => {
+          if (value === null) delete layout[property];
+          else layout[property] = value;
+        });
+        target.node.layout = layout as unknown as DesignNode["layout"];
+        continue;
+      }
+      if (operation.type === "patch-layout-item") {
+        const layoutItem = { ...(target.node.layoutItem ?? {}) } as Record<
+          string,
+          unknown
+        >;
+        Object.entries(operation.patches).forEach(([property, value]) => {
+          if (value === null) delete layoutItem[property];
+          else layoutItem[property] = value;
+        });
+        if (Object.keys(layoutItem).length)
+          target.node.layoutItem = layoutItem as DesignNode["layoutItem"];
+        else delete target.node.layoutItem;
       }
     }
   } catch (error) {
     return fail(error as DesignValidationError);
   }
-  return fromDesignGraph(document, graph);
+  const result = fromDesignGraph(document, graph);
+  if (!result.ok) return result;
+  delete result.value.resolvedLayouts;
+  return result;
 };
 
 export type DesignDependency = {
@@ -260,14 +432,21 @@ export const collectDesignDependencies = (
         componentName: node.tag,
         defaultModule: node.defaultModule === true,
       };
-      dependencies.set(`${dependency.packageName}:${dependency.componentName}:${dependency.defaultModule}`, dependency);
+      dependencies.set(
+        `${dependency.packageName}:${dependency.componentName}:${dependency.defaultModule}`,
+        dependency,
+      );
     }
     node.children.forEach(visit);
   };
   visit(checked.value.root);
-  return ok([...dependencies.values()].sort((left, right) =>
-    `${left.packageName}:${left.componentName}`.localeCompare(`${right.packageName}:${right.componentName}`),
-  ));
+  return ok(
+    [...dependencies.values()].sort((left, right) =>
+      `${left.packageName}:${left.componentName}`.localeCompare(
+        `${right.packageName}:${right.componentName}`,
+      ),
+    ),
+  );
 };
 
 export type V2RenderModel = {

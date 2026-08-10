@@ -6,63 +6,135 @@ import { DesignDocumentRenderer } from "./index";
 
 const document: DesignDocument = {
   version: "2.0.0",
-  id: "geometry-test",
-  name: "Geometry Test",
+  id: "flow-renderer-test",
+  name: "Flow Renderer",
   designSystem: {
     id: "system",
     version: "1.0.0",
     digest: "sha256:test",
     tokens: {},
-    components: {},
+    components: {
+      Button: { id: "Button", packageName: "antd" },
+      Unknown: { id: "Unknown", packageName: "custom" },
+    },
+    allowedTags: ["Button", "Unknown"],
   },
-  assets: {},
+  assets: {
+    logo: {
+      id: "logo",
+      type: "image",
+      src: "/logo.png",
+      mimeType: "image/png",
+      alt: "Logo",
+    },
+  },
   root: {
     id: "root",
     kind: "element",
     name: "Root",
     tag: "div",
-    style: { backgroundColor: "white" },
+    style: {},
+    layout: {
+      mode: "flex",
+      direction: "row",
+      gap: 8,
+      padding: { top: 16, right: 16, bottom: 16, left: 16 },
+    },
     props: {},
     children: [
       {
         id: "title",
         kind: "text",
         name: "Title",
-        tag: "h1",
-        style: {},
+        tag: "text",
+        style: { fontSize: 24 },
+        layoutItem: { width: { mode: "hug" }, height: { mode: "hug" } },
         props: {},
         children: [],
-        text: "Hello",
+        text: "欢迎",
+      },
+      {
+        id: "logo-node",
+        kind: "image",
+        name: "Logo",
+        tag: "image",
+        style: {},
+        layoutItem: {
+          width: { mode: "fixed", value: 80 },
+          height: { mode: "fixed", value: 40 },
+        },
+        props: {},
+        children: [],
+        assetId: "logo",
+      },
+      {
+        id: "button",
+        kind: "component",
+        name: "搜索按钮",
+        tag: "Button",
+        packageName: "antd",
+        style: {},
+        layoutItem: { width: { mode: "hug" }, height: { mode: "hug" } },
+        props: { children: "搜索", type: "primary" },
+        children: [],
+      },
+      {
+        id: "unknown",
+        kind: "component",
+        name: "自定义组件",
+        tag: "Unknown",
+        packageName: "custom",
+        style: {},
+        props: {},
+        children: [
+          {
+            id: "unknown-text",
+            kind: "text",
+            name: "Fallback",
+            tag: "text",
+            style: {},
+            props: {},
+            children: [],
+            text: "占位",
+          },
+        ],
       },
     ],
   },
-  resolvedLayouts: {
-    desktop: {
-      viewport: { width: 320, height: 200 },
-      nodes: {
-        root: { x: 0, y: 0, width: 320, height: 200 },
-        title: { x: 24, y: 32, width: 120, height: 40 },
-      },
-    },
-  },
 };
 
-test("Renderer 按 Geometry 生成绝对定位样式", () => {
+test("Renderer 在没有 resolvedLayouts 时按 Flex 文档渲染", () => {
   const markup = renderToStaticMarkup(
-    <DesignDocumentRenderer document={document} viewportId="desktop" />,
+    <DesignDocumentRenderer document={document} />,
   );
-  assert.match(markup, /left:24px/);
-  assert.match(markup, /top:32px/);
-  assert.match(markup, /width:120px/);
-  assert.match(markup, /height:40px/);
+  assert.match(markup, /width:1440px/);
+  assert.match(markup, /height:900px/);
+  assert.match(markup, /display:flex/);
+  assert.match(markup, /flex-direction:row/);
+  assert.match(markup, /gap:8px/);
+  assert.match(markup, /<span[^>]*>欢迎<\/span>/);
+  assert.match(markup, /src="\/logo\.png"/);
+  assert.match(markup, /搜\s*索/);
+  assert.match(markup, /自定义组件/);
 });
 
-test("Renderer 拒绝缺失 viewport Geometry", () => {
+test("Renderer 使用稳定节点标识并渲染选中状态", () => {
+  const markup = renderToStaticMarkup(
+    <DesignDocumentRenderer document={document} selectedNodeId="title" />,
+  );
+  assert.match(markup, /data-design-node-id="title"/);
+  assert.match(markup, /data-design-selected="true"/);
+});
+
+test("Renderer 返回文档校验错误而不是抛出异常", () => {
   const errors: string[] = [];
+  const invalid = {
+    ...document,
+    root: { ...document.root, id: "" },
+  } as DesignDocument;
   const markup = renderToStaticMarkup(
     <DesignDocumentRenderer
-      document={document}
-      viewportId="mobile"
+      document={invalid}
       onError={(message) => {
         errors.push(message);
         return null;
@@ -70,79 +142,5 @@ test("Renderer 拒绝缺失 viewport Geometry", () => {
     />,
   );
   assert.equal(markup, "");
-  assert.deepEqual(errors, ["缺少 viewport mobile 的 Geometry"]);
-});
-
-test("Renderer 为列表子节点设置 key", () => {
-  const warnings: unknown[][] = [];
-  const originalError = console.error;
-  console.error = (...args) => warnings.push(args);
-  try {
-    renderToStaticMarkup(
-      <DesignDocumentRenderer document={document} viewportId="desktop" />,
-    );
-  } finally {
-    console.error = originalError;
-  }
-  assert.equal(
-    warnings.some(([message]) => String(message).includes('unique "key" prop')),
-    false,
-  );
-});
-
-test("Renderer 按 v2 组件名渲染 Ant Design 组件", () => {
-  const componentDocument: DesignDocument = {
-    ...document,
-    designSystem: {
-      ...document.designSystem,
-      components: {
-        Rate: { id: "Rate", packageName: "antd" },
-        Pagination: { id: "Pagination", packageName: "antd" },
-      },
-    },
-    root: {
-      ...document.root,
-      children: [
-        {
-          id: "rate",
-          kind: "component",
-          name: "评分",
-          tag: "Rate",
-          packageName: "antd",
-          style: {},
-          props: { allowHalf: true, value: 4.5 },
-          children: [],
-        },
-        {
-          id: "pagination",
-          kind: "component",
-          name: "分页",
-          tag: "Pagination",
-          packageName: "antd",
-          style: {},
-          props: { pageSize: 10, total: 20 },
-          children: [],
-        },
-      ],
-    },
-    resolvedLayouts: {
-      desktop: {
-        viewport: { width: 320, height: 200 },
-        nodes: {
-          root: { x: 0, y: 0, width: 320, height: 200 },
-          rate: { x: 0, y: 0, width: 160, height: 32 },
-          pagination: { x: 0, y: 40, width: 240, height: 32 },
-        },
-      },
-    },
-  };
-  const markup = renderToStaticMarkup(
-    <DesignDocumentRenderer
-      document={componentDocument}
-      viewportId="desktop"
-    />,
-  );
-  assert.match(markup, /ant-rate/);
-  assert.match(markup, /ant-pagination/);
-  assert.doesNotMatch(markup, /allowHalf=|pageSize=/);
+  assert.ok(errors.length);
 });

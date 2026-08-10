@@ -79,7 +79,10 @@ const component = (target: ElementType): Renderer => {
   const renderComponent = (
     props: Record<string, unknown>,
     children: ReactNode[],
-  ) => createElement(target, props, children.length ? children : undefined);
+  ) =>
+    children.length
+      ? createElement(target, props, children)
+      : createElement(target, props);
   return renderComponent;
 };
 

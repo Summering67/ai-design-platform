@@ -417,7 +417,27 @@
   font-size: 0.75rem;
   outline: none;
 }
+.numberField select,
+.inspector textarea {
+  width: 100%;
+  min-height: 2rem;
+  padding: 0 0.5rem;
+  border: 1px solid #dfe3ed;
+  border-radius: 0.375rem;
+  color: #303849;
+  background: #fff;
+  font: inherit;
+  font-size: 0.75rem;
+  outline: none;
+}
+.inspector textarea {
+  min-height: 4.5rem;
+  padding: 0.5rem;
+  resize: vertical;
+}
 .numberField input:focus,
+.numberField select:focus,
+.inspector textarea:focus,
 .colorField:focus-within {
   border-color: #4f46e5;
   box-shadow: 0 0 0 2px #4f46e51a;

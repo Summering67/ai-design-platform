@@ -10,10 +10,13 @@ import {
 } from "lucide-react";
 import { Virtuoso } from "react-virtuoso";
 import { DesignDocumentRenderer } from "../design-document-renderer";
-import type { DesignDocument } from "@repo/design-dsl";
-import type {
-  VirtuosoHandle,
-} from "react-virtuoso";
+import {
+  applyV2Operations,
+  type DesignDocument,
+  type DesignNode,
+  type V2Operation,
+} from "@repo/design-dsl";
+import type { VirtuosoHandle } from "react-virtuoso";
 
 import { Button } from "../../components/button";
 import {
@@ -60,19 +63,6 @@ type WorkspaceReasoning = {
   content: string;
   status: "reasoning" | "completed" | "truncated";
 };
-type CanvasSettings = {
-  background: string;
-  width: number;
-  height: number;
-  x: number;
-  y: number;
-  radius: number;
-};
-type CanvasNode = {
-  id: string;
-  name: string;
-  settings: CanvasSettings;
-};
 type WorkspaceProps = {
   accountEmail: string;
   projectTitle: string;
@@ -86,7 +76,6 @@ type WorkspaceProps = {
   onAnswer?: (answers: { questionId: string; content: string }[]) => void;
   onLogout: () => void;
   inputRequest?: WorkspaceInputRequest | null;
-  canvasNode?: CanvasNode | null;
   document?: DesignDocument | null;
 };
 
@@ -103,7 +92,10 @@ const ChatMessageItem = ({ message }: { message: ChatMessage }) => (
 );
 
 const ReasoningMessageItem = ({ item }: { item: WorkspaceReasoning }) => (
-  <article className={`${styles.message} ${styles.reasoningMessage}`} data-role="assistant">
+  <article
+    className={`${styles.message} ${styles.reasoningMessage}`}
+    data-role="assistant"
+  >
     <div className={styles.assistantLabel}>
       <SparklesIcon />
       <span>设计助手 · 模型思考（无需回复）</span>
@@ -131,7 +123,9 @@ const ChatPanel = ({
   status,
 }: Omit<WorkspaceProps, "projectTitle" | "accountEmail" | "onLogout">) => {
   const [draft, setDraft] = useState("");
-  const [answers, setAnswers] = useState<Record<string, WorkspaceInputAnswer>>({});
+  const [answers, setAnswers] = useState<Record<string, WorkspaceInputAnswer>>(
+    {},
+  );
   const [isAtBottom, setIsAtBottom] = useState(true);
   const listRef = useRef<VirtuosoHandle>(null);
   const isLoading = status === "loading";
@@ -160,19 +154,22 @@ const ChatPanel = ({
     if (!inputRequest) return;
     const values = inputRequest.questions.map((question) => {
       const answer = answers[question.id];
-      const content = answer?.selected === "__other__" || !question.options?.length
-        ? answer?.custom?.trim() || ""
-        : answer?.selected?.trim() || "";
+      const content =
+        answer?.selected === "__other__" || !question.options?.length
+          ? answer?.custom?.trim() || ""
+          : answer?.selected?.trim() || "";
       return { questionId: question.id, content };
     });
     if (values.some(({ content }) => !content)) return;
     onAnswer?.(values);
   };
-  const unanswered = inputRequest?.questions.some((question) => {
-    const answer = answers[question.id];
-    if (!question.options?.length || answer?.selected === "__other__") return !answer?.custom?.trim();
-    return !answer?.selected;
-  }) ?? true;
+  const unanswered =
+    inputRequest?.questions.some((question) => {
+      const answer = answers[question.id];
+      if (!question.options?.length || answer?.selected === "__other__")
+        return !answer?.custom?.trim();
+      return !answer?.selected;
+    }) ?? true;
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     submit();
@@ -206,7 +203,11 @@ const ChatPanel = ({
             atBottomStateChange={setIsAtBottom}
             atBottomThreshold={48}
             className={styles.chatList}
-            computeItemKey={(_index, item) => item.kind === "message" ? item.message.id : `reasoning:${item.reasoning.id}`}
+            computeItemKey={(_index, item) =>
+              item.kind === "message"
+                ? item.message.id
+                : `reasoning:${item.reasoning.id}`
+            }
             data={conversation}
             followOutput={(atBottom) => atBottom && "auto"}
             increaseViewportBy={{ top: 320, bottom: 240 }}
@@ -261,18 +262,29 @@ const ChatPanel = ({
           </p>
         ) : null}
         {isAwaitingInput && inputRequest ? (
-          <section className={styles.inputRequestPanel} aria-labelledby="input-request-title">
+          <section
+            className={styles.inputRequestPanel}
+            aria-labelledby="input-request-title"
+          >
             <div className={styles.inputRequestHeading}>
               <strong id="input-request-title">需要你的确认</strong>
               <span>第 {inputRequest.round} 轮 · 回答后继续生成</span>
             </div>
-            <div aria-label="追问列表" className={styles.inputRequestQuestions} role="group">
+            <div
+              aria-label="追问列表"
+              className={styles.inputRequestQuestions}
+              role="group"
+            >
               {inputRequest.questions.map((question) => {
                 const answer = answers[question.id];
                 const options = question.options || [];
-                const questionText = question.question || question.text || "请选择一个选项";
+                const questionText =
+                  question.question || question.text || "请选择一个选项";
                 return (
-                  <fieldset className={styles.inputRequestQuestion} key={question.id}>
+                  <fieldset
+                    className={styles.inputRequestQuestion}
+                    key={question.id}
+                  >
                     <legend>{question.header || "需要确认"}</legend>
                     <p>{questionText}</p>
                     {options.length ? (
@@ -298,7 +310,9 @@ const ChatPanel = ({
                             key={option.label}
                             value={option.label}
                           >
-                            <span className={styles.inputRequestOptionIndex}>{optionIndex + 1}</span>
+                            <span className={styles.inputRequestOptionIndex}>
+                              {optionIndex + 1}
+                            </span>
                             <span className={styles.inputRequestOptionContent}>
                               <strong>{option.label}</strong>
                               <small>{option.description}</small>
@@ -310,7 +324,9 @@ const ChatPanel = ({
                             className={styles.inputRequestOption}
                             value="__other__"
                           >
-                            <span className={styles.inputRequestOptionIndex}>{options.length + 1}</span>
+                            <span className={styles.inputRequestOptionIndex}>
+                              {options.length + 1}
+                            </span>
                             <span className={styles.inputRequestOptionContent}>
                               <strong>其他</strong>
                               <small>输入更符合你的答案</small>
@@ -325,7 +341,15 @@ const ChatPanel = ({
                         disabled={status !== "awaiting_input"}
                         placeholder="请输入你的回答"
                         value={answer?.custom || ""}
-                        onChange={(event) => setAnswers((current) => ({ ...current, [question.id]: { ...current[question.id], custom: event.target.value } }))}
+                        onChange={(event) =>
+                          setAnswers((current) => ({
+                            ...current,
+                            [question.id]: {
+                              ...current[question.id],
+                              custom: event.target.value,
+                            },
+                          }))
+                        }
                       />
                     ) : null}
                   </fieldset>
@@ -392,16 +416,32 @@ const ChatPanel = ({
   );
 };
 
-const Canvas = ({ document, node }: { document?: DesignDocument | null; node: CanvasNode | null }) => (
+const Canvas = ({
+  document,
+  selectedNodeId,
+  onSelectedNodeIdChange,
+}: {
+  document: DesignDocument | null;
+  selectedNodeId?: string;
+  onSelectedNodeIdChange: (
+    nodeId: string | undefined,
+    node: DesignNode | undefined,
+  ) => void;
+}) => (
   <section className={styles.canvas}>
     <div className={styles.canvasMeta}>
       <span>画布</span>
-      <span>{node ? node.name : "等待设计数据"}</span>
+      <span>{document?.name ?? "等待设计数据"}</span>
     </div>
     <div className={styles.canvasSurface}>
       {document ? (
-        <DesignDocumentRenderer document={document} viewportId="desktop" onError={(message) => <p>{message}</p>} />
-      ) : !node ? (
+        <DesignDocumentRenderer
+          document={document}
+          selectedNodeId={selectedNodeId}
+          onSelectedNodeIdChange={onSelectedNodeIdChange}
+          onError={(message) => <p>{message}</p>}
+        />
+      ) : (
         <Empty className={styles.canvasEmpty}>
           <EmptyHeader>
             <EmptyMedia variant="icon">
@@ -413,18 +453,6 @@ const Canvas = ({ document, node }: { document?: DesignDocument | null; node: Ca
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
-      ) : (
-        <div
-          className={styles.canvasNode}
-          aria-label={node.name}
-          style={{
-            backgroundColor: node.settings.background,
-            width: `${node.settings.width}px`,
-            height: `${node.settings.height}px`,
-            transform: `translate(${node.settings.x}px, ${node.settings.y}px)`,
-            borderRadius: `${node.settings.radius}px`,
-          }}
-        />
       )}
     </div>
   </section>
@@ -451,12 +479,46 @@ const NumberField = ({
   </label>
 );
 
+const SelectField = ({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: ReadonlyArray<{ label: string; value: string }>;
+  onChange: (value: string) => void;
+}) => (
+  <label className={styles.numberField}>
+    <span>{label}</span>
+    <select value={value} onChange={(event) => onChange(event.target.value)}>
+      {options.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  </label>
+);
+
+const findNode = (
+  node: DesignNode | undefined,
+  nodeId: string | undefined,
+): DesignNode | undefined => {
+  if (!node || !nodeId) return undefined;
+  if (node.id === nodeId) return node;
+  return node.children
+    .map((child) => findNode(child, nodeId))
+    .find((child): child is DesignNode => Boolean(child));
+};
+
 const Inspector = ({
   node,
-  setNode,
+  onOperation,
 }: {
-  node: CanvasNode | null;
-  setNode: (node: CanvasNode) => void;
+  node: DesignNode | null;
+  onOperation: (operation: V2Operation) => void;
 }) => {
   if (!node)
     return (
@@ -480,11 +542,30 @@ const Inspector = ({
         </Empty>
       </aside>
     );
-  const { settings } = node;
-  const update = <Key extends keyof CanvasSettings>(
-    key: Key,
-    value: CanvasSettings[Key],
-  ) => setNode({ ...node, settings: { ...settings, [key]: value } });
+  const style = node.style as Record<string, unknown>;
+  const background =
+    typeof style.backgroundColor === "string" &&
+    /^#[0-9a-f]{3,8}$/i.test(style.backgroundColor)
+      ? style.backgroundColor
+      : "#ffffff";
+  const layout = node.layout?.mode === "flex" ? node.layout : undefined;
+  const layoutItem = node.layoutItem ?? {};
+  const patchStyle = (patches: Record<string, unknown | null>) =>
+    onOperation({ type: "patch-style", nodeId: node.id, patches });
+  const patchLayout = (patches: Record<string, unknown | null>) =>
+    onOperation({ type: "patch-layout", nodeId: node.id, patches });
+  const patchLayoutItem = (patches: Record<string, unknown | null>) =>
+    onOperation({ type: "patch-layout-item", nodeId: node.id, patches });
+  const sizingMode = (axis: "width" | "height") =>
+    layoutItem[axis]?.mode ?? "hug";
+  const sizingValue = (axis: "width" | "height") =>
+    layoutItem[axis]?.mode === "fixed" ? layoutItem[axis].value : 0;
+  const updateSizing = (axis: "width" | "height", mode: string) => {
+    if (mode === "fixed")
+      patchLayoutItem({ [axis]: { mode: "fixed", value: 160 } });
+    if (mode === "fill" || mode === "hug")
+      patchLayoutItem({ [axis]: { mode } });
+  };
   return (
     <aside className={styles.inspector}>
       <header className={styles.panelHeader}>
@@ -495,6 +576,25 @@ const Inspector = ({
         <ChevronDownIcon />
       </header>
       <div className={styles.inspectorContent}>
+        {node.kind === "text" ? (
+          <section className={styles.propertyGroup}>
+            <div className={styles.propertyHeading}>
+              <span>文本</span>
+              <span>CONTENT</span>
+            </div>
+            <textarea
+              aria-label="文本内容"
+              value={node.text}
+              onChange={(event) =>
+                onOperation({
+                  type: "set-text",
+                  nodeId: node.id,
+                  text: event.target.value,
+                })
+              }
+            />
+          </section>
+        ) : null}
         <section className={styles.propertyGroup}>
           <div className={styles.propertyHeading}>
             <span>填充颜色</span>
@@ -504,13 +604,17 @@ const Inspector = ({
             <input
               aria-label="填充颜色"
               type="color"
-              value={settings.background}
-              onChange={(event) => update("background", event.target.value)}
+              value={background}
+              onChange={(event) =>
+                patchStyle({ backgroundColor: event.target.value })
+              }
             />
             <input
               aria-label="填充颜色值"
-              value={settings.background.toUpperCase()}
-              onChange={(event) => update("background", event.target.value)}
+              value={background.toUpperCase()}
+              onChange={(event) =>
+                patchStyle({ backgroundColor: event.target.value })
+              }
             />
           </label>
         </section>
@@ -520,54 +624,130 @@ const Inspector = ({
             <span>PX</span>
           </div>
           <div className={styles.fieldGrid}>
-            <NumberField
-              label="宽度"
-              value={settings.width}
-              onChange={(value) => update("width", value)}
-            />
-            <NumberField
-              label="高度"
-              value={settings.height}
-              onChange={(value) => update("height", value)}
-            />
+            {(["width", "height"] as const).map((axis) => (
+              <div key={axis}>
+                <SelectField
+                  label={axis === "width" ? "宽度模式" : "高度模式"}
+                  value={sizingMode(axis)}
+                  options={[
+                    { label: "自适应", value: "hug" },
+                    { label: "填充", value: "fill" },
+                    { label: "固定", value: "fixed" },
+                  ]}
+                  onChange={(value) => updateSizing(axis, value)}
+                />
+                {sizingMode(axis) === "fixed" ? (
+                  <NumberField
+                    label="固定值"
+                    value={sizingValue(axis)}
+                    onChange={(value) =>
+                      patchLayoutItem({ [axis]: { mode: "fixed", value } })
+                    }
+                  />
+                ) : null}
+              </div>
+            ))}
           </div>
         </section>
         <section className={styles.propertyGroup}>
           <div className={styles.propertyHeading}>
-            <span>位置</span>
+            <span>位置偏移</span>
             <span>PX</span>
           </div>
           <div className={styles.fieldGrid}>
             <NumberField
               label="X"
-              value={settings.x}
-              onChange={(value) => update("x", value)}
+              value={layoutItem.offset?.x ?? 0}
+              onChange={(value) =>
+                patchLayoutItem({ offset: { ...layoutItem.offset, x: value } })
+              }
             />
             <NumberField
               label="Y"
-              value={settings.y}
-              onChange={(value) => update("y", value)}
+              value={layoutItem.offset?.y ?? 0}
+              onChange={(value) =>
+                patchLayoutItem({ offset: { ...layoutItem.offset, y: value } })
+              }
             />
           </div>
         </section>
         <section className={styles.propertyGroup}>
           <div className={styles.propertyHeading}>
-            <span>圆角</span>
+            <span>圆角与文字</span>
             <span>PX</span>
           </div>
-          <NumberField
-            label="半径"
-            value={settings.radius}
-            onChange={(value) => update("radius", value)}
-          />
+          <div className={styles.fieldGrid}>
+            <NumberField
+              label="圆角"
+              value={
+                typeof style.borderRadius === "number" ? style.borderRadius : 0
+              }
+              onChange={(value) => patchStyle({ borderRadius: value })}
+            />
+            {node.kind === "text" ? (
+              <NumberField
+                label="字号"
+                value={typeof style.fontSize === "number" ? style.fontSize : 16}
+                onChange={(value) => patchStyle({ fontSize: value })}
+              />
+            ) : null}
+          </div>
         </section>
+        {layout ? (
+          <section className={styles.propertyGroup}>
+            <div className={styles.propertyHeading}>
+              <span>Flex 布局</span>
+              <span>LAYOUT</span>
+            </div>
+            <div className={styles.fieldGrid}>
+              <SelectField
+                label="方向"
+                value={layout.direction ?? "column"}
+                options={[
+                  { label: "横向", value: "row" },
+                  { label: "纵向", value: "column" },
+                ]}
+                onChange={(value) => patchLayout({ direction: value })}
+              />
+              <SelectField
+                label="换行"
+                value={layout.wrap ?? "nowrap"}
+                options={[
+                  { label: "不换行", value: "nowrap" },
+                  { label: "换行", value: "wrap" },
+                ]}
+                onChange={(value) => patchLayout({ wrap: value })}
+              />
+            </div>
+            <div className={styles.fieldGrid}>
+              <NumberField
+                label="间距"
+                value={layout.gap ?? 0}
+                onChange={(value) => patchLayout({ gap: value })}
+              />
+              <NumberField
+                label="内边距"
+                value={layout.padding?.top ?? 0}
+                onChange={(value) =>
+                  patchLayout({
+                    padding: {
+                      top: value,
+                      right: value,
+                      bottom: value,
+                      left: value,
+                    },
+                  })
+                }
+              />
+            </div>
+          </section>
+        ) : null}
       </div>
     </aside>
   );
 };
 
 const Workspace = ({
-  canvasNode,
   document,
   error,
   messages,
@@ -579,10 +759,19 @@ const Workspace = ({
   inputRequest,
   status,
 }: WorkspaceProps) => {
-  const [selectedNode, setSelectedNode] = useState<CanvasNode | null>(
-    canvasNode ?? null,
-  );
-  useEffect(() => setSelectedNode(canvasNode ?? null), [canvasNode]);
+  const [editableDocument, setEditableDocument] =
+    useState<DesignDocument | null>(document ?? null);
+  const [selectedNodeId, setSelectedNodeId] = useState<string>();
+  useEffect(() => {
+    setEditableDocument(document ?? null);
+    setSelectedNodeId(undefined);
+  }, [document]);
+  const selectedNode = findNode(editableDocument?.root, selectedNodeId);
+  const applyOperation = (operation: V2Operation) => {
+    if (!editableDocument) return;
+    const result = applyV2Operations(editableDocument, [operation]);
+    if (result.ok) setEditableDocument(result.value);
+  };
   return (
     <main className={styles.workspace}>
       <div className={styles.workspaceBody}>
@@ -597,8 +786,12 @@ const Workspace = ({
           onAnswer={onAnswer}
           inputRequest={inputRequest}
         />
-        <Canvas document={document} node={selectedNode} />
-        <Inspector node={selectedNode} setNode={setSelectedNode} />
+        <Canvas
+          document={editableDocument}
+          selectedNodeId={selectedNodeId}
+          onSelectedNodeIdChange={(nodeId) => setSelectedNodeId(nodeId)}
+        />
+        <Inspector node={selectedNode ?? null} onOperation={applyOperation} />
       </div>
     </main>
   );
@@ -608,8 +801,6 @@ const WorkspaceFallback = () => <main className={styles.fallback} />;
 
 export { Workspace, WorkspaceFallback };
 export type {
-  CanvasNode,
-  CanvasSettings,
   ChatMessage,
   ChatRole,
   ChatStatus,

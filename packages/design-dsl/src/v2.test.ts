@@ -1,6 +1,4 @@
-import fixture from "@repo/design-contract/fixtures/v2/login-page.document.json" with {
-  type: "json",
-};
+import fixture from "@repo/design-contract/fixtures/v2/login-page.document.json" with { type: "json" };
 import {
   applyV2Operations,
   collectDesignDependencies,
@@ -43,7 +41,8 @@ assert(JSON.stringify(document) === beforeRender, "渲染派生不得修改输�
 const secondRenderModel = deriveV2RenderModel(document);
 assert(
   secondRenderModel.ok &&
-    JSON.stringify(secondRenderModel.value) === JSON.stringify(renderModel.ok ? renderModel.value : null),
+    JSON.stringify(secondRenderModel.value) ===
+      JSON.stringify(renderModel.ok ? renderModel.value : null),
   "相同文档的重复派生结果必须一致",
 );
 
@@ -60,3 +59,29 @@ const failed = applyV2Operations(document, [
   { type: "remove-node", nodeId: "missing" },
 ]);
 assert(!failed.ok, "无效操作必须失败");
+
+const layoutUpdated = applyV2Operations(document, [
+  {
+    type: "patch-style",
+    nodeId: "root",
+    patches: { backgroundColor: "#f8fafc" },
+  },
+  { type: "patch-layout", nodeId: "root", patches: { direction: "row" } },
+  {
+    type: "patch-layout-item",
+    nodeId: "submit",
+    patches: { width: { mode: "fixed", value: 240 } },
+  },
+]);
+assert(
+  layoutUpdated.ok &&
+    !layoutUpdated.value.resolvedLayouts &&
+    layoutUpdated.value.root.style.backgroundColor === "#f8fafc" &&
+    layoutUpdated.value.root.layout?.direction === "row" &&
+    layoutUpdated.value.root.children[2]?.layoutItem?.width?.mode === "fixed",
+  "布局和样式操作必须更新文档并清除旧 Geometry",
+);
+assert(
+  document.root.style.backgroundColor !== "#f8fafc",
+  "布局操作不得修改输入文档",
+);
