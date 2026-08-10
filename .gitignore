@@ -34,6 +34,7 @@ __pycache__/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+apps/server/.agent-outputs/
 
 # Misc
 .DS_Store

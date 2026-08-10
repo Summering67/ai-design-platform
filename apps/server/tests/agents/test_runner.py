@@ -23,6 +23,12 @@ def _read(path: str) -> dict[str, Any]:
     return json.loads((ROOT / path).read_text(encoding="utf-8"))
 
 
+@pytest.fixture(autouse=True)
+def agent_output_root(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
+    monkeypatch.setattr("ai_design_server.agents.supervisor.AGENT_OUTPUT_ROOT", tmp_path)
+    return tmp_path
+
+
 def _fake_model() -> SimpleNamespace:
     prd = _read("packages/design-contract/fixtures/v2/standardized-prd.valid.json")
     initial = _read("packages/design-contract/fixtures/v2/initial-ui-document.valid.json")
@@ -66,7 +72,10 @@ def _fake_model() -> SimpleNamespace:
 
 
 @pytest.mark.asyncio
-async def test_root_runs_dynamic_v2_pipeline(caplog: pytest.LogCaptureFixture) -> None:
+async def test_root_runs_dynamic_v2_pipeline(
+    caplog: pytest.LogCaptureFixture,
+    agent_output_root: Path,
+) -> None:
     caplog.set_level(logging.DEBUG, logger="ai_design_server.agents")
     contract = _read("packages/design-contract/fixtures/v2/team-default.generation-contract.json")
     events = [
@@ -109,6 +118,20 @@ async def test_root_runs_dynamic_v2_pipeline(caplog: pytest.LogCaptureFixture) -
         for record in caplog.records
         if record.getMessage().startswith("子 Agent 输出：")
     } == {"requirement", "ui_design", "auto_layout"}
+    output_root = agent_output_root / "generation-1" / events[0]["runId"]
+    output_files = sorted(output_root.glob("*.json"))
+    assert [path.name for path in output_files] == [
+        "01-requirement-attempt-01.json",
+        "02-ui_design-attempt-01.json",
+        "03-auto_layout-attempt-01.json",
+    ]
+    assert set(json.loads(output_files[0].read_text(encoding="utf-8"))) == {"prd"}
+    assert set(json.loads(output_files[1].read_text(encoding="utf-8"))) == {"initial_ui_document"}
+    assert set(json.loads(output_files[2].read_text(encoding="utf-8"))) == {
+        "final_document",
+        "result",
+        "validation",
+    }
     reasoning_events = [event for event in events if event["payload"].get("status") == "reasoning"]
     assert reasoning_events
     assert {event["stage"] for event in reasoning_events} >= {"root", "requirement", "ui_design"}

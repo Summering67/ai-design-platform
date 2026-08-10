@@ -3,7 +3,9 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
 from collections.abc import Awaitable, Callable
+from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
@@ -24,6 +26,46 @@ AGENT_LABELS = {
     "auto_layout": "自动布局",
 }
 TASK_ORDER = ("requirement", "ui_design", "auto_layout")
+AGENT_OUTPUT_ROOT = Path(__file__).resolve().parents[3] / ".agent-outputs"
+
+
+def _safe_output_segment(value: Any, fallback: str) -> str:
+    normalized = re.sub(r"[^a-zA-Z0-9._-]+", "-", str(value or "")).strip(".-")
+    return normalized[:80] or fallback
+
+
+async def _save_agent_output(
+    state: RootState, name: str, output: dict[str, Any], attempt: int
+) -> None:
+    generation_id = _safe_output_segment(state.get("generation_id"), "no-generation")
+    run_id = _safe_output_segment(state.get("run_id"), "no-run")
+    stage_number = TASK_ORDER.index(name) + 1
+    target = (
+        AGENT_OUTPUT_ROOT
+        / generation_id
+        / run_id
+        / f"{stage_number:02d}-{name}-attempt-{attempt:02d}.json"
+    )
+    serialized = json.dumps(output, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+
+    def write() -> None:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        temporary = target.with_suffix(".tmp")
+        temporary.write_text(serialized, encoding="utf-8")
+        temporary.replace(target)
+
+    try:
+        await asyncio.to_thread(write)
+    except OSError:
+        LOGGER.warning(
+            "保存 Agent JSON 失败",
+            extra={
+                "generation_id": state.get("generation_id"),
+                "run_id": state.get("run_id"),
+                "agent": name,
+                "attempt": attempt,
+            },
+        )
 
 
 def _ready(name: str, state: RootState) -> bool:
@@ -433,6 +475,7 @@ async def execute(
             state["completed"].update(output)
             state["tasks"][task_id]["status"] = "completed"
             state["task_history"].append(name)
+            await _save_agent_output(state, name, output, state["tasks"][task_id]["attempt"])
             if LOGGER.isEnabledFor(logging.DEBUG):
                 LOGGER.debug(
                     "子 Agent 输出：%s（%s）",
