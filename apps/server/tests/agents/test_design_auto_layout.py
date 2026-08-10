@@ -91,6 +91,7 @@ def test_auto_layout_compiler_is_deterministic_and_valid() -> None:
     assert first["root"]["children"][0]["text"] == "欢迎登录"
     assert "layoutIntent" not in first["root"]
     assert "layout" not in first["root"]
+    assert "resolvedLayouts" not in first
     assert set(first["designSystem"]["allowedTags"]) == set(contract["components"])
     assert "div" not in first["designSystem"]["allowedTags"]
 
@@ -125,9 +126,39 @@ async def test_auto_layout_model_receives_only_initial_ui_document() -> None:
     assert payloads[0]["initialUiDocument"] == initial
     assert payloads[0]["layoutCapabilities"] == contract["layout"]
     assert payloads[0]["viewports"] == []
+    assert payloads[0]["measuredNodeIds"] == []
     assert result["validation"]["passed"] is True
-    assert set(result["document"]["resolvedLayouts"]) == {"desktop"}
+    assert "resolvedLayouts" not in result["document"]
     validate_tree(result["document"], contract)
+
+
+@pytest.mark.asyncio
+async def test_auto_layout_resolves_geometry_when_measurements_are_provided() -> None:
+    initial = _read("packages/design-contract/fixtures/v2/initial-ui-document.valid.json")
+    contract = _read("packages/design-contract/fixtures/v2/team-default.generation-contract.json")
+
+    async def structured(*_: Any, **__: Any) -> dict[str, Any]:
+        return {
+            "version": "1.0.0",
+            "operations": [
+                {
+                    "nodeId": "root",
+                    "layout": {"mode": "flex", "direction": "column", "gap": 16},
+                }
+            ],
+        }
+
+    result = await run_auto_layout(
+        initial,
+        contract,
+        type("Model", (), {"structured": staticmethod(structured)})(),
+        measurements={
+            "title": {"width": 160, "height": 40},
+            "submit": {"width": 120, "height": 40},
+        },
+    )
+
+    assert set(result["document"]["resolvedLayouts"]) == {"desktop"}
 
 
 @pytest.mark.asyncio

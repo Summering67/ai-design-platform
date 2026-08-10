@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Any
 
 from ..contracts import validate_initial_ui_document, validate_tree
-from .layout import resolve_layouts
 
 
 def compile_initial_ui_document(
@@ -63,6 +62,5 @@ def compile_initial_ui_document(
         "assets": initial["assets"],
         "root": convert(initial["root"]),
     }
-    document["resolvedLayouts"] = resolve_layouts(document)
     validate_tree(document, contract)
     return document

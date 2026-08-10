@@ -45,9 +45,17 @@ def _redact(value: Any) -> Any:
     return value
 
 
+def redacted_value(value: Any) -> Any:
+    return _redact(value)
+
+
 def redacted_snapshot(value: Any, *, max_length: int = MAX_SNAPSHOT_LENGTH) -> str:
     serialized = json.dumps(
-        _redact(value), ensure_ascii=False, separators=(",", ":"), sort_keys=True, default=str
+        redacted_value(value),
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+        default=str,
     )
     if len(serialized) <= max_length:
         return serialized

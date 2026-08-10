@@ -48,9 +48,10 @@ async def plan(state: AutoLayoutState, *, model: ModelPort) -> AutoLayoutState:
                         path=f"/operations/{index}/responsive",
                     )
         result, _ = apply_layout(state["document"], operations, state["contract"])
-        result["resolvedLayouts"] = resolve_layouts(
-            result, state.get("viewports"), state.get("measurements")
-        )
+        if state.get("measurements"):
+            result["resolvedLayouts"] = resolve_layouts(
+                result, state.get("viewports"), state["measurements"]
+            )
         validate_tree(result, state["contract"])
 
     response = await run_structured_harness(
@@ -61,6 +62,7 @@ async def plan(state: AutoLayoutState, *, model: ModelPort) -> AutoLayoutState:
             "layoutRequirements": state.get("layout_requirements", []),
             "layoutCapabilities": state["contract"].get("layout", {}),
             "viewports": state.get("viewports", []),
+            "measuredNodeIds": sorted(state.get("measurements", {})),
         },
         load_schema("layout-plan.schema.json"),
         validate_plan,
@@ -70,7 +72,8 @@ async def plan(state: AutoLayoutState, *, model: ModelPort) -> AutoLayoutState:
     )
     operations = response.get("operations", [])
     result, changes = apply_layout(state["document"], operations, state["contract"])
-    result["resolvedLayouts"] = resolve_layouts(
-        result, state.get("viewports"), state.get("measurements")
-    )
+    if state.get("measurements"):
+        result["resolvedLayouts"] = resolve_layouts(
+            result, state.get("viewports"), state["measurements"]
+        )
     return {"result": result, "changes": changes, "plan": operations}

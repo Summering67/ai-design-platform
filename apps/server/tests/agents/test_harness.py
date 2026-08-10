@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 from copy import deepcopy
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -138,8 +139,11 @@ def test_schema_diagnostics_collect_multiple_paths_and_redact_snapshot() -> None
 @pytest.mark.asyncio
 async def test_harness_emits_replayable_trace_with_stable_fingerprints(
     caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
 ) -> None:
     caplog.set_level(logging.DEBUG, logger="ai_design_server.agents.harness")
+    monkeypatch.setattr("ai_design_server.agents.harness.FAILED_CANDIDATE_ROOT", tmp_path)
     schema = {
         "type": "object",
         "additionalProperties": False,
@@ -193,6 +197,12 @@ async def test_harness_emits_replayable_trace_with_stable_fingerprints(
     assert traces[0].model == "diagnostic-model"
     assert traces[0].run_id == "run-diagnostic"
     assert "secret" not in snapshot
+    failed_candidate = json.loads(
+        (tmp_path / "run-diagnostic/ui_design-attempt-01-failed.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert failed_candidate == {"token": "[redacted]"}
 
 
 @pytest.mark.asyncio

@@ -101,6 +101,17 @@ def test_resolve_layouts_is_deterministic_and_covers_tree() -> None:
     assert set(first["desktop"]["nodes"]) == {"root", "logo-node", "title", "submit"}
 
 
+def test_resolve_layouts_reports_missing_hug_measurement_path() -> None:
+    document = _read("packages/design-contract/fixtures/v2/login-page.document.json")
+    document["root"]["children"][1]["layoutItem"] = {"width": {"mode": "hug"}}
+
+    with pytest.raises(ContractError, match="节点 title") as raised:
+        resolve_layouts(document, measurements={"title": {"height": 40}})
+
+    assert raised.value.code == "layout_measurement_missing"
+    assert raised.value.path == "/root/children/1/layoutItem/width"
+
+
 def test_move_node_writes_offset_and_recomputes_geometry() -> None:
     document = _read("packages/design-contract/fixtures/v2/login-page.document.json")
     document["resolvedLayouts"] = resolve_layouts(document)

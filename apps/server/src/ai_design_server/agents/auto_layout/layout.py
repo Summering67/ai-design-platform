@@ -39,7 +39,14 @@ def _measurement(node: Mapping[str, Any], measurements: Mapping[str, Any]) -> tu
     return width, height, _number(baseline) if isinstance(baseline, (int, float)) else None
 
 
-def _sizing(node: Mapping[str, Any], axis: str, available: float, measurements: Mapping[str, Any], assets: Mapping[str, Any]) -> tuple[float, float, float]:
+def _sizing(
+    node: Mapping[str, Any],
+    axis: str,
+    available: float,
+    measurements: Mapping[str, Any],
+    assets: Mapping[str, Any],
+    path: str,
+) -> tuple[float, float, float]:
     item = node.get("layoutItem") if isinstance(node.get("layoutItem"), Mapping) else {}
     spec = item.get(axis) if isinstance(item, Mapping) else None
     measured_width, measured_height, _ = _measurement(node, measurements)
@@ -57,8 +64,21 @@ def _sizing(node: Mapping[str, Any], axis: str, available: float, measurements: 
         value = max(0.0, available)
     elif mode == "hug":
         node_id = node.get("id")
-        if not measurements.get(node_id if isinstance(node_id, str) else "") and not node.get("children") and _style_number(node, axis) is None and node.get("kind") != "image":
-            raise ContractError("layout_measurement_missing", f"hug 尺寸缺少 {axis} measurement")
+        measurement = measurements.get(node_id, {}) if isinstance(node_id, str) else {}
+        has_measurement = isinstance(measurement, Mapping) and isinstance(
+            measurement.get(axis), (int, float)
+        )
+        if (
+            not has_measurement
+            and not node.get("children")
+            and _style_number(node, axis) is None
+            and node.get("kind") != "image"
+        ):
+            raise ContractError(
+                "layout_measurement_missing",
+                f"节点 {node_id or '<unknown>'} 的 hug 尺寸缺少 {axis} measurement",
+                path=f"{path}/layoutItem/{axis}",
+            )
         value = max(0.0, measured)
     elif mode == "minmax":
         value = max(0.0, _number(spec_map.get("min"), measured))
@@ -95,6 +115,7 @@ def _layout_node(
     measurements: Mapping[str, Any],
     assets: Mapping[str, Any],
     snapshot: dict[str, dict[str, float]],
+    path: str = "/root",
 ) -> None:
     node_id = node.get("id")
     if not isinstance(node_id, str) or not node_id:
@@ -125,20 +146,25 @@ def _layout_node(
         gap = max(gap, _number(layout.get("columnGap"), gap))
     else:
         gap = max(gap, _number(layout.get("rowGap"), gap))
-    normal: list[dict[str, Any]] = []
-    absolute: list[Mapping[str, Any]] = []
-    for child in children:
+    normal: list[tuple[dict[str, Any], str]] = []
+    absolute: list[tuple[dict[str, Any], str]] = []
+    for index, child in enumerate(children):
         if not isinstance(child, Mapping):
             continue
         item = _node_item(child, viewport_id)
         position = item.get("position", "auto") if isinstance(item, Mapping) else "auto"
-        (absolute if position == "absolute" else normal).append(dict(child))
+        child_path = f"{path}/children/{index}"
+        (absolute if position == "absolute" else normal).append((dict(child), child_path))
     entries: list[dict[str, Any]] = []
-    for child in normal:
+    for child, child_path in normal:
         item = _node_item(child, viewport_id)
         margin = _insets(item.get("margin", 0) if isinstance(item, Mapping) else 0)
-        child_width, _, _ = _sizing(child, "width", content_width, measurements, assets)
-        child_height, _, _ = _sizing(child, "height", content_height, measurements, assets)
+        child_width, _, _ = _sizing(
+            child, "width", content_width, measurements, assets, child_path
+        )
+        child_height, _, _ = _sizing(
+            child, "height", content_height, measurements, assets, child_path
+        )
         main_axis = "width" if direction.startswith("row") else "height"
         main_spec = item.get(main_axis) if isinstance(item, Mapping) else None
         basis = child_width if direction.startswith("row") else child_height
@@ -153,7 +179,7 @@ def _layout_node(
         main_spec_map = main_spec if isinstance(main_spec, Mapping) else {}
         main_min = max(0.0, _number(main_spec_map.get("min"), 0.0))
         main_max = _number(main_spec_map.get("max"), float("inf")) if main_spec_map.get("max") is not None else float("inf")
-        entries.append({"node": child, "item": item, "margin": margin, "width": child_width, "height": child_height, "basis": basis, "grow": flex_grow, "shrink": flex_shrink, "min": main_min, "max": main_max})
+        entries.append({"node": child, "path": child_path, "item": item, "margin": margin, "width": child_width, "height": child_height, "basis": basis, "grow": flex_grow, "shrink": flex_shrink, "min": main_min, "max": main_max})
     lines: list[list[dict[str, Any]]] = [[]]
     wrap = layout.get("wrap", "nowrap") != "nowrap"
     used = 0.0
@@ -227,17 +253,43 @@ def _layout_node(
             offset = entry["item"].get("offset", {}) if isinstance(entry["item"], Mapping) else {}
             child_x += _number(offset.get("x"), 0.0) if isinstance(offset, Mapping) else 0.0
             child_y += _number(offset.get("y"), 0.0) if isinstance(offset, Mapping) else 0.0
-            _layout_node(entry["node"], child_w, child_h, child_x, child_y, viewport_id, measurements, assets, snapshot)
+            _layout_node(
+                entry["node"],
+                child_w,
+                child_h,
+                child_x,
+                child_y,
+                viewport_id,
+                measurements,
+                assets,
+                snapshot,
+                entry["path"],
+            )
         line_cross_cursor += line_cross + gap
-    for child in absolute:
+    for child, child_path in absolute:
         item = _node_item(child, viewport_id)
         inset = item.get("inset", {}) if isinstance(item, Mapping) else {}
         inset = inset if isinstance(inset, Mapping) else {}
-        child_width, _, _ = _sizing(child, "width", content_width, measurements, assets)
-        child_height, _, _ = _sizing(child, "height", content_height, measurements, assets)
+        child_width, _, _ = _sizing(
+            child, "width", content_width, measurements, assets, child_path
+        )
+        child_height, _, _ = _sizing(
+            child, "height", content_height, measurements, assets, child_path
+        )
         child_x = _number(inset.get("left"), 0.0)
         child_y = _number(inset.get("top"), 0.0)
-        _layout_node(child, child_width, child_height, child_x, child_y, viewport_id, measurements, assets, snapshot)
+        _layout_node(
+            child,
+            child_width,
+            child_height,
+            child_x,
+            child_y,
+            viewport_id,
+            measurements,
+            assets,
+            snapshot,
+            child_path,
+        )
 
 
 def resolve_layouts(

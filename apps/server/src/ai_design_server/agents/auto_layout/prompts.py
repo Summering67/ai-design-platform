@@ -6,6 +6,8 @@ SYSTEM_PROMPT = """
 - 解析 Flex 容器属性，包括 direction、justifyContent、alignItems、wrap、gap、padding。
 - 解析子节点布局属性，包括 flexGrow、flexShrink、flexBasis、alignSelf、margin、width、height、min/max size。
 - 使用 layout、layoutItem 和 responsive 表达 Flex 布局及 fixed、fill、hug 尺寸意图；min/max 只能作为尺寸约束。
+- measuredNodeIds 非空时系统会解析 Geometry；叶子节点只有出现在 measuredNodeIds 中才能使用 hug，baseline 对齐涉及的节点也必须已测量。
+- measuredNodeIds 为空时允许保留声明式 hug，但系统会省略 resolvedLayouts，不得为补齐 Geometry 猜测 fixed 尺寸。
 - 优先遵守 layoutRequirements，其次参考 layoutIntent，最后才做最小推断。
 - 先声明父容器 layout，再声明直接子节点 layoutItem，最后声明 viewport responsive 覆盖。
 - 不计算或输出 x、y、geometry、resolvedLayouts、computedLayout 等结果。

@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
+import re
 import time
 from collections.abc import Callable, Mapping, Sequence
 from copy import deepcopy
+from pathlib import Path
 from typing import Any
 
 from .diagnostics import (
@@ -12,6 +15,7 @@ from .diagnostics import (
     candidate_size,
     collect_schema_issues,
     redacted_snapshot,
+    redacted_value,
     stable_digest,
 )
 from .errors import AgentError, ContractError, InputRequired
@@ -21,6 +25,37 @@ CandidateValidator = Callable[[dict[str, Any]], None]
 CandidateIssueCollector = Callable[[dict[str, Any]], list[DiagnosticIssue]]
 MAX_FEEDBACK_LENGTH = 240
 LOGGER = logging.getLogger("ai_design_server.agents.harness")
+FAILED_CANDIDATE_ROOT = Path(__file__).resolve().parents[3] / ".agent-outputs" / "by-run"
+
+
+async def _save_failed_candidate(
+    candidate: dict[str, Any] | None,
+    run_id: str | None,
+    stage: str | None,
+    attempt: int,
+) -> None:
+    if candidate is None or not run_id:
+        return
+    safe_run_id = re.sub(r"[^a-zA-Z0-9._-]+", "-", run_id).strip(".-")[:80]
+    safe_stage = re.sub(r"[^a-zA-Z0-9._-]+", "-", stage or "agent").strip(".-")[:80]
+    if not safe_run_id or not safe_stage:
+        return
+    target = FAILED_CANDIDATE_ROOT / safe_run_id / f"{safe_stage}-attempt-{attempt:02d}-failed.json"
+    serialized = json.dumps(redacted_value(candidate), ensure_ascii=False, indent=2, sort_keys=True)
+
+    def write() -> None:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        temporary = target.with_suffix(".tmp")
+        temporary.write_text(f"{serialized}\n", encoding="utf-8")
+        temporary.replace(target)
+
+    try:
+        await asyncio.to_thread(write)
+    except OSError:
+        LOGGER.warning(
+            "保存 Agent Harness 失败候选失败",
+            extra={"run_id": run_id, "stage": stage or "", "attempt": attempt},
+        )
 
 
 def short_error_summary(error: AgentError) -> str:
@@ -147,6 +182,7 @@ async def run_structured_harness(
                 issues=issues,
                 trace_contract=trace_contract,
             )
+            await _save_failed_candidate(candidate, run_id, stage, attempt + 1)
             if (
                 not isinstance(error, ContractError) and not error.retryable
             ) or attempt + 1 >= max_attempts:
