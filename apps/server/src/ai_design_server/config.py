@@ -77,14 +77,14 @@ class AIConfig(BaseModel):
     base_url: str = ""
     api_key: str = ""
     model: str = "deepseek-v4-flash"
-    request_timeout: float = 60.0
+    request_timeout: float = 0.0
 
 
 class AgentConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    node_timeout: float = 60.0
-    total_timeout: float = 300.0
+    node_timeout: float = 0.0
+    total_timeout: float = 0.0
     max_input_bytes: int = 512 * 1024
     max_output_bytes: int = 1024 * 1024
     max_pages: int = 20
@@ -133,13 +133,15 @@ class RuntimeConfig(BaseModel):
         parsed = urlparse(self.ai.base_url.strip())
         if parsed.scheme not in {"http", "https"} or not parsed.netloc:
             raise ValueError("AI BaseURL 必须是有效的 HTTP 地址")
-        if not self.ai.api_key.strip() or not self.ai.model.strip() or self.ai.request_timeout <= 0:
+        if not self.ai.api_key.strip() or not self.ai.model.strip() or self.ai.request_timeout < 0:
             raise ValueError("AI 配置无效")
         if not self.auth.fixed_user_password.strip():
             raise ValueError("固定用户密码不能为空")
-        if self.server.write_timeout <= self.ai.request_timeout:
+        if self.ai.request_timeout > 0 and self.server.write_timeout <= self.ai.request_timeout:
             raise ValueError("HTTP 写超时必须大于 AI 请求超时")
-        if self.agent.total_timeout < self.agent.node_timeout:
+        if min(self.agent.node_timeout, self.agent.total_timeout) < 0:
+            raise ValueError("Agent 超时不能为负数")
+        if self.agent.total_timeout > 0 and self.agent.node_timeout > self.agent.total_timeout:
             raise ValueError("Agent 总超时不能小于节点超时")
         if min(
             self.agent.max_input_bytes,

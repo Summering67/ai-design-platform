@@ -21,7 +21,7 @@ class ChatClient:
         self.client = client
         self.api_key = config.api_key
         self.model = config.model
-        self.timeout = config.request_timeout
+        self.timeout = config.request_timeout if config.request_timeout > 0 else None
         base = config.base_url.rstrip("/") + "/"
         parsed = urlparse(base)
         if parsed.scheme not in {"http", "https"} or not parsed.netloc or parsed.query or parsed.fragment:

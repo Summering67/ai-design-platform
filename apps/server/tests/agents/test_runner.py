@@ -249,6 +249,29 @@ async def test_agent_total_timeout_is_not_extended_by_reasoning_activity() -> No
 
 
 @pytest.mark.asyncio
+async def test_zero_timeouts_allow_slow_agent_to_finish() -> None:
+    contract = _read("packages/design-contract/fixtures/v2/team-default.generation-contract.json")
+    model = _fake_model()
+    structured = model.structured
+
+    async def slow_structured(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        await asyncio.sleep(0.02)
+        return await structured(*args, **kwargs)
+
+    model.structured = slow_structured
+    events = [
+        event
+        async for event in run_agent(
+            {"requirement": "设计一个项目列表", "generation_contract": contract},
+            model,
+            AgentConfig(node_timeout=0, total_timeout=0),
+        )
+    ]
+
+    assert events[-1]["event"] == "result"
+
+
+@pytest.mark.asyncio
 async def test_reasoning_is_truncated_without_blocking_final_output() -> None:
     contract = _read("packages/design-contract/fixtures/v2/team-default.generation-contract.json")
     prd = _read("packages/design-contract/fixtures/v2/standardized-prd.valid.json")

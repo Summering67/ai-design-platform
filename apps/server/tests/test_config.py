@@ -11,6 +11,9 @@ def test_runtime_config_accepts_shared_runtime_values() -> None:
         }
     )
     assert config.server.address == ":8081"
+    assert config.ai.request_timeout == 0
+    assert config.agent.node_timeout == 0
+    assert config.agent.total_timeout == 0
 
 
 def test_load_config_reads_server_env_file(monkeypatch, tmp_path) -> None:

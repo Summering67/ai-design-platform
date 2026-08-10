@@ -92,11 +92,15 @@ async def _stream_completion(
             "stream": True,
             "thinking": {"type": "enabled" if thinking else "disabled"},
         },
-        timeout=httpx.Timeout(
-            connect=config.request_timeout,
-            read=None,
-            write=config.request_timeout,
-            pool=config.request_timeout,
+        timeout=(
+            httpx.Timeout(
+                connect=config.request_timeout,
+                read=None,
+                write=config.request_timeout,
+                pool=config.request_timeout,
+            )
+            if config.request_timeout > 0
+            else None
         ),
     ) as response:
         stats["http_status"] = response.status_code

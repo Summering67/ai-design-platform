@@ -18,12 +18,13 @@ log:
 
 ai:
   model: deepseek-v4-flash
-  # 仅限制连接、写入和连接池等待；流式 thinking/read 没有固定截止时间。
-  request_timeout: 60s
+  # 0 表示不限制模型请求时长。
+  request_timeout: 0s
 
 agent:
-  node_timeout: 60s
-  total_timeout: 300s
+  # 0 表示不限制无活动等待和整次运行时长。
+  node_timeout: 0s
+  total_timeout: 0s
   max_input_bytes: 524288
   max_output_bytes: 1048576
   max_pages: 20

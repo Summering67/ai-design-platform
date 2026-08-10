@@ -81,13 +81,19 @@ async def run_agent(
     await queue.put(event("run", run_id, "root", payload={"status": "started"}))
     terminal_emitted = False
     timed_out = False
-    deadline = asyncio.get_running_loop().time() + config.total_timeout
+    deadline = (
+        asyncio.get_running_loop().time() + config.total_timeout
+        if config.total_timeout > 0
+        else None
+    )
     try:
         while True:
             if task.done() and queue.empty():
                 break
-            remaining = deadline - asyncio.get_running_loop().time()
-            if remaining <= 0:
+            remaining = (
+                deadline - asyncio.get_running_loop().time() if deadline is not None else None
+            )
+            if remaining is not None and remaining <= 0:
                 timed_out = True
                 task.cancel()
                 await asyncio.gather(task, return_exceptions=True)
@@ -100,10 +106,21 @@ async def run_agent(
                     )
                 break
             try:
-                item = await asyncio.wait_for(queue.get(), min(config.node_timeout, remaining))
+                timeouts = [
+                    timeout
+                    for timeout in (config.node_timeout, remaining)
+                    if timeout is not None and timeout > 0
+                ]
+                item = (
+                    await asyncio.wait_for(queue.get(), min(timeouts))
+                    if timeouts
+                    else await queue.get()
+                )
             except TimeoutError:
                 timed_out = True
-                total_expired = asyncio.get_running_loop().time() >= deadline
+                total_expired = (
+                    deadline is not None and asyncio.get_running_loop().time() >= deadline
+                )
                 task.cancel()
                 await asyncio.gather(task, return_exceptions=True)
                 if not terminal_emitted:
