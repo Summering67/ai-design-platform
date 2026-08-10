@@ -30,6 +30,13 @@ def load_schema(name: str) -> dict[str, Any]:
         raise ContractError("contract_unavailable", "设计契约不可用") from error
     if not isinstance(value, dict):
         raise ContractError("contract_unavailable", "设计契约格式无效")
+    style = value.get("$defs", {}).get("style")
+    if isinstance(style, dict) and style.get("$ref", "").startswith(
+        "design-document.schema.json#/$defs/"
+    ):
+        design_document = load_schema("design-document.schema.json")
+        value["$defs"]["style"] = design_document["$defs"][style["$ref"].rsplit("/", 1)[-1]]
+        value["$defs"]["styleValue"] = design_document["$defs"]["styleValue"]
     return value
 
 

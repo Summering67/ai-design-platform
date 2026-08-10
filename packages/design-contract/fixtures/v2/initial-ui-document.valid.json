@@ -2,11 +2,11 @@
   "version": "1.0.0", "id": "login", "name": "登录页", "assets": {},
   "root": {
     "id": "root", "kind": "element", "name": "登录页", "tag": "div",
-    "style": { "display": "flex", "flexDirection": "column", "width": "100%", "padding": 24 },
-    "props": {}, "layout": { "mode": "flex", "direction": "column", "gap": 16 },
-    "layoutItem": { "width": { "mode": "fill" }, "height": { "mode": "hug" } }, "children": [
-      { "id": "title", "kind": "text", "name": "标题", "tag": "h1", "style": { "fontSize": 32 }, "props": {}, "layout": { "mode": "flex" }, "layoutItem": { "width": { "mode": "hug" }, "height": { "mode": "hug" } }, "children": [], "text": "欢迎登录" },
-      { "id": "submit", "kind": "component", "name": "提交", "tag": "ui.button", "packageName": "ui", "style": {}, "props": { "type": "primary" }, "layout": { "mode": "flex" }, "layoutItem": { "width": { "mode": "hug" }, "height": { "mode": "hug" } }, "children": [] }
+    "style": { "backgroundColor": "#FFFFFF" },
+    "layoutIntent": { "role": "page", "grouping": "cluster", "adaptivity": "reflow", "density": "comfortable" },
+    "props": {}, "children": [
+      { "id": "title", "kind": "text", "name": "标题", "tag": "h1", "style": { "fontSize": 32 }, "props": {}, "children": [], "text": "欢迎登录" },
+      { "id": "submit", "kind": "component", "name": "提交", "tag": "ui.button", "packageName": "ui", "style": {}, "props": { "type": "primary" }, "layoutIntent": { "role": "actions" }, "children": [] }
     ]
   }
 }

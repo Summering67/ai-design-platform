@@ -1,6 +1,16 @@
-import initialUiDocumentSchema from "../schema/v2/initial-ui-document.schema.json" with { type: "json" };
+import designDocumentSchema from "../schema/v2/design-document.schema.json" with { type: "json" };
+import initialUiDocumentSchemaSource from "../schema/v2/initial-ui-document.schema.json" with { type: "json" };
 import layoutPlanSchema from "../schema/v2/layout-plan.schema.json" with { type: "json" };
 import type { JsonValue } from "./generated-v2.js";
+
+const initialUiDocumentSchema = {
+  ...initialUiDocumentSchemaSource,
+  $defs: {
+    ...initialUiDocumentSchemaSource.$defs,
+    style: designDocumentSchema.$defs.visualStyle,
+    styleValue: designDocumentSchema.$defs.styleValue,
+  },
+};
 
 export type InitialUIDocument = {
   version: "1.0.0";
@@ -19,10 +29,13 @@ export type InitialUINode = {
   style: Record<string, number | string | boolean>;
   props: Record<string, JsonValue>;
   tokens?: string[];
-  layout: Record<string, JsonValue>;
-  layoutItem: Record<string, JsonValue>;
+  layoutIntent?: {
+    role: "page" | "section" | "navigation" | "toolbar" | "sidebar" | "content" | "list" | "grid" | "form" | "field-group" | "actions" | "overlay";
+    grouping?: "single" | "collection" | "paired" | "cluster";
+    adaptivity?: "preserve" | "reflow" | "condense";
+    density?: "compact" | "comfortable" | "spacious";
+  };
   children: InitialUINode[];
-  responsive?: Record<string, Record<string, JsonValue>>;
   text?: string;
   assetId?: string;
   alt?: string;

@@ -37,75 +37,27 @@
         "alt": { "type": "string" }
       }
     },
-    "styleValue": { "oneOf": [{ "type": "number" }, { "type": "string" }, { "type": "boolean" }] },
-    "style": {
+    "style": { "$ref": "design-document.schema.json#/$defs/visualStyle" },
+    "layoutIntent": {
       "type": "object",
       "additionalProperties": false,
+      "required": ["role"],
       "properties": {
-        "display": { "enum": ["block", "inline", "inline-block", "flex", "inline-flex", "none"] },
-        "position": { "enum": ["static", "relative", "absolute", "fixed", "sticky"] },
-        "width": { "$ref": "#/$defs/styleValue" }, "height": { "$ref": "#/$defs/styleValue" },
-        "minWidth": { "$ref": "#/$defs/styleValue" }, "minHeight": { "$ref": "#/$defs/styleValue" },
-        "maxWidth": { "$ref": "#/$defs/styleValue" }, "maxHeight": { "$ref": "#/$defs/styleValue" },
-        "padding": { "$ref": "#/$defs/styleValue" }, "margin": { "$ref": "#/$defs/styleValue" },
-        "background": { "type": "string" }, "backgroundColor": { "type": "string" },
-        "border": { "type": "string" }, "borderRadius": { "$ref": "#/$defs/styleValue" },
-        "color": { "type": "string" }, "fontSize": { "type": "number" },
-        "fontWeight": { "type": "number" }, "lineHeight": { "$ref": "#/$defs/styleValue" },
-        "textAlign": { "enum": ["left", "right", "center", "justify"] },
-        "flexGrow": { "type": "number", "minimum": 0 }, "flexShrink": { "type": "number", "minimum": 0 },
-        "flexBasis": { "$ref": "#/$defs/styleValue" },
-        "flexDirection": { "enum": ["row", "column", "row-reverse", "column-reverse"] },
-        "flexWrap": { "enum": ["nowrap", "wrap", "wrap-reverse"] },
-        "justifyContent": { "enum": ["flex-start", "flex-end", "center", "space-between", "space-around", "space-evenly"] },
-        "alignItems": { "enum": ["flex-start", "flex-end", "center", "baseline", "stretch"] },
-        "alignSelf": { "enum": ["auto", "flex-start", "flex-end", "center", "baseline", "stretch"] },
-        "gap": { "type": "number", "minimum": 0 }, "rowGap": { "type": "number", "minimum": 0 }, "columnGap": { "type": "number", "minimum": 0 },
-        "opacity": { "type": "number", "minimum": 0, "maximum": 1 },
-        "overflow": { "enum": ["visible", "hidden", "scroll", "auto"] }
-      }
-    },
-    "sizing": {
-      "oneOf": [
-        { "type": "object", "additionalProperties": false, "required": ["mode", "value"], "properties": { "mode": { "const": "fixed" }, "value": { "type": "number", "minimum": 0 } } },
-        { "type": "object", "additionalProperties": false, "required": ["mode"], "properties": { "mode": { "enum": ["fill", "hug"] } } },
-        { "type": "object", "additionalProperties": false, "required": ["mode", "min"], "properties": { "mode": { "const": "minmax" }, "min": { "type": "number", "minimum": 0 }, "max": { "type": "number", "minimum": 0 } } }
-      ]
-    },
-    "edgeInsets": {
-      "type": "object", "additionalProperties": false,
-      "properties": { "top": { "type": "number", "minimum": 0 }, "right": { "type": "number", "minimum": 0 }, "bottom": { "type": "number", "minimum": 0 }, "left": { "type": "number", "minimum": 0 } }
-    },
-    "layout": {
-      "type": "object", "additionalProperties": false, "required": ["mode"],
-      "properties": {
-        "mode": { "enum": ["flex", "absolute"] },
-        "direction": { "enum": ["row", "row-reverse", "column", "column-reverse"] },
-        "justifyContent": { "enum": ["flex-start", "flex-end", "center", "space-between", "space-around", "space-evenly"] },
-        "alignItems": { "enum": ["stretch", "flex-start", "flex-end", "center", "baseline"] },
-        "wrap": { "enum": ["nowrap", "wrap", "wrap-reverse"] }, "gap": { "type": "number", "minimum": 0 },
-        "rowGap": { "type": "number", "minimum": 0 }, "columnGap": { "type": "number", "minimum": 0 }, "padding": { "$ref": "#/$defs/edgeInsets" }
-      }
-    },
-    "layoutItem": {
-      "type": "object", "additionalProperties": false,
-      "properties": {
-        "width": { "$ref": "#/$defs/sizing" }, "height": { "$ref": "#/$defs/sizing" },
-        "flexGrow": { "type": "number", "minimum": 0 }, "flexShrink": { "type": "number", "minimum": 0 },
-        "flexBasis": { "$ref": "#/$defs/styleValue" }, "alignSelf": { "enum": ["auto", "flex-start", "flex-end", "center", "baseline", "stretch"] },
-        "margin": { "$ref": "#/$defs/edgeInsets" }, "position": { "enum": ["flow", "absolute"] }, "inset": { "$ref": "#/$defs/edgeInsets" }
+        "role": { "enum": ["page", "section", "navigation", "toolbar", "sidebar", "content", "list", "grid", "form", "field-group", "actions", "overlay"] },
+        "grouping": { "enum": ["single", "collection", "paired", "cluster"] },
+        "adaptivity": { "enum": ["preserve", "reflow", "condense"] },
+        "density": { "enum": ["compact", "comfortable", "spacious"] }
       }
     },
     "node": {
       "type": "object", "additionalProperties": false,
-      "required": ["id", "kind", "name", "tag", "style", "props", "layout", "layoutItem", "children"],
+      "required": ["id", "kind", "name", "tag", "style", "props", "children"],
       "properties": {
         "id": { "$ref": "#/$defs/id" }, "kind": { "enum": ["element", "text", "image", "component"] },
         "name": { "type": "string", "minLength": 1 }, "tag": { "type": "string", "minLength": 1 },
         "packageName": { "type": "string", "minLength": 1 }, "defaultModule": { "type": "boolean" },
-        "style": { "$ref": "#/$defs/style" }, "layout": { "$ref": "#/$defs/layout" }, "layoutItem": { "$ref": "#/$defs/layoutItem" },
+        "style": { "$ref": "#/$defs/style" }, "layoutIntent": { "$ref": "#/$defs/layoutIntent" },
         "props": { "$ref": "#/$defs/jsonObject" }, "tokens": { "type": "array", "items": { "$ref": "#/$defs/id" }, "uniqueItems": true }, "children": { "type": "array", "items": { "$ref": "#/$defs/node" } },
-        "responsive": { "type": "object", "additionalProperties": { "type": "object" } },
         "text": { "type": "string" }, "assetId": { "$ref": "#/$defs/id" }, "alt": { "type": "string" }
       },
       "allOf": [
