@@ -70,15 +70,23 @@ import {
 } from "antd";
 import { createElement, type ElementType, type ReactNode } from "react";
 
-type Renderer = (props: Record<string, unknown>, children: ReactNode[]) => ReactNode;
+type Renderer = (
+  props: Record<string, unknown>,
+  children: ReactNode[],
+) => ReactNode;
 
 const component = (target: ElementType): Renderer => {
-  const renderComponent = (props: Record<string, unknown>, children: ReactNode[]) =>
-    createElement(target, props, children.length ? children : undefined);
+  const renderComponent = (
+    props: Record<string, unknown>,
+    children: ReactNode[],
+  ) => createElement(target, props, children.length ? children : undefined);
   return renderComponent;
 };
 
-const alertProjection = (props: Record<string, unknown>, children: ReactNode[]) => {
+const alertProjection = (
+  props: Record<string, unknown>,
+  children: ReactNode[],
+) => {
   const message =
     typeof props.message === "string" || typeof props.message === "number"
       ? props.message
@@ -161,8 +169,12 @@ const renderers: Record<string, Renderer> = {
   "ui.util": component("span"),
 };
 
+const legacyTagFor = (tag: string) =>
+  `ui.${tag === "QRCode" ? "qr-code" : tag.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase()}`;
+
 export const renderAntDesignComponent = (
   tag: string,
   props: Record<string, unknown>,
   children: ReactNode[],
-): ReactNode | null => renderers[tag]?.(props, children) ?? null;
+): ReactNode | null =>
+  (renderers[tag] ?? renderers[legacyTagFor(tag)])?.(props, children) ?? null;

@@ -1,5 +1,9 @@
 import { createElement, type CSSProperties, type ReactNode } from "react";
-import { deriveV2RenderModel, type DesignDocument, type DesignNode } from "@repo/design-dsl";
+import {
+  deriveV2RenderModel,
+  type DesignDocument,
+  type DesignNode,
+} from "@repo/design-dsl";
 import { renderAntDesignComponent } from "./ant-design-components";
 
 export type DesignDocumentRendererProps = {
@@ -8,11 +12,16 @@ export type DesignDocumentRendererProps = {
   onError?: (message: string) => ReactNode;
 };
 
-const renderNode = (node: DesignNode, document: DesignDocument, viewportId: string): ReactNode => {
+const renderNode = (
+  node: DesignNode,
+  document: DesignDocument,
+  viewportId: string,
+): ReactNode => {
   const geometry = document.resolvedLayouts?.[viewportId]?.nodes[node.id];
   if (!geometry) return null;
   const props = {
     ...node.props,
+    key: node.id,
     style: {
       ...(node.style as CSSProperties),
       position: "absolute",
@@ -28,7 +37,11 @@ const renderNode = (node: DesignNode, document: DesignDocument, viewportId: stri
   if (node.kind === "image") {
     const asset = document.assets[node.assetId!];
     return asset
-      ? createElement("img", { ...props, src: asset.src, alt: node.alt ?? asset.alt ?? node.name })
+      ? createElement("img", {
+          ...props,
+          src: asset.src,
+          alt: node.alt ?? asset.alt ?? node.name,
+        })
       : null;
   }
   if (node.kind === "component") {
@@ -46,21 +59,38 @@ const renderNode = (node: DesignNode, document: DesignDocument, viewportId: stri
       )
     );
   }
-  return createElement(node.tag, props, node.children.map((child) => renderNode(child, document, viewportId)));
+  return createElement(
+    node.tag,
+    props,
+    node.children.map((child) => renderNode(child, document, viewportId)),
+  );
 };
 
-const hasGeometryForTree = (node: DesignNode, document: DesignDocument, viewportId: string): boolean => {
+const hasGeometryForTree = (
+  node: DesignNode,
+  document: DesignDocument,
+  viewportId: string,
+): boolean => {
   if (!document.resolvedLayouts?.[viewportId]?.nodes[node.id]) return false;
-  return node.children.every((child) => hasGeometryForTree(child, document, viewportId));
+  return node.children.every((child) =>
+    hasGeometryForTree(child, document, viewportId),
+  );
 };
 
-export const DesignDocumentRenderer = ({ document, viewportId, onError }: DesignDocumentRendererProps) => {
+export const DesignDocumentRenderer = ({
+  document,
+  viewportId,
+  onError,
+}: DesignDocumentRendererProps) => {
   if (!document.resolvedLayouts?.[viewportId])
     return onError?.(`缺少 viewport ${viewportId} 的 Geometry`) ?? null;
   const result = deriveV2RenderModel(document);
-  if (!result.ok) return onError?.(result.errors[0]?.message ?? "设计文档无效") ?? null;
+  if (!result.ok)
+    return onError?.(result.errors[0]?.message ?? "设计文档无效") ?? null;
   if (!hasGeometryForTree(result.value.root, document, viewportId))
-    return onError?.(`viewport ${viewportId} 的 Geometry 未覆盖全部节点`) ?? null;
+    return (
+      onError?.(`viewport ${viewportId} 的 Geometry 未覆盖全部节点`) ?? null
+    );
   return renderNode(result.value.root, document, viewportId);
 };
 
