@@ -16,7 +16,6 @@ import { config as baseConfig } from "./base.js";
 export const nextJsConfig = [
   ...baseConfig,
   js.configs.recommended,
-  eslintConfigPrettier,
   ...tseslint.configs.recommended,
   globalIgnores([
     // Default ignores of eslint-config-next:
@@ -54,4 +53,5 @@ export const nextJsConfig = [
       "react/react-in-jsx-scope": "off",
     },
   },
+  eslintConfigPrettier,
 ];
