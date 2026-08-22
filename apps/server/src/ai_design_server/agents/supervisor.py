@@ -24,8 +24,9 @@ AGENT_LABELS = {
     "requirement": "需求分析",
     "ui_design": "UI 设计",
     "auto_layout": "自动布局",
+    "codegen": "代码生成",
 }
-TASK_ORDER = ("requirement", "ui_design", "auto_layout")
+CAPABILITY_ORDER = ("requirement", "ui_design", "auto_layout", "codegen")
 AGENT_OUTPUT_ROOT = Path(__file__).resolve().parents[3] / ".agent-outputs"
 
 
@@ -39,7 +40,7 @@ async def _save_agent_output(
 ) -> None:
     generation_id = _safe_output_segment(state.get("generation_id"), "no-generation")
     run_id = _safe_output_segment(state.get("run_id"), "no-run")
-    stage_number = TASK_ORDER.index(name) + 1
+    stage_number = CAPABILITY_ORDER.index(name) + 1
     target = (
         AGENT_OUTPUT_ROOT
         / generation_id
@@ -74,20 +75,37 @@ def _ready(name: str, state: RootState) -> bool:
         "requirement": "prd" not in completed,
         "ui_design": "prd" in completed and "initial_ui_document" not in completed,
         "auto_layout": "initial_ui_document" in completed and "final_document" not in completed,
+        "codegen": "final_document" in completed
+        and bool(state.get("codegen_request"))
+        and "codegen_result" not in completed,
     }.get(name, False)
 
 
-def _ready_tasks(state: RootState) -> list[str]:
-    return [name for name in TASK_ORDER if _ready(name, state)]
+def _ready_capabilities(state: RootState) -> list[str]:
+    return [name for name in CAPABILITY_ORDER if _ready(name, state)]
 
 
 def _catalog() -> dict[str, dict[str, Any]]:
     return {
-        "requirement": {"requires": [], "provides": ["prd"]},
-        "ui_design": {"requires": ["prd"], "provides": ["initial_ui_document"]},
+        "requirement": {
+            "description": "当用户目标还没有结构化 PRD 时分析需求。",
+            "requires": [],
+            "provides": ["prd"],
+        },
+        "ui_design": {
+            "description": "当用户需要界面设计且已有 PRD 时生成初始 DesignDocument。",
+            "requires": ["prd"],
+            "provides": ["initial_ui_document"],
+        },
         "auto_layout": {
+            "description": "当初始设计需要可用布局和响应式结果时生成 final DesignDocument。",
             "requires": ["initial_ui_document", "prd"],
             "provides": ["validation", "final_document", "result"],
+        },
+        "codegen": {
+            "description": "仅当用户明确需要可迁入项目的 React 源码时，读取 final DesignDocument 和当前画布并生成、检查、修复 TSX/CSS。",
+            "requires": ["final_document", "canvas_context"],
+            "provides": ["codegen_result"],
         },
     }
 
@@ -154,7 +172,14 @@ async def _emit_input_required(
 
 
 async def _run_task(
-    name: str, state: RootState, model: ModelPort, task_id: str, attempt: int
+    name: str,
+    state: RootState,
+    model: ModelPort,
+    task_id: str,
+    attempt: int,
+    config: AgentConfig,
+    codegen_runner: Callable[[dict[str, Any], ModelPort, AgentConfig], Awaitable[dict[str, Any]]]
+    | None,
 ) -> dict[str, Any]:
     completed = state.get("completed", {})
     contract = state["generation_contract"]
@@ -193,6 +218,12 @@ async def _run_task(
                 "document": result["document"],
             },
         }
+    if name == "codegen":
+        if codegen_runner is None:
+            raise AgentError("capability_unavailable", "Codegen Agent 未接入 Root")
+        request = dict(state["codegen_request"])
+        request["document"] = completed["final_document"]
+        return {"codegen_result": await codegen_runner(request, model, config)}
     raise AgentError("capability_unavailable", "Agent 能力未注册")
 
 
@@ -203,6 +234,8 @@ async def _run_task_with_retry(
     task_id: str,
     config: AgentConfig,
     emit: EventSink,
+    codegen_runner: Callable[[dict[str, Any], ModelPort, AgentConfig], Awaitable[dict[str, Any]]]
+    | None = None,
 ) -> dict[str, Any]:
     for attempt in range(1, config.max_retries + 2):
         try:
@@ -284,6 +317,8 @@ async def _run_task_with_retry(
                 bind_reasoning(model, on_reasoning, on_activity),
                 task_id,
                 attempt,
+                config,
+                codegen_runner,
             )
         except InputRequired as required:
             required.source_stage = name
@@ -307,7 +342,13 @@ async def _run_task_with_retry(
 
 
 async def execute(
-    state: RootState, *, model: ModelPort, config: AgentConfig, emit: EventSink
+    state: RootState,
+    *,
+    model: ModelPort,
+    config: AgentConfig,
+    emit: EventSink,
+    codegen_runner: Callable[[dict[str, Any], ModelPort, AgentConfig], Awaitable[dict[str, Any]]]
+    | None = None,
 ) -> RootState:
     state.setdefault("task_catalog", _catalog())
     state.setdefault("completed", {})
@@ -340,6 +381,7 @@ async def execute(
                 model, on_root_reasoning, on_root_activity
             ).select_tasks(
                 {
+                    "request": state["raw_requirement"],
                     "target": state.get("target", "design"),
                     "completed": list(state["completed"]),
                     "resolvedUserInputs": [
@@ -348,6 +390,7 @@ async def execute(
                         if item.get("source_stage") == "root"
                     ],
                     "catalog": state["task_catalog"],
+                    "readyCapabilities": _ready_capabilities(state),
                     "history": state["task_history"],
                 }
             )
@@ -379,14 +422,21 @@ async def execute(
             }
             await _emit(emit, "failed", state, "root", payload=state["error"])
             return state
+        requested = list(selected)
         selected = [
             name for name in selected if name in state["task_catalog"] and _ready(name, state)
         ]
         if not selected:
-            selected = _ready_tasks(state)
-        if not selected:
+            if not requested and "result" in state["completed"]:
+                state["result"] = state["completed"]["result"]
+                state["terminal"] = "result"
+                await _emit(emit, "result", state, "root", payload=state["result"])
+                return state
             state["terminal"] = "failed"
-            state["error"] = {"code": "no_executable_task", "message": "Root 没有可执行任务"}
+            state["error"] = {
+                "code": "no_executable_task",
+                "message": "Root 未选择当前可执行的 Agent 能力",
+            }
             await _emit(emit, "failed", state, "root", payload=state["error"])
             return state
         selected = selected[: config.max_concurrency]
@@ -422,7 +472,9 @@ async def execute(
                 payload={"status": "running"},
             )
         task_handles = [
-            asyncio.create_task(_run_task_with_retry(name, state, model, task_id, config, emit))
+            asyncio.create_task(
+                _run_task_with_retry(name, state, model, task_id, config, emit, codegen_runner)
+            )
             for name, task_id in task_pairs
         ]
         try:
@@ -473,6 +525,16 @@ async def execute(
             return state
         for (name, task_id), output in zip(task_pairs, outputs, strict=True):
             state["completed"].update(output)
+            if name == "auto_layout" and codegen_runner is not None:
+                document = output.get("final_document", {})
+                layouts = document.get("resolvedLayouts", {}) if isinstance(document, dict) else {}
+                if isinstance(layouts, dict) and layouts and not state.get("codegen_request"):
+                    state["codegen_request"] = {
+                        "canvas": {
+                            "viewportIds": list(layouts),
+                            "canvasId": state.get("generation_id") or state["run_id"],
+                        }
+                    }
             state["tasks"][task_id]["status"] = "completed"
             state["task_history"].append(name)
             await _save_agent_output(state, name, output, state["tasks"][task_id]["attempt"])
@@ -497,7 +559,16 @@ async def execute(
                 parent_task_id="root",
                 payload={"status": "completed", "output": output},
             )
-        if "result" in state["completed"]:
+            if "codegen_result" in output:
+                design_result = state["completed"].get("result", {})
+                state["result"] = {
+                    **(design_result if isinstance(design_result, dict) else {}),
+                    "codegen": output["codegen_result"],
+                }
+                state["terminal"] = "result"
+                await _emit(emit, "result", state, name, task_id=task_id, payload=state["result"])
+                return state
+        if "result" in state["completed"] and not state.get("codegen_request"):
             state["result"] = state["completed"]["result"]
             state["terminal"] = "result"
             await _emit(emit, "result", state, "auto_layout", payload=state["result"])

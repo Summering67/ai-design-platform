@@ -14,7 +14,12 @@ from .state import RootState
 EventSink = Callable[[AgentRunEvent], Awaitable[None]]
 
 
-def build(model: ModelPort, config: AgentConfig) -> Any:
+def build(
+    model: ModelPort,
+    config: AgentConfig,
+    codegen_runner: Callable[[dict[str, Any], ModelPort, AgentConfig], Awaitable[dict[str, Any]]]
+    | None = None,
+) -> Any:
     async def supervise(state: RootState, runtime: Runtime) -> RootState:
         context: Mapping[str, Any] = runtime.context or {}
         sink = context.get("event_sink")
@@ -22,7 +27,9 @@ def build(model: ModelPort, config: AgentConfig) -> Any:
             raise TypeError("Agent event sink 未注入")
         from .supervisor import execute
 
-        return await execute(state, model=model, config=config, emit=sink)
+        return await execute(
+            state, model=model, config=config, emit=sink, codegen_runner=codegen_runner
+        )
 
     graph = StateGraph(RootState)
     graph.add_node("supervise", supervise)

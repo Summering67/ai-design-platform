@@ -1,0 +1,52 @@
+{
+  "document": {
+    "version": "2.0.0",
+    "id": "codegen-fixture",
+    "name": "Codegen Fixture",
+    "designSystem": {
+      "id": "fixture-system",
+      "version": "1.0.0",
+      "digest": "sha256:fixture",
+      "tokens": {},
+      "components": {},
+      "allowedTags": ["div", "h1"]
+    },
+    "assets": {},
+    "resolvedLayouts": {
+      "desktop": {
+        "viewport": { "width": 1280, "height": 720 },
+        "nodes": { "root": { "x": 0, "y": 0, "width": 1280, "height": 720 } }
+      }
+    },
+    "root": {
+      "id": "root",
+      "kind": "element",
+      "name": "Root",
+      "tag": "div",
+      "style": { "display": "flex" },
+      "props": {},
+      "children": [
+        {
+          "id": "heading",
+          "kind": "text",
+          "name": "Heading",
+          "tag": "h1",
+          "style": {},
+          "props": {},
+          "children": [],
+          "text": "Hello"
+        }
+      ]
+    }
+  },
+  "canvasImages": [
+    {
+      "viewportId": "desktop",
+      "width": 1280,
+      "height": 720,
+      "mimeType": "image/png",
+      "image": { "kind": "base64", "data": "iVBORw0KGgo=" }
+    }
+  ],
+  "options": { "componentName": "CodegenFixture", "fileBaseName": "CodegenFixture" }
+}

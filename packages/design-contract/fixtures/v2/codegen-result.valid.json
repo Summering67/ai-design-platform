@@ -1,0 +1,25 @@
+{
+  "version": "2.0.0",
+  "documentId": "codegen-fixture",
+  "componentName": "CodegenFixture",
+  "fileBaseName": "CodegenFixture",
+  "files": [
+    {
+      "path": "CodegenFixture.tsx",
+      "mediaType": "text/tsx",
+      "content": "import './CodegenFixture.css';\nexport default function CodegenFixture() { return <div />; }"
+    },
+    { "path": "CodegenFixture.css", "mediaType": "text/css", "content": ".codegen-fixture {}" }
+  ],
+  "planSummary": "使用语义容器和标题生成展示型组件。",
+  "verification": {
+    "checks": [
+      { "name": "format", "status": "passed", "attempts": 1 },
+      { "name": "typescript", "status": "passed", "attempts": 1 },
+      { "name": "eslint", "status": "passed", "attempts": 1 },
+      { "name": "visual", "status": "passed", "attempts": 1 }
+    ],
+    "repairAttempts": 0,
+    "risks": []
+  }
+}

@@ -3,7 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Workspace } from "@repo/ui/blocks/workspace";
-import type { DesignDocument } from "@repo/design-dsl";
+import {
+  validateDesignDocument,
+  type DesignDocument,
+} from "@repo/design-dsl";
+import ecommerceHomepage from "./ecommerce-homepage.document.json";
 import {
   RequestError,
   answerInput,
@@ -18,6 +22,11 @@ import { applyReasoningEvent } from "./reasoning";
 import type { ReasoningItem } from "./reasoning";
 import { settleGenerationStatus } from "./workspace-status";
 import type { WorkspaceStatus } from "./workspace-status";
+
+const initialDocumentResult = validateDesignDocument(ecommerceHomepage);
+const initialDocument = initialDocumentResult.ok
+  ? initialDocumentResult.value
+  : null;
 
 const WorkspaceChat = ({
   projectId,
@@ -39,7 +48,7 @@ const WorkspaceChat = ({
   const [inputRequest, setInputRequest] = useState<PendingInputRequest | null>(null);
   const [stream, setStream] = useState("");
   const [reasoning, setReasoning] = useState<ReasoningItem[]>([]);
-  const [document, setDocument] = useState<DesignDocument | null>(null);
+  const [document, setDocument] = useState<DesignDocument | null>(initialDocument);
   const [email, setEmail] = useState("");
   const flushReasoning = () => {
     const queued = reasoningQueue.current;

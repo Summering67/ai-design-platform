@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import time
-from collections.abc import Awaitable, Callable, Mapping
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from types import SimpleNamespace
 from typing import Any, Protocol, TypedDict, cast
 
@@ -47,6 +47,20 @@ class ModelPort(Protocol):
     ) -> list[str]: ...
 
 
+class MultimodalModelPort(ModelPort, Protocol):
+    supports_vision: bool
+
+    async def structured_multimodal(
+        self,
+        purpose: str,
+        parts: Sequence[Mapping[str, Any]],
+        schema: Mapping[str, Any],
+        *,
+        on_reasoning: ReasoningSink | None = None,
+        on_activity: ActivitySink | None = None,
+    ) -> dict[str, Any]: ...
+
+
 def _chat_completions_url(base_url: str) -> str:
     return f"{base_url.rstrip('/')}/chat/completions"
 
@@ -74,7 +88,7 @@ def _stream_delta(value: object) -> tuple[str, str]:
 async def _stream_completion(
     client: httpx.AsyncClient,
     config: AIConfig,
-    messages: list[dict[str, str]],
+    messages: list[dict[str, Any]],
     on_reasoning: ReasoningSink | None,
     on_activity: ActivitySink | None,
     *,
@@ -186,7 +200,7 @@ def _log_model_attempt(
 async def _structured_attempt(
     client: httpx.AsyncClient,
     config: AIConfig,
-    messages: list[dict[str, str]],
+    messages: list[dict[str, Any]],
     on_reasoning: ReasoningSink | None,
     on_activity: ActivitySink | None,
     *,
@@ -389,6 +403,53 @@ def create_openai_model(client: httpx.AsyncClient, config: AIConfig) -> ModelPor
             )
         return _unwrap_response(value)
 
+    async def structured_multimodal(
+        purpose: str,
+        parts: Sequence[Mapping[str, Any]],
+        schema: Mapping[str, Any],
+        *,
+        on_reasoning: ReasoningSink | None = None,
+        on_activity: ActivitySink | None = None,
+    ) -> dict[str, Any]:
+        if not config.vision_enabled:
+            raise AgentError("model_vision_unsupported", "Agent 模型不支持视觉输入")
+        schema_text = json.dumps(
+            _response_schema(schema), ensure_ascii=False, separators=(",", ":")
+        )
+        messages: list[dict[str, Any]] = [
+            {
+                "role": "system",
+                "content": (
+                    f"你是 {purpose}。只返回符合 JSON Schema 的 JSON 对象，不要 Markdown。"
+                    "不得输出或复述隐藏推理。Schema: " + schema_text
+                ),
+            },
+            {"role": "user", "content": list(parts)},
+        ]
+        try:
+            value = await _structured_attempt(
+                client,
+                config,
+                messages,
+                on_reasoning,
+                on_activity,
+                phase="multimodal",
+                thinking=False,
+            )
+        except AgentError as error:
+            if error.code not in {"model_empty_response", "invalid_model_json"}:
+                raise
+            value = await _structured_attempt(
+                client,
+                config,
+                messages,
+                None,
+                on_activity,
+                phase="multimodal_fallback",
+                thinking=False,
+            )
+        return _unwrap_response(value)
+
     async def select_tasks(
         state: Mapping[str, Any],
         *,
@@ -402,7 +463,14 @@ def create_openai_model(client: httpx.AsyncClient, config: AIConfig) -> ModelPor
         }
         result = await structured(
             "Root Supervisor",
-            {"state": state, "instruction": "选择当前可执行的一个或多个已注册任务"},
+            {
+                "state": state,
+                "instruction": (
+                    "根据用户原始目标、能力描述、已完成产物和 readyCapabilities，"
+                    "只选择当前确有必要调用的一个或多个 Agent；不得选择未就绪能力。"
+                    "如果用户目标已经满足且不需要继续调用 Agent，返回空 tasks。"
+                ),
+            },
             schema,
             on_reasoning=on_reasoning,
             on_activity=on_activity,
@@ -417,6 +485,8 @@ def create_openai_model(client: httpx.AsyncClient, config: AIConfig) -> ModelPor
         SimpleNamespace(
             structured=structured,
             select_tasks=select_tasks,
+            structured_multimodal=structured_multimodal,
+            supports_vision=config.vision_enabled,
             model_name=config.model,
         ),
     )
@@ -436,11 +506,15 @@ def bind_reasoning(
     async def select_tasks(state: Mapping[str, Any], **_: Any) -> list[str]:
         return await model.select_tasks(state, on_reasoning=on_reasoning, on_activity=on_activity)
 
+    structured_multimodal = getattr(model, "structured_multimodal", None)
+
     return cast(
         ModelPort,
         SimpleNamespace(
             structured=structured,
             select_tasks=select_tasks,
+            structured_multimodal=structured_multimodal,
+            supports_vision=getattr(model, "supports_vision", False),
             model_name=getattr(model, "model_name", type(model).__name__),
         ),
     )

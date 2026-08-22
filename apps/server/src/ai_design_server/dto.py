@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -101,3 +102,9 @@ class ProjectDetailResponse(StrictModel):
     project: ProjectResponse
     messages: list[MessageResponse]
     pending_input_request: InputRequestResponse | None = None
+
+
+class CodegenRequest(StrictModel):
+    document: dict[str, Any] | None = None
+    canvas: dict[str, Any] | None = None
+    options: dict[str, Any] | None = None

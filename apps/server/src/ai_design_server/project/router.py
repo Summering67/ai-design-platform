@@ -53,7 +53,9 @@ async def get_project(
     pending_loader = getattr(service, "pending_input", None)
     pending = await pending_loader(session, user.id, project_id) if pending_loader else None
     return ProjectDetailResponse(
-        project=_project(project), messages=[_message(item) for item in messages], pending_input_request=InputRequestResponse(**_input_request(pending)) if pending else None
+        project=_project(project),
+        messages=[_message(item) for item in messages],
+        pending_input_request=InputRequestResponse(**_input_request(pending)) if pending else None,
     )
 
 
@@ -192,15 +194,22 @@ async def _events(
         "generation",
         {"project_id": project.id, "message_id": message.id, "generation_id": attempt.id},
     )
+
     async def run() -> None:
         failure: BaseException | None = None
         document: object | None = None
         awaiting_input = False
         try:
             async for agent_event in run_agent(
-                {"requirement": message.content, "generation_contract": load_default_generation_contract(), "generation_id": attempt.id, "resolved_user_inputs": input_context},
+                {
+                    "requirement": message.content,
+                    "generation_contract": load_default_generation_contract(),
+                    "generation_id": attempt.id,
+                    "resolved_user_inputs": input_context,
+                },
                 request.app.state.agent_model,
                 request.app.state.config.agent,
+                codegen_runner=getattr(request.app.state, "codegen_runner", None),
             ):
                 if agent_event["event"] == "input_required":
                     input_payload = agent_event.get("payload", {})
@@ -213,7 +222,12 @@ async def _events(
                             input_payload.get("questions", []),
                         )
                     awaiting_input = True
-                    await queue.put(_event("input_required", {"generation_id": attempt.id, **_input_request(input_request)}))
+                    await queue.put(
+                        _event(
+                            "input_required",
+                            {"generation_id": attempt.id, **_input_request(input_request)},
+                        )
+                    )
                     continue
                 await queue.put(_event("agent", agent_event))
                 if agent_event["event"] == "result":
@@ -222,7 +236,10 @@ async def _events(
                     failure = RuntimeError("Agent 运行失败")
                     request.app.state.logger.warning(
                         "Agent generation failed",
-                        extra={"generation_id": attempt.id, "code": agent_event.get("payload", {}).get("code", "agent_failed")},
+                        extra={
+                            "generation_id": attempt.id,
+                            "code": agent_event.get("payload", {}).get("code", "agent_failed"),
+                        },
                     )
         except asyncio.CancelledError:
             async with request.app.state.database.session() as interrupt_session:

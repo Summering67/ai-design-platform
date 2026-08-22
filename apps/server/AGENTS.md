@@ -1,7 +1,5 @@
 # apps/server 开发规范
 
-`apps/server` 是默认 API 运行时。它必须能够独立启动，不得导入或在运行时读取 `apps/api` 的私有代码；`apps/api` 仅作为保留的 Go 基准和定向回退入口。
-
 ## 技术栈
 
 - FastAPI + Starlette，Uvicorn 仅作为独立进程入口。
@@ -73,6 +71,12 @@ Auto Layout Agent 禁止创建、删除、移动、重排或重新挂载节点�
 ### Harness
 
 Harness 只负责模型调用、候选校验、短错误摘要和有限重试。Harness 不是 Agent，不得修改 UI 图层结构、重写 DesignDocument、生成 LayoutPlan 或计算坐标，也不得把完整错误响应或失败候选再次传给模型。
+
+### Multimodal Codegen Agent
+
+Codegen Agent 是 final DesignDocument 之后按需调用的独立能力，并作为 Root Supervisor 的可选能力注册，不得改变 `PRD → UI Design → Auto Layout` 的依赖顺序。Root 必须根据用户原始目标、能力描述、已完成产物、调用历史和当前可执行能力决定是否调用；禁止用固定任务兜底强制调用 Codegen。它同时接收只读 DesignDocument 和 viewport 画布图片，先生成 CodePlan，再在隔离临时工作区生成 React/Tailwind CSS/Ant Design 的 TSX/CSS 候选。
+
+Codegen Agent 可以通过受控工具检查和修复自己生成的 TSX/CSS，并在预览环境中进行视觉审查；它不得修改 DesignDocument、画布快照、generation 状态、用户仓库或上游 Agent 输出。工具层只允许固定检查、候选文件读写和预览渲染，不允许模型执行任意 shell、访问任意路径、安装依赖或访问网络。
 
 ## 检查
 

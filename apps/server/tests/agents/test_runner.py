@@ -60,13 +60,13 @@ def _fake_model() -> SimpleNamespace:
         if on_reasoning is not None:
             await on_reasoning("Root Supervisor 的 reasoning")
         completed = set(state.get("completed", []))
-        return [
-            "requirement"
-            if "prd" not in completed
-            else "ui_design"
-            if "initial_ui_document" not in completed
-            else "auto_layout"
-        ]
+        if "prd" not in completed:
+            return ["requirement"]
+        if "initial_ui_document" not in completed:
+            return ["ui_design"]
+        if "final_document" not in completed:
+            return ["auto_layout"]
+        return []
 
     return SimpleNamespace(structured=structured, select_tasks=select_tasks)
 
@@ -135,6 +135,81 @@ async def test_root_runs_dynamic_v2_pipeline(
     reasoning_events = [event for event in events if event["payload"].get("status") == "reasoning"]
     assert reasoning_events
     assert {event["stage"] for event in reasoning_events} >= {"root", "requirement", "ui_design"}
+
+
+@pytest.mark.asyncio
+async def test_root_model_decides_whether_to_call_codegen() -> None:
+    contract = _read("packages/design-contract/fixtures/v2/team-default.generation-contract.json")
+    model = _fake_model()
+    original_select = model.select_tasks
+    calls: list[dict[str, Any]] = []
+
+    async def select_tasks(state: dict[str, Any], **kwargs: Any) -> list[str]:
+        completed = set(state.get("completed", []))
+        if "final_document" in completed:
+            assert "生成前端代码" in state["request"]
+            assert "codegen" in state["readyCapabilities"]
+            return ["codegen"]
+        return await original_select(state, **kwargs)
+
+    async def codegen_runner(request: dict[str, Any], _: Any, __: AgentConfig) -> dict[str, Any]:
+        calls.append(request)
+        return {"files": [{"path": "Page.tsx"}, {"path": "Page.css"}]}
+
+    model.select_tasks = select_tasks
+    events = [
+        event
+        async for event in run_agent(
+            {
+                "requirement": "设计项目列表并生成前端代码",
+                "generation_contract": contract,
+                "generation_id": "generation-codegen",
+                "codegen_request": {"canvas": {"viewportIds": ["desktop"]}},
+            },
+            model,
+            AgentConfig(),
+            codegen_runner=codegen_runner,
+        )
+    ]
+
+    assert len(calls) == 1
+    assert calls[0]["document"]["version"] == "2.0.0"
+    assert calls[0]["canvas"]["viewportIds"]
+    assert events[-1]["event"] == "result"
+    assert events[-1]["stage"] == "codegen"
+    assert events[-1]["payload"]["document"]["version"] == "2.0.0"
+    assert events[-1]["payload"]["codegen"]["files"][0]["path"] == "Page.tsx"
+
+
+@pytest.mark.asyncio
+async def test_root_does_not_force_codegen_when_model_returns_no_tasks() -> None:
+    contract = _read("packages/design-contract/fixtures/v2/team-default.generation-contract.json")
+    calls = 0
+
+    async def codegen_runner(_: dict[str, Any], __: Any, ___: AgentConfig) -> dict[str, Any]:
+        nonlocal calls
+        calls += 1
+        return {}
+
+    events = [
+        event
+        async for event in run_agent(
+            {
+                "requirement": "只设计项目列表，不生成代码",
+                "generation_contract": contract,
+                "generation_id": "generation-design-only",
+                "codegen_request": {"canvas": {"viewportIds": ["desktop"]}},
+            },
+            _fake_model(),
+            AgentConfig(),
+            codegen_runner=codegen_runner,
+        )
+    ]
+
+    assert calls == 0
+    assert events[-1]["event"] == "result"
+    assert events[-1]["stage"] == "root"
+    assert events[-1]["payload"]["document"]["version"] == "2.0.0"
 
 
 @pytest.mark.asyncio

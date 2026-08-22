@@ -30,6 +30,7 @@ class _EnvOverrides(BaseSettings):
     ai_api_key: str | None = None
     ai_model: str | None = None
     ai_request_timeout: str | None = None
+    ai_vision_enabled: bool | None = None
     agent_node_timeout: str | None = None
     agent_total_timeout: str | None = None
     agent_max_input_bytes: int | None = None
@@ -41,6 +42,11 @@ class _EnvOverrides(BaseSettings):
     agent_max_task_depth: int | None = None
     agent_max_concurrency: int | None = None
     agent_max_retries: int | None = None
+    agent_codegen_plan_attempts: int | None = None
+    agent_codegen_repair_attempts: int | None = None
+    agent_codegen_max_tool_calls: int | None = None
+    agent_codegen_max_file_bytes: int | None = None
+    agent_codegen_max_image_pixels: int | None = None
     auth_fixed_user_password: str | None = None
 
 
@@ -78,6 +84,7 @@ class AIConfig(BaseModel):
     api_key: str = ""
     model: str = "deepseek-v4-flash"
     request_timeout: float = 0.0
+    vision_enabled: bool = False
 
 
 class AgentConfig(BaseModel):
@@ -94,6 +101,11 @@ class AgentConfig(BaseModel):
     max_task_depth: int = 4
     max_concurrency: int = 4
     max_retries: int = 1
+    codegen_plan_attempts: int = 2
+    codegen_repair_attempts: int = 3
+    codegen_max_tool_calls: int = 32
+    codegen_max_file_bytes: int = 1_000_000
+    codegen_max_image_pixels: int = 20_000_000
 
 
 class AuthConfig(BaseModel):
@@ -152,6 +164,11 @@ class RuntimeConfig(BaseModel):
             self.agent.max_tasks,
             self.agent.max_task_depth,
             self.agent.max_concurrency,
+            self.agent.codegen_plan_attempts,
+            self.agent.codegen_repair_attempts,
+            self.agent.codegen_max_tool_calls,
+            self.agent.codegen_max_file_bytes,
+            self.agent.codegen_max_image_pixels,
         ) <= 0 or self.agent.max_retries < 0:
             raise ValueError("Agent 资源上限无效")
         return self

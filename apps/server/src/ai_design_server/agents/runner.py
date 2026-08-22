@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import Any, TypedDict
 from uuid import uuid4
 
@@ -19,10 +19,16 @@ class AgentInput(TypedDict, total=False):
     generation_id: str
     target: str
     resolved_user_inputs: list[dict[str, Any]]
+    codegen_request: dict[str, Any]
 
 
 async def run_agent(
-    value: AgentInput, model: ModelPort, config: AgentConfig
+    value: AgentInput,
+    model: ModelPort,
+    config: AgentConfig,
+    *,
+    codegen_runner: Callable[[dict[str, Any], ModelPort, AgentConfig], Awaitable[dict[str, Any]]]
+    | None = None,
 ) -> AsyncIterator[AgentRunEvent]:
     run_id = str(uuid4())
     requirement = value.get("requirement", "").strip()
@@ -71,10 +77,13 @@ async def run_agent(
         "generation_contract": contract,
         "target": value.get("target", "design"),
         "resolved_user_inputs": value.get("resolved_user_inputs", []),
+        "codegen_request": value.get("codegen_request", {}),
     }
 
     async def execute_graph() -> Any:
-        return await build(model, config).ainvoke(state, context={"event_sink": emit})
+        return await build(model, config, codegen_runner).ainvoke(
+            state, context={"event_sink": emit}
+        )
 
     task = asyncio.create_task(execute_graph())
     task.add_done_callback(lambda _: queue.put_nowait(None))

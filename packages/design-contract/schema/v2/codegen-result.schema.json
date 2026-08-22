@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-design-platform.dev/schema/v2/codegen-result.schema.json",
+  "title": "DesignDocument Codegen Result v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "documentId",
+    "componentName",
+    "fileBaseName",
+    "files",
+    "planSummary",
+    "verification"
+  ],
+  "properties": {
+    "version": { "const": "2.0.0" },
+    "documentId": { "type": "string", "minLength": 1 },
+    "componentName": { "type": "string", "pattern": "^[A-Z][A-Za-z0-9]*$" },
+    "fileBaseName": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]*$" },
+    "files": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "$ref": "https://ai-design-platform.dev/schema/v2/codegen-result.schema.json#/$defs/file"
+      }
+    },
+    "planSummary": { "type": "string", "maxLength": 2000 },
+    "verification": {
+      "$ref": "https://ai-design-platform.dev/schema/v2/codegen-result.schema.json#/$defs/verification"
+    }
+  },
+  "$defs": {
+    "file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "mediaType", "content"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*\\.(tsx|css)$",
+          "maxLength": 120
+        },
+        "mediaType": { "enum": ["text/tsx", "text/css"] },
+        "content": { "type": "string", "minLength": 1, "maxLength": 1000000 }
+      }
+    },
+    "check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "status", "attempts"],
+      "properties": {
+        "name": { "enum": ["format", "typescript", "eslint", "visual"] },
+        "status": { "enum": ["passed", "skipped", "failed"] },
+        "attempts": { "type": "integer", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["checks", "repairAttempts"],
+      "properties": {
+        "checks": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "$ref": "https://ai-design-platform.dev/schema/v2/codegen-result.schema.json#/$defs/check"
+          }
+        },
+        "repairAttempts": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "risks": {
+          "type": "array",
+          "maxItems": 20,
+          "items": { "type": "string", "maxLength": 300 }
+        }
+      }
+    }
+  }
+}

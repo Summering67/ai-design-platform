@@ -1,0 +1,15 @@
+{
+  "document": {
+    "version": "2.0.0",
+    "id": "invalid",
+    "name": "Invalid",
+    "designSystem": {"id": "system", "version": "1", "digest": "sha256:x", "tokens": {}, "components": {}},
+    "assets": {},
+    "resolvedLayouts": {"desktop": {"viewport": {"width": 1, "height": 1}, "nodes": {"root": {"x": 0, "y": 0, "width": 1, "height": 1}}}},
+    "root": {"id": "root", "kind": "element", "name": "Root", "tag": "div", "style": {}, "props": {}, "children": []}
+  },
+  "canvasImages": [
+    {"viewportId": "desktop", "width": 1, "height": 1, "mimeType": "image/png", "image": {"kind": "ref", "id": "one"}},
+    {"viewportId": "desktop", "width": 1, "height": 1, "mimeType": "image/png", "image": {"kind": "ref", "id": "two"}}
+  ]
+}

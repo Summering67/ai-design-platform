@@ -1,0 +1,4149 @@
+{
+  "$schema": "https://ai-design-platform.dev/schema/v2/design-document.schema.json",
+  "assets": {
+    "banner-1": {
+      "alt": "夏季大促横幅",
+      "id": "banner-1",
+      "mimeType": "image/png",
+      "src": "https://placehold.co/1920x600/1677FF/FFFFFF/png?text=Summer+Sale",
+      "type": "image"
+    },
+    "banner-2": {
+      "alt": "新品首发横幅",
+      "id": "banner-2",
+      "mimeType": "image/png",
+      "src": "https://placehold.co/1920x600/FF8C00/FFFFFF/png?text=New+Arrivals",
+      "type": "image"
+    },
+    "banner-3": {
+      "alt": "限时秒杀横幅",
+      "id": "banner-3",
+      "mimeType": "image/png",
+      "src": "https://placehold.co/1920x600/E91E63/FFFFFF/png?text=Flash+Sale",
+      "type": "image"
+    },
+    "cart-icon": {
+      "alt": "购物车图标",
+      "id": "cart-icon",
+      "mimeType": "image/png",
+      "src": "https://placehold.co/24x24/1677FF/FFFFFF/png?text=Cart",
+      "type": "image"
+    },
+    "cat-fashion": {
+      "alt": "时尚分类图标",
+      "id": "cat-fashion",
+      "mimeType": "image/png",
+      "src": "https://placehold.co/80x80/E91E63/FFFFFF/png?text=Fashion",
+      "type": "image"
+    },
+    "cat-health": {
+      "alt": "健康分类图标",
+      "id": "cat-health",
+      "mimeType": "image/png",
+      "src": "https://placehold.co/80x80/4CAF50/FFFFFF/png?text=Health",
+      "type": "image"
+    },
+    "cat-home": {
+      "alt": "家用分类图标",
+      "id": "cat-home",
+      "mimeType": "image/png",
+      "src": "https://placehold.co/80x80/FF9800/FFFFFF/png?text=Home",
+      "type": "image"
+    },
+    "cat-sports": {
+      "alt": "运动分类图标",
+      "id": "cat-sports",
+      "mimeType": "image/png",
+      "src": "https://placehold.co/80x80/8BC34A/FFFFFF/png?text=Sports",
+      "type": "image"
+    },
+    "cat-tech": {
+      "alt": "科技分类图标",
+      "id": "cat-tech",
+      "mimeType": "image/png",
+      "src": "https://placehold.co/80x80/673AB7/FFFFFF/png?text=Tech",
+      "type": "image"
+    },
+    "cat-travel": {
+      "alt": "旅游分类图标",
+      "id": "cat-travel",
+      "mimeType": "image/png",
+      "src": "https://placehold.co/80x80/2196F3/FFFFFF/png?text=Travel",
+      "type": "image"
+    },
+    "logo": {
+      "alt": "商城 Logo",
+      "id": "logo",
+      "mimeType": "image/png",
+      "src": "https://placehold.co/120x40/1677FF/FFFFFF/png?text=ShopLogo",
+      "type": "image"
+    },
+    "product-1": {
+      "alt": "无线蓝牙耳机",
+      "id": "product-1",
+      "mimeType": "image/png",
+      "src": "https://placehold.co/400x400/1E293B/FFFFFF/png?text=Headphones",
+      "type": "image"
+    },
+    "product-2": {
+      "alt": "智能手表",
+      "id": "product-2",
+      "mimeType": "image/png",
+      "src": "https://placehold.co/400x400/374151/FFFFFF/png?text=Smartwatch",
+      "type": "image"
+    },
+    "product-3": {
+      "alt": "轻便跑步鞋",
+      "id": "product-3",
+      "mimeType": "image/png",
+      "src": "https://placehold.co/400x400/111827/FFFFFF/png?text=Running+Shoes",
+      "type": "image"
+    },
+    "product-4": {
+      "alt": "运动速干T恤",
+      "id": "product-4",
+      "mimeType": "image/png",
+      "src": "https://placehold.co/400x400/2563EB/FFFFFF/png?text=Sports+Wear",
+      "type": "image"
+    },
+    "product-5": {
+      "alt": "万向轮行李箱",
+      "id": "product-5",
+      "mimeType": "image/png",
+      "src": "https://placehold.co/400x400/0F766E/FFFFFF/png?text=Travel+Case",
+      "type": "image"
+    },
+    "product-6": {
+      "alt": "玻尿酸补水护肤套装",
+      "id": "product-6",
+      "mimeType": "image/png",
+      "src": "https://placehold.co/400x400/DB2777/FFFFFF/png?text=Skincare",
+      "type": "image"
+    },
+    "product-7": {
+      "alt": "全自动咖啡机",
+      "id": "product-7",
+      "mimeType": "image/png",
+      "src": "https://placehold.co/400x400/92400E/FFFFFF/png?text=Coffee+Machine",
+      "type": "image"
+    },
+    "product-8": {
+      "alt": "磁吸手机壳",
+      "id": "product-8",
+      "mimeType": "image/png",
+      "src": "https://placehold.co/400x400/4F46E5/FFFFFF/png?text=Phone+Case",
+      "type": "image"
+    }
+  },
+  "designSystem": {
+    "allowedTags": [
+      "Affix",
+      "Alert",
+      "Anchor",
+      "App",
+      "AutoComplete",
+      "Avatar",
+      "Badge",
+      "BorderBeam",
+      "Breadcrumb",
+      "Button",
+      "Calendar",
+      "Card",
+      "Carousel",
+      "Cascader",
+      "Checkbox",
+      "Collapse",
+      "ColorPicker",
+      "ConfigProvider",
+      "DatePicker",
+      "Descriptions",
+      "Divider",
+      "Drawer",
+      "Dropdown",
+      "Empty",
+      "Flex",
+      "FloatButton",
+      "Form",
+      "Grid",
+      "Icon",
+      "Image",
+      "Input",
+      "InputNumber",
+      "Layout",
+      "List",
+      "Masonry",
+      "Mentions",
+      "Menu",
+      "Message",
+      "Modal",
+      "Notification",
+      "Pagination",
+      "Popconfirm",
+      "Popover",
+      "Progress",
+      "QRCode",
+      "Radio",
+      "Rate",
+      "Result",
+      "Segmented",
+      "Select",
+      "Skeleton",
+      "Slider",
+      "Space",
+      "Spin",
+      "Splitter",
+      "Statistic",
+      "Steps",
+      "Switch",
+      "Table",
+      "Tabs",
+      "Tag",
+      "TimePicker",
+      "Timeline",
+      "Tooltip",
+      "Tour",
+      "Transfer",
+      "Tree",
+      "TreeSelect",
+      "Typography",
+      "Upload",
+      "Util",
+      "Watermark"
+    ],
+    "components": {
+      "Affix": {
+        "id": "Affix",
+        "packageName": "antd"
+      },
+      "Alert": {
+        "id": "Alert",
+        "packageName": "antd"
+      },
+      "Anchor": {
+        "id": "Anchor",
+        "packageName": "antd"
+      },
+      "App": {
+        "id": "App",
+        "packageName": "antd"
+      },
+      "AutoComplete": {
+        "id": "AutoComplete",
+        "packageName": "antd"
+      },
+      "Avatar": {
+        "id": "Avatar",
+        "packageName": "antd"
+      },
+      "Badge": {
+        "id": "Badge",
+        "packageName": "antd"
+      },
+      "BorderBeam": {
+        "id": "BorderBeam",
+        "packageName": "antd"
+      },
+      "Breadcrumb": {
+        "id": "Breadcrumb",
+        "packageName": "antd"
+      },
+      "Button": {
+        "id": "Button",
+        "packageName": "antd",
+        "slots": {
+          "children": {
+            "type": "string"
+          }
+        }
+      },
+      "Calendar": {
+        "id": "Calendar",
+        "packageName": "antd"
+      },
+      "Card": {
+        "id": "Card",
+        "packageName": "antd",
+        "slots": {
+          "children": {
+            "type": "nodes"
+          }
+        }
+      },
+      "Carousel": {
+        "id": "Carousel",
+        "packageName": "antd"
+      },
+      "Cascader": {
+        "id": "Cascader",
+        "packageName": "antd"
+      },
+      "Checkbox": {
+        "id": "Checkbox",
+        "packageName": "antd"
+      },
+      "Collapse": {
+        "id": "Collapse",
+        "packageName": "antd"
+      },
+      "ColorPicker": {
+        "id": "ColorPicker",
+        "packageName": "antd"
+      },
+      "ConfigProvider": {
+        "id": "ConfigProvider",
+        "packageName": "antd"
+      },
+      "DatePicker": {
+        "id": "DatePicker",
+        "packageName": "antd"
+      },
+      "Descriptions": {
+        "id": "Descriptions",
+        "packageName": "antd"
+      },
+      "Divider": {
+        "id": "Divider",
+        "packageName": "antd"
+      },
+      "Drawer": {
+        "id": "Drawer",
+        "packageName": "antd"
+      },
+      "Dropdown": {
+        "id": "Dropdown",
+        "packageName": "antd"
+      },
+      "Empty": {
+        "id": "Empty",
+        "packageName": "antd"
+      },
+      "Flex": {
+        "id": "Flex",
+        "packageName": "antd"
+      },
+      "FloatButton": {
+        "id": "FloatButton",
+        "packageName": "antd"
+      },
+      "Form": {
+        "id": "Form",
+        "packageName": "antd",
+        "slots": {
+          "children": {
+            "type": "nodes"
+          }
+        }
+      },
+      "Grid": {
+        "id": "Grid",
+        "packageName": "antd"
+      },
+      "Icon": {
+        "id": "Icon",
+        "packageName": "antd"
+      },
+      "Image": {
+        "id": "Image",
+        "packageName": "antd"
+      },
+      "Input": {
+        "id": "Input",
+        "packageName": "antd"
+      },
+      "InputNumber": {
+        "id": "InputNumber",
+        "packageName": "antd"
+      },
+      "Layout": {
+        "id": "Layout",
+        "packageName": "antd"
+      },
+      "List": {
+        "id": "List",
+        "packageName": "antd"
+      },
+      "Masonry": {
+        "id": "Masonry",
+        "packageName": "antd"
+      },
+      "Mentions": {
+        "id": "Mentions",
+        "packageName": "antd"
+      },
+      "Menu": {
+        "id": "Menu",
+        "packageName": "antd"
+      },
+      "Message": {
+        "id": "Message",
+        "packageName": "antd"
+      },
+      "Modal": {
+        "id": "Modal",
+        "packageName": "antd"
+      },
+      "Notification": {
+        "id": "Notification",
+        "packageName": "antd"
+      },
+      "Pagination": {
+        "id": "Pagination",
+        "packageName": "antd"
+      },
+      "Popconfirm": {
+        "id": "Popconfirm",
+        "packageName": "antd"
+      },
+      "Popover": {
+        "id": "Popover",
+        "packageName": "antd"
+      },
+      "Progress": {
+        "id": "Progress",
+        "packageName": "antd"
+      },
+      "QRCode": {
+        "id": "QRCode",
+        "packageName": "antd"
+      },
+      "Radio": {
+        "id": "Radio",
+        "packageName": "antd"
+      },
+      "Rate": {
+        "id": "Rate",
+        "packageName": "antd"
+      },
+      "Result": {
+        "id": "Result",
+        "packageName": "antd"
+      },
+      "Segmented": {
+        "id": "Segmented",
+        "packageName": "antd"
+      },
+      "Select": {
+        "id": "Select",
+        "packageName": "antd"
+      },
+      "Skeleton": {
+        "id": "Skeleton",
+        "packageName": "antd"
+      },
+      "Slider": {
+        "id": "Slider",
+        "packageName": "antd"
+      },
+      "Space": {
+        "id": "Space",
+        "packageName": "antd"
+      },
+      "Spin": {
+        "id": "Spin",
+        "packageName": "antd"
+      },
+      "Splitter": {
+        "id": "Splitter",
+        "packageName": "antd"
+      },
+      "Statistic": {
+        "id": "Statistic",
+        "packageName": "antd"
+      },
+      "Steps": {
+        "id": "Steps",
+        "packageName": "antd"
+      },
+      "Switch": {
+        "id": "Switch",
+        "packageName": "antd"
+      },
+      "Table": {
+        "id": "Table",
+        "packageName": "antd"
+      },
+      "Tabs": {
+        "id": "Tabs",
+        "packageName": "antd"
+      },
+      "Tag": {
+        "id": "Tag",
+        "packageName": "antd"
+      },
+      "TimePicker": {
+        "id": "TimePicker",
+        "packageName": "antd"
+      },
+      "Timeline": {
+        "id": "Timeline",
+        "packageName": "antd"
+      },
+      "Tooltip": {
+        "id": "Tooltip",
+        "packageName": "antd"
+      },
+      "Tour": {
+        "id": "Tour",
+        "packageName": "antd"
+      },
+      "Transfer": {
+        "id": "Transfer",
+        "packageName": "antd"
+      },
+      "Tree": {
+        "id": "Tree",
+        "packageName": "antd"
+      },
+      "TreeSelect": {
+        "id": "TreeSelect",
+        "packageName": "antd"
+      },
+      "Typography": {
+        "id": "Typography",
+        "packageName": "antd"
+      },
+      "Upload": {
+        "id": "Upload",
+        "packageName": "antd"
+      },
+      "Util": {
+        "id": "Util",
+        "packageName": "antd"
+      },
+      "Watermark": {
+        "id": "Watermark",
+        "packageName": "antd"
+      }
+    },
+    "digest": "sha256:team-default-v1",
+    "id": "team-default",
+    "tokens": {
+      "color.primary": "color.primary",
+      "radius.md": "radius.md",
+      "space.4": "space.4",
+      "surface.canvas": "surface.canvas"
+    },
+    "version": "1.0.0"
+  },
+  "id": "ecommerce-homepage",
+  "name": "电商首页",
+  "root": {
+    "children": [
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "alt": "商城 Logo",
+                "assetId": "logo",
+                "children": [],
+                "id": "logo",
+                "kind": "image",
+                "layoutItem": {
+                  "flexShrink": 0,
+                  "height": {
+                    "mode": "hug"
+                  },
+                  "width": {
+                    "mode": "hug"
+                  }
+                },
+                "name": "商城Logo",
+                "props": {},
+                "style": {},
+                "tag": "image"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "search-input",
+                    "kind": "component",
+                    "layoutItem": {
+                      "flexBasis": "0%",
+                      "flexGrow": 1,
+                      "height": {
+                        "mode": "hug"
+                      }
+                    },
+                    "name": "搜索输入框",
+                    "packageName": "antd",
+                    "props": {
+                      "placeholder": "搜索商品"
+                    },
+                    "style": {
+                      "borderRadius": 4
+                    },
+                    "tag": "Input"
+                  },
+                  {
+                    "children": [],
+                    "id": "search-button",
+                    "kind": "component",
+                    "layoutItem": {
+                      "flexShrink": 0,
+                      "height": {
+                        "mode": "hug"
+                      },
+                      "width": {
+                        "mode": "hug"
+                      }
+                    },
+                    "name": "搜索按钮",
+                    "packageName": "antd",
+                    "props": {
+                      "children": "搜索",
+                      "type": "primary"
+                    },
+                    "style": {},
+                    "tag": "Button"
+                  }
+                ],
+                "id": "search-bar",
+                "kind": "element",
+                "layout": {
+                  "alignItems": "center",
+                  "direction": "row",
+                  "gap": 8,
+                  "justifyContent": "flex-start",
+                  "mode": "flex",
+                  "wrap": "nowrap"
+                },
+                "layoutItem": {
+                  "flexBasis": "0%",
+                  "flexGrow": 1,
+                  "height": {
+                    "mode": "hug"
+                  }
+                },
+                "name": "搜索栏",
+                "props": {},
+                "style": {},
+                "tag": "div",
+                "tokens": [
+                  "space.4"
+                ]
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "alt": "购物车",
+                        "assetId": "cart-icon",
+                        "children": [],
+                        "id": "cart-icon",
+                        "kind": "image",
+                        "layoutItem": {
+                          "flexShrink": 0,
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "hug"
+                          }
+                        },
+                        "name": "购物车图标",
+                        "props": {},
+                        "style": {},
+                        "tag": "image"
+                      }
+                    ],
+                    "id": "cart-badge",
+                    "kind": "component",
+                    "layout": {
+                      "alignItems": "center",
+                      "direction": "row",
+                      "justifyContent": "center",
+                      "mode": "flex",
+                      "wrap": "nowrap"
+                    },
+                    "layoutItem": {
+                      "height": {
+                        "mode": "hug"
+                      },
+                      "width": {
+                        "mode": "hug"
+                      }
+                    },
+                    "name": "购物车角标",
+                    "packageName": "antd",
+                    "props": {
+                      "count": 0
+                    },
+                    "style": {},
+                    "tag": "Badge"
+                  }
+                ],
+                "id": "cart-entry",
+                "kind": "element",
+                "layout": {
+                  "alignItems": "center",
+                  "direction": "row",
+                  "justifyContent": "center",
+                  "mode": "flex",
+                  "wrap": "nowrap"
+                },
+                "layoutItem": {
+                  "flexShrink": 0,
+                  "height": {
+                    "mode": "hug"
+                  },
+                  "width": {
+                    "mode": "hug"
+                  }
+                },
+                "name": "购物车入口",
+                "props": {},
+                "style": {},
+                "tag": "div"
+              }
+            ],
+            "id": "top-bar",
+            "kind": "element",
+            "layout": {
+              "alignItems": "center",
+              "direction": "row",
+              "gap": 16,
+              "justifyContent": "flex-start",
+              "mode": "flex",
+              "wrap": "nowrap"
+            },
+            "layoutItem": {
+              "height": {
+                "mode": "hug"
+              },
+              "width": {
+                "mode": "fill"
+              }
+            },
+            "name": "顶栏内容",
+            "props": {},
+            "style": {},
+            "tag": "div",
+            "tokens": [
+              "space.4"
+            ]
+          },
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "nav-home-text",
+                    "kind": "text",
+                    "layoutItem": {
+                      "height": {
+                        "mode": "hug"
+                      },
+                      "width": {
+                        "mode": "hug"
+                      }
+                    },
+                    "name": "首页链接文本",
+                    "props": {},
+                    "style": {
+                      "color": "#1F2937",
+                      "fontSize": 14,
+                      "fontWeight": 500
+                    },
+                    "tag": "text",
+                    "text": "首页"
+                  }
+                ],
+                "id": "nav-home",
+                "kind": "element",
+                "layout": {
+                  "alignItems": "center",
+                  "direction": "row",
+                  "justifyContent": "flex-start",
+                  "mode": "flex",
+                  "wrap": "nowrap"
+                },
+                "layoutItem": {
+                  "height": {
+                    "mode": "hug"
+                  },
+                  "width": {
+                    "mode": "hug"
+                  }
+                },
+                "name": "首页导航",
+                "props": {},
+                "style": {},
+                "tag": "div"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "nav-category-text",
+                    "kind": "text",
+                    "layoutItem": {
+                      "height": {
+                        "mode": "hug"
+                      },
+                      "width": {
+                        "mode": "hug"
+                      }
+                    },
+                    "name": "分类链接文本",
+                    "props": {},
+                    "style": {
+                      "color": "#1F2937",
+                      "fontSize": 14,
+                      "fontWeight": 500
+                    },
+                    "tag": "text",
+                    "text": "分类"
+                  }
+                ],
+                "id": "nav-category",
+                "kind": "element",
+                "layout": {
+                  "alignItems": "center",
+                  "direction": "row",
+                  "justifyContent": "flex-start",
+                  "mode": "flex",
+                  "wrap": "nowrap"
+                },
+                "layoutItem": {
+                  "height": {
+                    "mode": "hug"
+                  },
+                  "width": {
+                    "mode": "hug"
+                  }
+                },
+                "name": "分类导航",
+                "props": {},
+                "style": {},
+                "tag": "div"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "nav-promotion-text",
+                    "kind": "text",
+                    "layoutItem": {
+                      "height": {
+                        "mode": "hug"
+                      },
+                      "width": {
+                        "mode": "hug"
+                      }
+                    },
+                    "name": "促销链接文本",
+                    "props": {},
+                    "style": {
+                      "color": "#1F2937",
+                      "fontSize": 14,
+                      "fontWeight": 500
+                    },
+                    "tag": "text",
+                    "text": "促销"
+                  }
+                ],
+                "id": "nav-promotion",
+                "kind": "element",
+                "layout": {
+                  "alignItems": "center",
+                  "direction": "row",
+                  "justifyContent": "flex-start",
+                  "mode": "flex",
+                  "wrap": "nowrap"
+                },
+                "layoutItem": {
+                  "height": {
+                    "mode": "hug"
+                  },
+                  "width": {
+                    "mode": "hug"
+                  }
+                },
+                "name": "促销导航",
+                "props": {},
+                "style": {},
+                "tag": "div"
+              }
+            ],
+            "id": "nav-menu",
+            "kind": "element",
+            "layout": {
+              "alignItems": "center",
+              "direction": "row",
+              "gap": 24,
+              "justifyContent": "flex-start",
+              "mode": "flex",
+              "wrap": "nowrap"
+            },
+            "layoutItem": {
+              "height": {
+                "mode": "hug"
+              },
+              "width": {
+                "mode": "fill"
+              }
+            },
+            "name": "主导航菜单",
+            "props": {},
+            "style": {},
+            "tag": "div",
+            "tokens": [
+              "space.4"
+            ]
+          }
+        ],
+        "id": "top-nav",
+        "kind": "element",
+        "layout": {
+          "alignItems": "stretch",
+          "direction": "column",
+          "gap": 8,
+          "justifyContent": "flex-start",
+          "mode": "flex",
+          "padding": {
+            "bottom": 8,
+            "left": 16,
+            "right": 16,
+            "top": 8
+          },
+          "wrap": "nowrap"
+        },
+        "layoutItem": {
+          "height": {
+            "mode": "hug"
+          },
+          "width": {
+            "mode": "fill"
+          }
+        },
+        "name": "顶部导航栏",
+        "props": {},
+        "style": {
+          "backgroundColor": "#FFFFFF",
+          "borderBottomColor": "#E5E7EB",
+          "borderBottomWidth": 1,
+          "borderStyle": "solid"
+        },
+        "tag": "div",
+        "tokens": [
+          "space.4"
+        ]
+      },
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "alt": "夏季大促横幅",
+                "assetId": "banner-1",
+                "children": [],
+                "id": "banner-1",
+                "kind": "image",
+                "layoutItem": {
+                  "flexBasis": "100%",
+                  "flexShrink": 0,
+                  "height": {
+                    "mode": "hug"
+                  }
+                },
+                "name": "Banner 夏季大促",
+                "props": {},
+                "style": {
+                  "borderRadius": 12
+                },
+                "tag": "image"
+              },
+              {
+                "alt": "新品首发横幅",
+                "assetId": "banner-2",
+                "children": [],
+                "id": "banner-2",
+                "kind": "image",
+                "layoutItem": {
+                  "flexBasis": "100%",
+                  "flexShrink": 0,
+                  "height": {
+                    "mode": "hug"
+                  }
+                },
+                "name": "Banner 新品首发",
+                "props": {},
+                "style": {
+                  "borderRadius": 12
+                },
+                "tag": "image"
+              },
+              {
+                "alt": "限时秒杀横幅",
+                "assetId": "banner-3",
+                "children": [],
+                "id": "banner-3",
+                "kind": "image",
+                "layoutItem": {
+                  "flexBasis": "100%",
+                  "flexShrink": 0,
+                  "height": {
+                    "mode": "hug"
+                  }
+                },
+                "name": "Banner 限时秒杀",
+                "props": {},
+                "style": {
+                  "borderRadius": 12
+                },
+                "tag": "image"
+              }
+            ],
+            "id": "banner-carousel",
+            "kind": "component",
+            "layout": {
+              "alignItems": "stretch",
+              "direction": "row",
+              "justifyContent": "flex-start",
+              "mode": "flex",
+              "wrap": "nowrap"
+            },
+            "layoutItem": {
+              "height": {
+                "mode": "hug"
+              },
+              "width": {
+                "mode": "fill"
+              }
+            },
+            "name": "促销轮播",
+            "packageName": "antd",
+            "props": {},
+            "style": {
+              "borderRadius": 12
+            },
+            "tag": "Carousel",
+            "tokens": [
+              "radius.md",
+              "space.4"
+            ]
+          },
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "category-title",
+                "kind": "text",
+                "layoutItem": {
+                  "alignSelf": "flex-start",
+                  "height": {
+                    "mode": "hug"
+                  },
+                  "width": {
+                    "mode": "hug"
+                  }
+                },
+                "name": "分类标题",
+                "props": {},
+                "style": {
+                  "color": "#1F2937",
+                  "fontSize": 20,
+                  "fontWeight": 600,
+                  "lineHeight": 1.4
+                },
+                "tag": "text",
+                "text": "商品分类"
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "alt": "健康分类图标",
+                        "assetId": "cat-health",
+                        "children": [],
+                        "id": "cat-health-icon",
+                        "kind": "image",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "hug"
+                          }
+                        },
+                        "name": "健康分类图标",
+                        "props": {},
+                        "style": {
+                          "borderRadius": 8
+                        },
+                        "tag": "image"
+                      },
+                      {
+                        "children": [],
+                        "id": "cat-health-text",
+                        "kind": "text",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "健康分类名称",
+                        "props": {},
+                        "style": {
+                          "color": "#1F2937",
+                          "fontSize": 14,
+                          "textAlign": "center"
+                        },
+                        "tag": "text",
+                        "text": "健康"
+                      }
+                    ],
+                    "id": "cat-health",
+                    "kind": "element",
+                    "layout": {
+                      "alignItems": "center",
+                      "direction": "column",
+                      "gap": 8,
+                      "justifyContent": "flex-start",
+                      "mode": "flex",
+                      "wrap": "nowrap"
+                    },
+                    "layoutItem": {
+                      "flexBasis": 100,
+                      "flexShrink": 0,
+                      "height": {
+                        "mode": "hug"
+                      }
+                    },
+                    "name": "健康分类入口",
+                    "props": {},
+                    "style": {},
+                    "tag": "div",
+                    "tokens": [
+                      "radius.md",
+                      "space.4"
+                    ]
+                  },
+                  {
+                    "children": [
+                      {
+                        "alt": "家用分类图标",
+                        "assetId": "cat-home",
+                        "children": [],
+                        "id": "cat-home-icon",
+                        "kind": "image",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "hug"
+                          }
+                        },
+                        "name": "家用分类图标",
+                        "props": {},
+                        "style": {
+                          "borderRadius": 8
+                        },
+                        "tag": "image"
+                      },
+                      {
+                        "children": [],
+                        "id": "cat-home-text",
+                        "kind": "text",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "家用分类名称",
+                        "props": {},
+                        "style": {
+                          "color": "#1F2937",
+                          "fontSize": 14,
+                          "textAlign": "center"
+                        },
+                        "tag": "text",
+                        "text": "家用"
+                      }
+                    ],
+                    "id": "cat-home",
+                    "kind": "element",
+                    "layout": {
+                      "alignItems": "center",
+                      "direction": "column",
+                      "gap": 8,
+                      "justifyContent": "flex-start",
+                      "mode": "flex",
+                      "wrap": "nowrap"
+                    },
+                    "layoutItem": {
+                      "flexBasis": 100,
+                      "flexShrink": 0,
+                      "height": {
+                        "mode": "hug"
+                      }
+                    },
+                    "name": "家用分类入口",
+                    "props": {},
+                    "style": {},
+                    "tag": "div",
+                    "tokens": [
+                      "radius.md",
+                      "space.4"
+                    ]
+                  },
+                  {
+                    "children": [
+                      {
+                        "alt": "旅游分类图标",
+                        "assetId": "cat-travel",
+                        "children": [],
+                        "id": "cat-travel-icon",
+                        "kind": "image",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "hug"
+                          }
+                        },
+                        "name": "旅游分类图标",
+                        "props": {},
+                        "style": {
+                          "borderRadius": 8
+                        },
+                        "tag": "image"
+                      },
+                      {
+                        "children": [],
+                        "id": "cat-travel-text",
+                        "kind": "text",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "旅游分类名称",
+                        "props": {},
+                        "style": {
+                          "color": "#1F2937",
+                          "fontSize": 14,
+                          "textAlign": "center"
+                        },
+                        "tag": "text",
+                        "text": "旅游"
+                      }
+                    ],
+                    "id": "cat-travel",
+                    "kind": "element",
+                    "layout": {
+                      "alignItems": "center",
+                      "direction": "column",
+                      "gap": 8,
+                      "justifyContent": "flex-start",
+                      "mode": "flex",
+                      "wrap": "nowrap"
+                    },
+                    "layoutItem": {
+                      "flexBasis": 100,
+                      "flexShrink": 0,
+                      "height": {
+                        "mode": "hug"
+                      }
+                    },
+                    "name": "旅游分类入口",
+                    "props": {},
+                    "style": {},
+                    "tag": "div",
+                    "tokens": [
+                      "radius.md",
+                      "space.4"
+                    ]
+                  },
+                  {
+                    "children": [
+                      {
+                        "alt": "运动分类图标",
+                        "assetId": "cat-sports",
+                        "children": [],
+                        "id": "cat-sports-icon",
+                        "kind": "image",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "hug"
+                          }
+                        },
+                        "name": "运动分类图标",
+                        "props": {},
+                        "style": {
+                          "borderRadius": 8
+                        },
+                        "tag": "image"
+                      },
+                      {
+                        "children": [],
+                        "id": "cat-sports-text",
+                        "kind": "text",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "运动分类名称",
+                        "props": {},
+                        "style": {
+                          "color": "#1F2937",
+                          "fontSize": 14,
+                          "textAlign": "center"
+                        },
+                        "tag": "text",
+                        "text": "运动"
+                      }
+                    ],
+                    "id": "cat-sports",
+                    "kind": "element",
+                    "layout": {
+                      "alignItems": "center",
+                      "direction": "column",
+                      "gap": 8,
+                      "justifyContent": "flex-start",
+                      "mode": "flex",
+                      "wrap": "nowrap"
+                    },
+                    "layoutItem": {
+                      "flexBasis": 100,
+                      "flexShrink": 0,
+                      "height": {
+                        "mode": "hug"
+                      }
+                    },
+                    "name": "运动分类入口",
+                    "props": {},
+                    "style": {},
+                    "tag": "div",
+                    "tokens": [
+                      "radius.md",
+                      "space.4"
+                    ]
+                  },
+                  {
+                    "children": [
+                      {
+                        "alt": "时尚分类图标",
+                        "assetId": "cat-fashion",
+                        "children": [],
+                        "id": "cat-fashion-icon",
+                        "kind": "image",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "hug"
+                          }
+                        },
+                        "name": "时尚分类图标",
+                        "props": {},
+                        "style": {
+                          "borderRadius": 8
+                        },
+                        "tag": "image"
+                      },
+                      {
+                        "children": [],
+                        "id": "cat-fashion-text",
+                        "kind": "text",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "时尚分类名称",
+                        "props": {},
+                        "style": {
+                          "color": "#1F2937",
+                          "fontSize": 14,
+                          "textAlign": "center"
+                        },
+                        "tag": "text",
+                        "text": "时尚"
+                      }
+                    ],
+                    "id": "cat-fashion",
+                    "kind": "element",
+                    "layout": {
+                      "alignItems": "center",
+                      "direction": "column",
+                      "gap": 8,
+                      "justifyContent": "flex-start",
+                      "mode": "flex",
+                      "wrap": "nowrap"
+                    },
+                    "layoutItem": {
+                      "flexBasis": 100,
+                      "flexShrink": 0,
+                      "height": {
+                        "mode": "hug"
+                      }
+                    },
+                    "name": "时尚分类入口",
+                    "props": {},
+                    "style": {},
+                    "tag": "div",
+                    "tokens": [
+                      "radius.md",
+                      "space.4"
+                    ]
+                  },
+                  {
+                    "children": [
+                      {
+                        "alt": "科技分类图标",
+                        "assetId": "cat-tech",
+                        "children": [],
+                        "id": "cat-tech-icon",
+                        "kind": "image",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "hug"
+                          }
+                        },
+                        "name": "科技分类图标",
+                        "props": {},
+                        "style": {
+                          "borderRadius": 8
+                        },
+                        "tag": "image"
+                      },
+                      {
+                        "children": [],
+                        "id": "cat-tech-text",
+                        "kind": "text",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "科技分类名称",
+                        "props": {},
+                        "style": {
+                          "color": "#1F2937",
+                          "fontSize": 14,
+                          "textAlign": "center"
+                        },
+                        "tag": "text",
+                        "text": "科技"
+                      }
+                    ],
+                    "id": "cat-tech",
+                    "kind": "element",
+                    "layout": {
+                      "alignItems": "center",
+                      "direction": "column",
+                      "gap": 8,
+                      "justifyContent": "flex-start",
+                      "mode": "flex",
+                      "wrap": "nowrap"
+                    },
+                    "layoutItem": {
+                      "flexBasis": 100,
+                      "flexShrink": 0,
+                      "height": {
+                        "mode": "hug"
+                      }
+                    },
+                    "name": "科技分类入口",
+                    "props": {},
+                    "style": {},
+                    "tag": "div",
+                    "tokens": [
+                      "radius.md",
+                      "space.4"
+                    ]
+                  }
+                ],
+                "id": "category-grid",
+                "kind": "element",
+                "layout": {
+                  "alignItems": "flex-start",
+                  "direction": "row",
+                  "gap": 16,
+                  "justifyContent": "center",
+                  "mode": "flex",
+                  "wrap": "wrap"
+                },
+                "layoutItem": {
+                  "height": {
+                    "mode": "hug"
+                  },
+                  "width": {
+                    "mode": "fill"
+                  }
+                },
+                "name": "分类入口网格",
+                "props": {},
+                "style": {},
+                "tag": "div",
+                "tokens": [
+                  "space.4"
+                ]
+              }
+            ],
+            "id": "category-section",
+            "kind": "element",
+            "layout": {
+              "alignItems": "stretch",
+              "direction": "column",
+              "gap": 16,
+              "justifyContent": "flex-start",
+              "mode": "flex",
+              "wrap": "nowrap"
+            },
+            "layoutItem": {
+              "height": {
+                "mode": "hug"
+              },
+              "width": {
+                "mode": "fill"
+              }
+            },
+            "name": "分类入口区",
+            "props": {},
+            "style": {},
+            "tag": "div",
+            "tokens": [
+              "space.4"
+            ]
+          },
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "promotion-title",
+                "kind": "text",
+                "layoutItem": {
+                  "alignSelf": "flex-start",
+                  "height": {
+                    "mode": "hug"
+                  },
+                  "width": {
+                    "mode": "hug"
+                  }
+                },
+                "name": "促销标题",
+                "props": {},
+                "style": {
+                  "color": "#1F2937",
+                  "fontSize": 20,
+                  "fontWeight": 600,
+                  "lineHeight": 1.4
+                },
+                "tag": "text",
+                "text": "促销活动"
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "promo-flash-label-text",
+                            "kind": "text",
+                            "layoutItem": {
+                              "height": {
+                                "mode": "hug"
+                              },
+                              "width": {
+                                "mode": "hug"
+                              }
+                            },
+                            "name": "限时秒杀标签文本",
+                            "props": {},
+                            "style": {
+                              "fontSize": 12,
+                              "fontWeight": 500
+                            },
+                            "tag": "text",
+                            "text": "限时秒杀"
+                          }
+                        ],
+                        "id": "promo-flash-label",
+                        "kind": "component",
+                        "layout": {
+                          "alignItems": "center",
+                          "direction": "row",
+                          "justifyContent": "center",
+                          "mode": "flex",
+                          "wrap": "nowrap"
+                        },
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "hug"
+                          }
+                        },
+                        "name": "限时秒杀标签",
+                        "packageName": "antd",
+                        "props": {},
+                        "style": {},
+                        "tag": "Tag"
+                      },
+                      {
+                        "children": [],
+                        "id": "promo-flash-title",
+                        "kind": "text",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "限时秒杀标题",
+                        "props": {},
+                        "style": {
+                          "color": "#1F2937",
+                          "fontSize": 18,
+                          "fontWeight": 600,
+                          "lineHeight": 1.4
+                        },
+                        "tag": "text",
+                        "text": "全场低至5折"
+                      },
+                      {
+                        "children": [],
+                        "id": "promo-flash-desc",
+                        "kind": "text",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "限时秒杀描述",
+                        "props": {},
+                        "style": {
+                          "color": "#6B7280",
+                          "fontSize": 14,
+                          "lineHeight": 1.5
+                        },
+                        "tag": "text",
+                        "text": "每日10点开抢，限量500份"
+                      },
+                      {
+                        "children": [],
+                        "id": "promo-flash-button",
+                        "kind": "component",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "hug"
+                          }
+                        },
+                        "name": "去抢购按钮",
+                        "packageName": "antd",
+                        "props": {
+                          "children": "去抢购",
+                          "type": "primary"
+                        },
+                        "style": {},
+                        "tag": "Button"
+                      }
+                    ],
+                    "id": "promo-flash-sale",
+                    "kind": "element",
+                    "layout": {
+                      "alignItems": "flex-start",
+                      "direction": "column",
+                      "gap": 8,
+                      "justifyContent": "flex-start",
+                      "mode": "flex",
+                      "padding": {
+                        "bottom": 16,
+                        "left": 16,
+                        "right": 16,
+                        "top": 16
+                      },
+                      "wrap": "nowrap"
+                    },
+                    "layoutItem": {
+                      "flexBasis": 240,
+                      "flexGrow": 1,
+                      "flexShrink": 0
+                    },
+                    "name": "限时秒杀活动",
+                    "props": {},
+                    "style": {
+                      "backgroundColor": "#FFF7E6",
+                      "borderRadius": 8
+                    },
+                    "tag": "div",
+                    "tokens": [
+                      "radius.md",
+                      "space.4"
+                    ]
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "promo-coupon-label-text",
+                            "kind": "text",
+                            "layoutItem": {
+                              "height": {
+                                "mode": "hug"
+                              },
+                              "width": {
+                                "mode": "hug"
+                              }
+                            },
+                            "name": "领券中心标签文本",
+                            "props": {},
+                            "style": {
+                              "fontSize": 12,
+                              "fontWeight": 500
+                            },
+                            "tag": "text",
+                            "text": "领券中心"
+                          }
+                        ],
+                        "id": "promo-coupon-label",
+                        "kind": "component",
+                        "layout": {
+                          "alignItems": "center",
+                          "direction": "row",
+                          "justifyContent": "center",
+                          "mode": "flex",
+                          "wrap": "nowrap"
+                        },
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "hug"
+                          }
+                        },
+                        "name": "领券中心标签",
+                        "packageName": "antd",
+                        "props": {},
+                        "style": {},
+                        "tag": "Tag"
+                      },
+                      {
+                        "children": [],
+                        "id": "promo-coupon-title",
+                        "kind": "text",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "领券中心标题",
+                        "props": {},
+                        "style": {
+                          "color": "#1F2937",
+                          "fontSize": 18,
+                          "fontWeight": 600,
+                          "lineHeight": 1.4
+                        },
+                        "tag": "text",
+                        "text": "满199减30"
+                      },
+                      {
+                        "children": [],
+                        "id": "promo-coupon-desc",
+                        "kind": "text",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "领券中心描述",
+                        "props": {},
+                        "style": {
+                          "color": "#6B7280",
+                          "fontSize": 14,
+                          "lineHeight": 1.5
+                        },
+                        "tag": "text",
+                        "text": "全场通用，有效期7天"
+                      },
+                      {
+                        "children": [],
+                        "id": "promo-coupon-button",
+                        "kind": "component",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "hug"
+                          }
+                        },
+                        "name": "立即领取按钮",
+                        "packageName": "antd",
+                        "props": {
+                          "children": "立即领取",
+                          "type": "default"
+                        },
+                        "style": {},
+                        "tag": "Button"
+                      }
+                    ],
+                    "id": "promo-coupon",
+                    "kind": "element",
+                    "layout": {
+                      "alignItems": "flex-start",
+                      "direction": "column",
+                      "gap": 8,
+                      "justifyContent": "flex-start",
+                      "mode": "flex",
+                      "padding": {
+                        "bottom": 16,
+                        "left": 16,
+                        "right": 16,
+                        "top": 16
+                      },
+                      "wrap": "nowrap"
+                    },
+                    "layoutItem": {
+                      "flexBasis": 240,
+                      "flexGrow": 1,
+                      "flexShrink": 0
+                    },
+                    "name": "领券中心活动",
+                    "props": {},
+                    "style": {
+                      "backgroundColor": "#F0F7FF",
+                      "borderRadius": 8
+                    },
+                    "tag": "div",
+                    "tokens": [
+                      "radius.md",
+                      "space.4"
+                    ]
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "promo-new-user-label-text",
+                            "kind": "text",
+                            "layoutItem": {
+                              "height": {
+                                "mode": "hug"
+                              },
+                              "width": {
+                                "mode": "hug"
+                              }
+                            },
+                            "name": "新人专享标签文本",
+                            "props": {},
+                            "style": {
+                              "fontSize": 12,
+                              "fontWeight": 500
+                            },
+                            "tag": "text",
+                            "text": "新人专享"
+                          }
+                        ],
+                        "id": "promo-new-user-label",
+                        "kind": "component",
+                        "layout": {
+                          "alignItems": "center",
+                          "direction": "row",
+                          "justifyContent": "center",
+                          "mode": "flex",
+                          "wrap": "nowrap"
+                        },
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "hug"
+                          }
+                        },
+                        "name": "新人专享标签",
+                        "packageName": "antd",
+                        "props": {},
+                        "style": {},
+                        "tag": "Tag"
+                      },
+                      {
+                        "children": [],
+                        "id": "promo-new-user-title",
+                        "kind": "text",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "新人专享标题",
+                        "props": {},
+                        "style": {
+                          "color": "#1F2937",
+                          "fontSize": 18,
+                          "fontWeight": 600,
+                          "lineHeight": 1.4
+                        },
+                        "tag": "text",
+                        "text": "首单立减50"
+                      },
+                      {
+                        "children": [],
+                        "id": "promo-new-user-desc",
+                        "kind": "text",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "新人专享描述",
+                        "props": {},
+                        "style": {
+                          "color": "#6B7280",
+                          "fontSize": 14,
+                          "lineHeight": 1.5
+                        },
+                        "tag": "text",
+                        "text": "新用户注册即享"
+                      },
+                      {
+                        "children": [],
+                        "id": "promo-new-user-button",
+                        "kind": "component",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "hug"
+                          }
+                        },
+                        "name": "新人开户按钮",
+                        "packageName": "antd",
+                        "props": {
+                          "children": "立即开户",
+                          "type": "primary"
+                        },
+                        "style": {},
+                        "tag": "Button"
+                      }
+                    ],
+                    "id": "promo-new-user",
+                    "kind": "element",
+                    "layout": {
+                      "alignItems": "flex-start",
+                      "direction": "column",
+                      "gap": 8,
+                      "justifyContent": "flex-start",
+                      "mode": "flex",
+                      "padding": {
+                        "bottom": 16,
+                        "left": 16,
+                        "right": 16,
+                        "top": 16
+                      },
+                      "wrap": "nowrap"
+                    },
+                    "layoutItem": {
+                      "flexBasis": 240,
+                      "flexGrow": 1,
+                      "flexShrink": 0
+                    },
+                    "name": "新人专享活动",
+                    "props": {},
+                    "style": {
+                      "backgroundColor": "#F3F0FF",
+                      "borderRadius": 8
+                    },
+                    "tag": "div",
+                    "tokens": [
+                      "radius.md",
+                      "space.4"
+                    ]
+                  }
+                ],
+                "id": "promo-grid",
+                "kind": "element",
+                "layout": {
+                  "alignItems": "stretch",
+                  "direction": "row",
+                  "gap": 16,
+                  "justifyContent": "flex-start",
+                  "mode": "flex",
+                  "wrap": "wrap"
+                },
+                "layoutItem": {
+                  "height": {
+                    "mode": "hug"
+                  },
+                  "width": {
+                    "mode": "fill"
+                  }
+                },
+                "name": "促销活动网格",
+                "props": {},
+                "style": {},
+                "tag": "div",
+                "tokens": [
+                  "space.4"
+                ]
+              }
+            ],
+            "id": "promotions",
+            "kind": "element",
+            "layout": {
+              "alignItems": "stretch",
+              "direction": "column",
+              "gap": 16,
+              "justifyContent": "flex-start",
+              "mode": "flex",
+              "wrap": "nowrap"
+            },
+            "layoutItem": {
+              "height": {
+                "mode": "hug"
+              },
+              "width": {
+                "mode": "fill"
+              }
+            },
+            "name": "促销活动区",
+            "props": {},
+            "style": {},
+            "tag": "div",
+            "tokens": [
+              "space.4"
+            ]
+          },
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "recommendation-title",
+                "kind": "text",
+                "layoutItem": {
+                  "alignSelf": "flex-start",
+                  "height": {
+                    "mode": "hug"
+                  },
+                  "width": {
+                    "mode": "hug"
+                  }
+                },
+                "name": "商品推荐标题",
+                "props": {},
+                "style": {
+                  "color": "#1F2937",
+                  "fontSize": 20,
+                  "fontWeight": 600,
+                  "lineHeight": 1.4
+                },
+                "tag": "text",
+                "text": "商品推荐"
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "alt": "无线蓝牙耳机",
+                        "assetId": "product-1",
+                        "children": [],
+                        "id": "product-1-image",
+                        "kind": "image",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "无线耳机商品图",
+                        "props": {},
+                        "style": {
+                          "borderRadius": 8
+                        },
+                        "tag": "image"
+                      },
+                      {
+                        "children": [],
+                        "id": "product-1-name",
+                        "kind": "text",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "无线耳机商品名称",
+                        "props": {},
+                        "style": {
+                          "color": "#1F2937",
+                          "fontSize": 16,
+                          "fontWeight": 500,
+                          "lineHeight": 1.4,
+                          "textOverflow": "ellipsis",
+                          "whiteSpace": "nowrap"
+                        },
+                        "tag": "text",
+                        "text": "无线蓝牙耳机 降噪长续航"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "product-1-price-now",
+                            "kind": "text",
+                            "layoutItem": {
+                              "height": {
+                                "mode": "hug"
+                              },
+                              "width": {
+                                "mode": "hug"
+                              }
+                            },
+                            "name": "无线耳机现价",
+                            "props": {},
+                            "style": {
+                              "color": "#1677FF",
+                              "fontSize": 20,
+                              "fontWeight": 600
+                            },
+                            "tag": "text",
+                            "text": "¥299"
+                          },
+                          {
+                            "children": [],
+                            "id": "product-1-price-original",
+                            "kind": "text",
+                            "layoutItem": {
+                              "height": {
+                                "mode": "hug"
+                              },
+                              "width": {
+                                "mode": "hug"
+                              }
+                            },
+                            "name": "无线耳机原价",
+                            "props": {},
+                            "style": {
+                              "color": "#9CA3AF",
+                              "fontSize": 14,
+                              "textDecoration": "line-through"
+                            },
+                            "tag": "text",
+                            "text": "¥399"
+                          }
+                        ],
+                        "id": "product-1-price",
+                        "kind": "element",
+                        "layout": {
+                          "alignItems": "center",
+                          "direction": "row",
+                          "gap": 8,
+                          "justifyContent": "flex-start",
+                          "mode": "flex",
+                          "wrap": "nowrap"
+                        },
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "无线耳机价格",
+                        "props": {},
+                        "style": {},
+                        "tag": "div"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "product-1-rate",
+                            "kind": "component",
+                            "layoutItem": {
+                              "height": {
+                                "mode": "hug"
+                              },
+                              "width": {
+                                "mode": "hug"
+                              }
+                            },
+                            "name": "无线耳机评分星级",
+                            "packageName": "antd",
+                            "props": {
+                              "disabled": true,
+                              "value": 4.5
+                            },
+                            "style": {},
+                            "tag": "Rate"
+                          },
+                          {
+                            "children": [],
+                            "id": "product-1-rate-text",
+                            "kind": "text",
+                            "layoutItem": {
+                              "height": {
+                                "mode": "hug"
+                              },
+                              "width": {
+                                "mode": "hug"
+                              }
+                            },
+                            "name": "无线耳机评分分数",
+                            "props": {},
+                            "style": {
+                              "color": "#6B7280",
+                              "fontSize": 14
+                            },
+                            "tag": "text",
+                            "text": "4.5"
+                          }
+                        ],
+                        "id": "product-1-rating",
+                        "kind": "element",
+                        "layout": {
+                          "alignItems": "center",
+                          "direction": "row",
+                          "gap": 8,
+                          "justifyContent": "flex-start",
+                          "mode": "flex",
+                          "wrap": "nowrap"
+                        },
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "无线耳机评分",
+                        "props": {},
+                        "style": {},
+                        "tag": "div"
+                      },
+                      {
+                        "children": [],
+                        "id": "product-1-add-cart",
+                        "kind": "component",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "无线耳机加购按钮",
+                        "packageName": "antd",
+                        "props": {
+                          "children": "加入购物车",
+                          "type": "primary"
+                        },
+                        "style": {},
+                        "tag": "Button"
+                      }
+                    ],
+                    "id": "product-1",
+                    "kind": "component",
+                    "layout": {
+                      "alignItems": "stretch",
+                      "direction": "column",
+                      "gap": 8,
+                      "justifyContent": "flex-start",
+                      "mode": "flex",
+                      "padding": {
+                        "bottom": 12,
+                        "left": 12,
+                        "right": 12,
+                        "top": 12
+                      },
+                      "wrap": "nowrap"
+                    },
+                    "layoutItem": {
+                      "flexBasis": 220,
+                      "flexGrow": 1,
+                      "flexShrink": 0
+                    },
+                    "name": "商品卡片 无线耳机",
+                    "packageName": "antd",
+                    "props": {},
+                    "style": {
+                      "borderRadius": 8,
+                      "boxShadow": "0 2px 8px rgba(0,0,0,0.08)"
+                    },
+                    "tag": "Card",
+                    "tokens": [
+                      "radius.md",
+                      "space.4"
+                    ]
+                  },
+                  {
+                    "children": [
+                      {
+                        "alt": "智能手表",
+                        "assetId": "product-2",
+                        "children": [],
+                        "id": "product-2-image",
+                        "kind": "image",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "智能手表商品图",
+                        "props": {},
+                        "style": {
+                          "borderRadius": 8
+                        },
+                        "tag": "image"
+                      },
+                      {
+                        "children": [],
+                        "id": "product-2-name",
+                        "kind": "text",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "智能手表商品名称",
+                        "props": {},
+                        "style": {
+                          "color": "#1F2937",
+                          "fontSize": 16,
+                          "fontWeight": 500,
+                          "lineHeight": 1.4,
+                          "textOverflow": "ellipsis",
+                          "whiteSpace": "nowrap"
+                        },
+                        "tag": "text",
+                        "text": "智能手表 运动健康监测"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "product-2-price-now",
+                            "kind": "text",
+                            "layoutItem": {
+                              "height": {
+                                "mode": "hug"
+                              },
+                              "width": {
+                                "mode": "hug"
+                              }
+                            },
+                            "name": "智能手表现价",
+                            "props": {},
+                            "style": {
+                              "color": "#1677FF",
+                              "fontSize": 20,
+                              "fontWeight": 600
+                            },
+                            "tag": "text",
+                            "text": "¥899"
+                          },
+                          {
+                            "children": [],
+                            "id": "product-2-price-original",
+                            "kind": "text",
+                            "layoutItem": {
+                              "height": {
+                                "mode": "hug"
+                              },
+                              "width": {
+                                "mode": "hug"
+                              }
+                            },
+                            "name": "智能手表原价",
+                            "props": {},
+                            "style": {
+                              "color": "#9CA3AF",
+                              "fontSize": 14,
+                              "textDecoration": "line-through"
+                            },
+                            "tag": "text",
+                            "text": "¥1099"
+                          }
+                        ],
+                        "id": "product-2-price",
+                        "kind": "element",
+                        "layout": {
+                          "alignItems": "center",
+                          "direction": "row",
+                          "gap": 8,
+                          "justifyContent": "flex-start",
+                          "mode": "flex",
+                          "wrap": "nowrap"
+                        },
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "智能手表价格",
+                        "props": {},
+                        "style": {},
+                        "tag": "div"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "product-2-rate",
+                            "kind": "component",
+                            "layoutItem": {
+                              "height": {
+                                "mode": "hug"
+                              },
+                              "width": {
+                                "mode": "hug"
+                              }
+                            },
+                            "name": "智能手表评分星级",
+                            "packageName": "antd",
+                            "props": {
+                              "disabled": true,
+                              "value": 4.8
+                            },
+                            "style": {},
+                            "tag": "Rate"
+                          },
+                          {
+                            "children": [],
+                            "id": "product-2-rate-text",
+                            "kind": "text",
+                            "layoutItem": {
+                              "height": {
+                                "mode": "hug"
+                              },
+                              "width": {
+                                "mode": "hug"
+                              }
+                            },
+                            "name": "智能手表评分分数",
+                            "props": {},
+                            "style": {
+                              "color": "#6B7280",
+                              "fontSize": 14
+                            },
+                            "tag": "text",
+                            "text": "4.8"
+                          }
+                        ],
+                        "id": "product-2-rating",
+                        "kind": "element",
+                        "layout": {
+                          "alignItems": "center",
+                          "direction": "row",
+                          "gap": 8,
+                          "justifyContent": "flex-start",
+                          "mode": "flex",
+                          "wrap": "nowrap"
+                        },
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "智能手表评分",
+                        "props": {},
+                        "style": {},
+                        "tag": "div"
+                      },
+                      {
+                        "children": [],
+                        "id": "product-2-add-cart",
+                        "kind": "component",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "智能手表加购按钮",
+                        "packageName": "antd",
+                        "props": {
+                          "children": "加入购物车",
+                          "type": "primary"
+                        },
+                        "style": {},
+                        "tag": "Button"
+                      }
+                    ],
+                    "id": "product-2",
+                    "kind": "component",
+                    "layout": {
+                      "alignItems": "stretch",
+                      "direction": "column",
+                      "gap": 8,
+                      "justifyContent": "flex-start",
+                      "mode": "flex",
+                      "padding": {
+                        "bottom": 12,
+                        "left": 12,
+                        "right": 12,
+                        "top": 12
+                      },
+                      "wrap": "nowrap"
+                    },
+                    "layoutItem": {
+                      "flexBasis": 220,
+                      "flexGrow": 1,
+                      "flexShrink": 0
+                    },
+                    "name": "商品卡片 智能手表",
+                    "packageName": "antd",
+                    "props": {},
+                    "style": {
+                      "borderRadius": 8,
+                      "boxShadow": "0 2px 8px rgba(0,0,0,0.08)"
+                    },
+                    "tag": "Card",
+                    "tokens": [
+                      "radius.md",
+                      "space.4"
+                    ]
+                  },
+                  {
+                    "children": [
+                      {
+                        "alt": "轻便跑步鞋",
+                        "assetId": "product-3",
+                        "children": [],
+                        "id": "product-3-image",
+                        "kind": "image",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "跑步鞋商品图",
+                        "props": {},
+                        "style": {
+                          "borderRadius": 8
+                        },
+                        "tag": "image"
+                      },
+                      {
+                        "children": [],
+                        "id": "product-3-name",
+                        "kind": "text",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "跑步鞋商品名称",
+                        "props": {},
+                        "style": {
+                          "color": "#1F2937",
+                          "fontSize": 16,
+                          "fontWeight": 500,
+                          "lineHeight": 1.4,
+                          "textOverflow": "ellipsis",
+                          "whiteSpace": "nowrap"
+                        },
+                        "tag": "text",
+                        "text": "轻便跑步鞋 缓震透气"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "product-3-price-now",
+                            "kind": "text",
+                            "layoutItem": {
+                              "height": {
+                                "mode": "hug"
+                              },
+                              "width": {
+                                "mode": "hug"
+                              }
+                            },
+                            "name": "跑步鞋现价",
+                            "props": {},
+                            "style": {
+                              "color": "#1677FF",
+                              "fontSize": 20,
+                              "fontWeight": 600
+                            },
+                            "tag": "text",
+                            "text": "¥399"
+                          },
+                          {
+                            "children": [],
+                            "id": "product-3-price-original",
+                            "kind": "text",
+                            "layoutItem": {
+                              "height": {
+                                "mode": "hug"
+                              },
+                              "width": {
+                                "mode": "hug"
+                              }
+                            },
+                            "name": "跑步鞋原价",
+                            "props": {},
+                            "style": {
+                              "color": "#9CA3AF",
+                              "fontSize": 14,
+                              "textDecoration": "line-through"
+                            },
+                            "tag": "text",
+                            "text": "¥599"
+                          }
+                        ],
+                        "id": "product-3-price",
+                        "kind": "element",
+                        "layout": {
+                          "alignItems": "center",
+                          "direction": "row",
+                          "gap": 8,
+                          "justifyContent": "flex-start",
+                          "mode": "flex",
+                          "wrap": "nowrap"
+                        },
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "跑步鞋价格",
+                        "props": {},
+                        "style": {},
+                        "tag": "div"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "product-3-rate",
+                            "kind": "component",
+                            "layoutItem": {
+                              "height": {
+                                "mode": "hug"
+                              },
+                              "width": {
+                                "mode": "hug"
+                              }
+                            },
+                            "name": "跑步鞋评分星级",
+                            "packageName": "antd",
+                            "props": {
+                              "disabled": true,
+                              "value": 4.6
+                            },
+                            "style": {},
+                            "tag": "Rate"
+                          },
+                          {
+                            "children": [],
+                            "id": "product-3-rate-text",
+                            "kind": "text",
+                            "layoutItem": {
+                              "height": {
+                                "mode": "hug"
+                              },
+                              "width": {
+                                "mode": "hug"
+                              }
+                            },
+                            "name": "跑步鞋评分分数",
+                            "props": {},
+                            "style": {
+                              "color": "#6B7280",
+                              "fontSize": 14
+                            },
+                            "tag": "text",
+                            "text": "4.6"
+                          }
+                        ],
+                        "id": "product-3-rating",
+                        "kind": "element",
+                        "layout": {
+                          "alignItems": "center",
+                          "direction": "row",
+                          "gap": 8,
+                          "justifyContent": "flex-start",
+                          "mode": "flex",
+                          "wrap": "nowrap"
+                        },
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "跑步鞋评分",
+                        "props": {},
+                        "style": {},
+                        "tag": "div"
+                      },
+                      {
+                        "children": [],
+                        "id": "product-3-add-cart",
+                        "kind": "component",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "跑步鞋加购按钮",
+                        "packageName": "antd",
+                        "props": {
+                          "children": "加入购物车",
+                          "type": "primary"
+                        },
+                        "style": {},
+                        "tag": "Button"
+                      }
+                    ],
+                    "id": "product-3",
+                    "kind": "component",
+                    "layout": {
+                      "alignItems": "stretch",
+                      "direction": "column",
+                      "gap": 8,
+                      "justifyContent": "flex-start",
+                      "mode": "flex",
+                      "padding": {
+                        "bottom": 12,
+                        "left": 12,
+                        "right": 12,
+                        "top": 12
+                      },
+                      "wrap": "nowrap"
+                    },
+                    "layoutItem": {
+                      "flexBasis": 220,
+                      "flexGrow": 1,
+                      "flexShrink": 0
+                    },
+                    "name": "商品卡片 跑步鞋",
+                    "packageName": "antd",
+                    "props": {},
+                    "style": {
+                      "borderRadius": 8,
+                      "boxShadow": "0 2px 8px rgba(0,0,0,0.08)"
+                    },
+                    "tag": "Card",
+                    "tokens": [
+                      "radius.md",
+                      "space.4"
+                    ]
+                  },
+                  {
+                    "children": [
+                      {
+                        "alt": "运动速干T恤",
+                        "assetId": "product-4",
+                        "children": [],
+                        "id": "product-4-image",
+                        "kind": "image",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "运动T恤商品图",
+                        "props": {},
+                        "style": {
+                          "borderRadius": 8
+                        },
+                        "tag": "image"
+                      },
+                      {
+                        "children": [],
+                        "id": "product-4-name",
+                        "kind": "text",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "运动T恤商品名称",
+                        "props": {},
+                        "style": {
+                          "color": "#1F2937",
+                          "fontSize": 16,
+                          "fontWeight": 500,
+                          "lineHeight": 1.4,
+                          "textOverflow": "ellipsis",
+                          "whiteSpace": "nowrap"
+                        },
+                        "tag": "text",
+                        "text": "运动速干T恤 男女同款"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "product-4-price-now",
+                            "kind": "text",
+                            "layoutItem": {
+                              "height": {
+                                "mode": "hug"
+                              },
+                              "width": {
+                                "mode": "hug"
+                              }
+                            },
+                            "name": "运动T恤现价",
+                            "props": {},
+                            "style": {
+                              "color": "#1677FF",
+                              "fontSize": 20,
+                              "fontWeight": 600
+                            },
+                            "tag": "text",
+                            "text": "¥129"
+                          },
+                          {
+                            "children": [],
+                            "id": "product-4-price-original",
+                            "kind": "text",
+                            "layoutItem": {
+                              "height": {
+                                "mode": "hug"
+                              },
+                              "width": {
+                                "mode": "hug"
+                              }
+                            },
+                            "name": "运动T恤原价",
+                            "props": {},
+                            "style": {
+                              "color": "#9CA3AF",
+                              "fontSize": 14,
+                              "textDecoration": "line-through"
+                            },
+                            "tag": "text",
+                            "text": "¥199"
+                          }
+                        ],
+                        "id": "product-4-price",
+                        "kind": "element",
+                        "layout": {
+                          "alignItems": "center",
+                          "direction": "row",
+                          "gap": 8,
+                          "justifyContent": "flex-start",
+                          "mode": "flex",
+                          "wrap": "nowrap"
+                        },
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "运动T恤价格",
+                        "props": {},
+                        "style": {},
+                        "tag": "div"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "product-4-rate",
+                            "kind": "component",
+                            "layoutItem": {
+                              "height": {
+                                "mode": "hug"
+                              },
+                              "width": {
+                                "mode": "hug"
+                              }
+                            },
+                            "name": "运动T恤评分星级",
+                            "packageName": "antd",
+                            "props": {
+                              "disabled": true,
+                              "value": 4.3
+                            },
+                            "style": {},
+                            "tag": "Rate"
+                          },
+                          {
+                            "children": [],
+                            "id": "product-4-rate-text",
+                            "kind": "text",
+                            "layoutItem": {
+                              "height": {
+                                "mode": "hug"
+                              },
+                              "width": {
+                                "mode": "hug"
+                              }
+                            },
+                            "name": "运动T恤评分分数",
+                            "props": {},
+                            "style": {
+                              "color": "#6B7280",
+                              "fontSize": 14
+                            },
+                            "tag": "text",
+                            "text": "4.3"
+                          }
+                        ],
+                        "id": "product-4-rating",
+                        "kind": "element",
+                        "layout": {
+                          "alignItems": "center",
+                          "direction": "row",
+                          "gap": 8,
+                          "justifyContent": "flex-start",
+                          "mode": "flex",
+                          "wrap": "nowrap"
+                        },
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "运动T恤评分",
+                        "props": {},
+                        "style": {},
+                        "tag": "div"
+                      },
+                      {
+                        "children": [],
+                        "id": "product-4-add-cart",
+                        "kind": "component",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "运动T恤加购按钮",
+                        "packageName": "antd",
+                        "props": {
+                          "children": "加入购物车",
+                          "type": "primary"
+                        },
+                        "style": {},
+                        "tag": "Button"
+                      }
+                    ],
+                    "id": "product-4",
+                    "kind": "component",
+                    "layout": {
+                      "alignItems": "stretch",
+                      "direction": "column",
+                      "gap": 8,
+                      "justifyContent": "flex-start",
+                      "mode": "flex",
+                      "padding": {
+                        "bottom": 12,
+                        "left": 12,
+                        "right": 12,
+                        "top": 12
+                      },
+                      "wrap": "nowrap"
+                    },
+                    "layoutItem": {
+                      "flexBasis": 220,
+                      "flexGrow": 1,
+                      "flexShrink": 0
+                    },
+                    "name": "商品卡片 运动T恤",
+                    "packageName": "antd",
+                    "props": {},
+                    "style": {
+                      "borderRadius": 8,
+                      "boxShadow": "0 2px 8px rgba(0,0,0,0.08)"
+                    },
+                    "tag": "Card",
+                    "tokens": [
+                      "radius.md",
+                      "space.4"
+                    ]
+                  },
+                  {
+                    "children": [
+                      {
+                        "alt": "万向轮行李箱",
+                        "assetId": "product-5",
+                        "children": [],
+                        "id": "product-5-image",
+                        "kind": "image",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "行李箱商品图",
+                        "props": {},
+                        "style": {
+                          "borderRadius": 8
+                        },
+                        "tag": "image"
+                      },
+                      {
+                        "children": [],
+                        "id": "product-5-name",
+                        "kind": "text",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "行李箱商品名称",
+                        "props": {},
+                        "style": {
+                          "color": "#1F2937",
+                          "fontSize": 16,
+                          "fontWeight": 500,
+                          "lineHeight": 1.4,
+                          "textOverflow": "ellipsis",
+                          "whiteSpace": "nowrap"
+                        },
+                        "tag": "text",
+                        "text": "万向轮行李箱 20寸登机箱"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "product-5-price-now",
+                            "kind": "text",
+                            "layoutItem": {
+                              "height": {
+                                "mode": "hug"
+                              },
+                              "width": {
+                                "mode": "hug"
+                              }
+                            },
+                            "name": "行李箱现价",
+                            "props": {},
+                            "style": {
+                              "color": "#1677FF",
+                              "fontSize": 20,
+                              "fontWeight": 600
+                            },
+                            "tag": "text",
+                            "text": "¥459"
+                          },
+                          {
+                            "children": [],
+                            "id": "product-5-price-original",
+                            "kind": "text",
+                            "layoutItem": {
+                              "height": {
+                                "mode": "hug"
+                              },
+                              "width": {
+                                "mode": "hug"
+                              }
+                            },
+                            "name": "行李箱原价",
+                            "props": {},
+                            "style": {
+                              "color": "#9CA3AF",
+                              "fontSize": 14,
+                              "textDecoration": "line-through"
+                            },
+                            "tag": "text",
+                            "text": "¥699"
+                          }
+                        ],
+                        "id": "product-5-price",
+                        "kind": "element",
+                        "layout": {
+                          "alignItems": "center",
+                          "direction": "row",
+                          "gap": 8,
+                          "justifyContent": "flex-start",
+                          "mode": "flex",
+                          "wrap": "nowrap"
+                        },
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "行李箱价格",
+                        "props": {},
+                        "style": {},
+                        "tag": "div"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "product-5-rate",
+                            "kind": "component",
+                            "layoutItem": {
+                              "height": {
+                                "mode": "hug"
+                              },
+                              "width": {
+                                "mode": "hug"
+                              }
+                            },
+                            "name": "行李箱评分星级",
+                            "packageName": "antd",
+                            "props": {
+                              "disabled": true,
+                              "value": 4.7
+                            },
+                            "style": {},
+                            "tag": "Rate"
+                          },
+                          {
+                            "children": [],
+                            "id": "product-5-rate-text",
+                            "kind": "text",
+                            "layoutItem": {
+                              "height": {
+                                "mode": "hug"
+                              },
+                              "width": {
+                                "mode": "hug"
+                              }
+                            },
+                            "name": "行李箱评分分数",
+                            "props": {},
+                            "style": {
+                              "color": "#6B7280",
+                              "fontSize": 14
+                            },
+                            "tag": "text",
+                            "text": "4.7"
+                          }
+                        ],
+                        "id": "product-5-rating",
+                        "kind": "element",
+                        "layout": {
+                          "alignItems": "center",
+                          "direction": "row",
+                          "gap": 8,
+                          "justifyContent": "flex-start",
+                          "mode": "flex",
+                          "wrap": "nowrap"
+                        },
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "行李箱评分",
+                        "props": {},
+                        "style": {},
+                        "tag": "div"
+                      },
+                      {
+                        "children": [],
+                        "id": "product-5-add-cart",
+                        "kind": "component",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "行李箱加购按钮",
+                        "packageName": "antd",
+                        "props": {
+                          "children": "加入购物车",
+                          "type": "primary"
+                        },
+                        "style": {},
+                        "tag": "Button"
+                      }
+                    ],
+                    "id": "product-5",
+                    "kind": "component",
+                    "layout": {
+                      "alignItems": "stretch",
+                      "direction": "column",
+                      "gap": 8,
+                      "justifyContent": "flex-start",
+                      "mode": "flex",
+                      "padding": {
+                        "bottom": 12,
+                        "left": 12,
+                        "right": 12,
+                        "top": 12
+                      },
+                      "wrap": "nowrap"
+                    },
+                    "layoutItem": {
+                      "flexBasis": 220,
+                      "flexGrow": 1,
+                      "flexShrink": 0
+                    },
+                    "name": "商品卡片 行李箱",
+                    "packageName": "antd",
+                    "props": {},
+                    "style": {
+                      "borderRadius": 8,
+                      "boxShadow": "0 2px 8px rgba(0,0,0,0.08)"
+                    },
+                    "tag": "Card",
+                    "tokens": [
+                      "radius.md",
+                      "space.4"
+                    ]
+                  },
+                  {
+                    "children": [
+                      {
+                        "alt": "玻尿酸补水护肤套装",
+                        "assetId": "product-6",
+                        "children": [],
+                        "id": "product-6-image",
+                        "kind": "image",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "护肤套装商品图",
+                        "props": {},
+                        "style": {
+                          "borderRadius": 8
+                        },
+                        "tag": "image"
+                      },
+                      {
+                        "children": [],
+                        "id": "product-6-name",
+                        "kind": "text",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "护肤套装商品名称",
+                        "props": {},
+                        "style": {
+                          "color": "#1F2937",
+                          "fontSize": 16,
+                          "fontWeight": 500,
+                          "lineHeight": 1.4,
+                          "textOverflow": "ellipsis",
+                          "whiteSpace": "nowrap"
+                        },
+                        "tag": "text",
+                        "text": "玻尿酸补水护肤套装"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "product-6-price-now",
+                            "kind": "text",
+                            "layoutItem": {
+                              "height": {
+                                "mode": "hug"
+                              },
+                              "width": {
+                                "mode": "hug"
+                              }
+                            },
+                            "name": "护肤套装现价",
+                            "props": {},
+                            "style": {
+                              "color": "#1677FF",
+                              "fontSize": 20,
+                              "fontWeight": 600
+                            },
+                            "tag": "text",
+                            "text": "¥269"
+                          },
+                          {
+                            "children": [],
+                            "id": "product-6-price-original",
+                            "kind": "text",
+                            "layoutItem": {
+                              "height": {
+                                "mode": "hug"
+                              },
+                              "width": {
+                                "mode": "hug"
+                              }
+                            },
+                            "name": "护肤套装原价",
+                            "props": {},
+                            "style": {
+                              "color": "#9CA3AF",
+                              "fontSize": 14,
+                              "textDecoration": "line-through"
+                            },
+                            "tag": "text",
+                            "text": "¥369"
+                          }
+                        ],
+                        "id": "product-6-price",
+                        "kind": "element",
+                        "layout": {
+                          "alignItems": "center",
+                          "direction": "row",
+                          "gap": 8,
+                          "justifyContent": "flex-start",
+                          "mode": "flex",
+                          "wrap": "nowrap"
+                        },
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "护肤套装价格",
+                        "props": {},
+                        "style": {},
+                        "tag": "div"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "product-6-rate",
+                            "kind": "component",
+                            "layoutItem": {
+                              "height": {
+                                "mode": "hug"
+                              },
+                              "width": {
+                                "mode": "hug"
+                              }
+                            },
+                            "name": "护肤套装评分星级",
+                            "packageName": "antd",
+                            "props": {
+                              "disabled": true,
+                              "value": 4.4
+                            },
+                            "style": {},
+                            "tag": "Rate"
+                          },
+                          {
+                            "children": [],
+                            "id": "product-6-rate-text",
+                            "kind": "text",
+                            "layoutItem": {
+                              "height": {
+                                "mode": "hug"
+                              },
+                              "width": {
+                                "mode": "hug"
+                              }
+                            },
+                            "name": "护肤套装评分分数",
+                            "props": {},
+                            "style": {
+                              "color": "#6B7280",
+                              "fontSize": 14
+                            },
+                            "tag": "text",
+                            "text": "4.4"
+                          }
+                        ],
+                        "id": "product-6-rating",
+                        "kind": "element",
+                        "layout": {
+                          "alignItems": "center",
+                          "direction": "row",
+                          "gap": 8,
+                          "justifyContent": "flex-start",
+                          "mode": "flex",
+                          "wrap": "nowrap"
+                        },
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "护肤套装评分",
+                        "props": {},
+                        "style": {},
+                        "tag": "div"
+                      },
+                      {
+                        "children": [],
+                        "id": "product-6-add-cart",
+                        "kind": "component",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "护肤套装加购按钮",
+                        "packageName": "antd",
+                        "props": {
+                          "children": "加入购物车",
+                          "type": "primary"
+                        },
+                        "style": {},
+                        "tag": "Button"
+                      }
+                    ],
+                    "id": "product-6",
+                    "kind": "component",
+                    "layout": {
+                      "alignItems": "stretch",
+                      "direction": "column",
+                      "gap": 8,
+                      "justifyContent": "flex-start",
+                      "mode": "flex",
+                      "padding": {
+                        "bottom": 12,
+                        "left": 12,
+                        "right": 12,
+                        "top": 12
+                      },
+                      "wrap": "nowrap"
+                    },
+                    "layoutItem": {
+                      "flexBasis": 220,
+                      "flexGrow": 1,
+                      "flexShrink": 0
+                    },
+                    "name": "商品卡片 护肤套装",
+                    "packageName": "antd",
+                    "props": {},
+                    "style": {
+                      "borderRadius": 8,
+                      "boxShadow": "0 2px 8px rgba(0,0,0,0.08)"
+                    },
+                    "tag": "Card",
+                    "tokens": [
+                      "radius.md",
+                      "space.4"
+                    ]
+                  },
+                  {
+                    "children": [
+                      {
+                        "alt": "全自动咖啡机",
+                        "assetId": "product-7",
+                        "children": [],
+                        "id": "product-7-image",
+                        "kind": "image",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "咖啡机商品图",
+                        "props": {},
+                        "style": {
+                          "borderRadius": 8
+                        },
+                        "tag": "image"
+                      },
+                      {
+                        "children": [],
+                        "id": "product-7-name",
+                        "kind": "text",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "咖啡机商品名称",
+                        "props": {},
+                        "style": {
+                          "color": "#1F2937",
+                          "fontSize": 16,
+                          "fontWeight": 500,
+                          "lineHeight": 1.4,
+                          "textOverflow": "ellipsis",
+                          "whiteSpace": "nowrap"
+                        },
+                        "tag": "text",
+                        "text": "全自动咖啡机 家用小型"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "product-7-price-now",
+                            "kind": "text",
+                            "layoutItem": {
+                              "height": {
+                                "mode": "hug"
+                              },
+                              "width": {
+                                "mode": "hug"
+                              }
+                            },
+                            "name": "咖啡机现价",
+                            "props": {},
+                            "style": {
+                              "color": "#1677FF",
+                              "fontSize": 20,
+                              "fontWeight": 600
+                            },
+                            "tag": "text",
+                            "text": "¥1099"
+                          },
+                          {
+                            "children": [],
+                            "id": "product-7-price-original",
+                            "kind": "text",
+                            "layoutItem": {
+                              "height": {
+                                "mode": "hug"
+                              },
+                              "width": {
+                                "mode": "hug"
+                              }
+                            },
+                            "name": "咖啡机原价",
+                            "props": {},
+                            "style": {
+                              "color": "#9CA3AF",
+                              "fontSize": 14,
+                              "textDecoration": "line-through"
+                            },
+                            "tag": "text",
+                            "text": "¥1499"
+                          }
+                        ],
+                        "id": "product-7-price",
+                        "kind": "element",
+                        "layout": {
+                          "alignItems": "center",
+                          "direction": "row",
+                          "gap": 8,
+                          "justifyContent": "flex-start",
+                          "mode": "flex",
+                          "wrap": "nowrap"
+                        },
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "咖啡机价格",
+                        "props": {},
+                        "style": {},
+                        "tag": "div"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "product-7-rate",
+                            "kind": "component",
+                            "layoutItem": {
+                              "height": {
+                                "mode": "hug"
+                              },
+                              "width": {
+                                "mode": "hug"
+                              }
+                            },
+                            "name": "咖啡机评分星级",
+                            "packageName": "antd",
+                            "props": {
+                              "disabled": true,
+                              "value": 4.9
+                            },
+                            "style": {},
+                            "tag": "Rate"
+                          },
+                          {
+                            "children": [],
+                            "id": "product-7-rate-text",
+                            "kind": "text",
+                            "layoutItem": {
+                              "height": {
+                                "mode": "hug"
+                              },
+                              "width": {
+                                "mode": "hug"
+                              }
+                            },
+                            "name": "咖啡机评分分数",
+                            "props": {},
+                            "style": {
+                              "color": "#6B7280",
+                              "fontSize": 14
+                            },
+                            "tag": "text",
+                            "text": "4.9"
+                          }
+                        ],
+                        "id": "product-7-rating",
+                        "kind": "element",
+                        "layout": {
+                          "alignItems": "center",
+                          "direction": "row",
+                          "gap": 8,
+                          "justifyContent": "flex-start",
+                          "mode": "flex",
+                          "wrap": "nowrap"
+                        },
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "咖啡机评分",
+                        "props": {},
+                        "style": {},
+                        "tag": "div"
+                      },
+                      {
+                        "children": [],
+                        "id": "product-7-add-cart",
+                        "kind": "component",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "咖啡机加购按钮",
+                        "packageName": "antd",
+                        "props": {
+                          "children": "加入购物车",
+                          "type": "primary"
+                        },
+                        "style": {},
+                        "tag": "Button"
+                      }
+                    ],
+                    "id": "product-7",
+                    "kind": "component",
+                    "layout": {
+                      "alignItems": "stretch",
+                      "direction": "column",
+                      "gap": 8,
+                      "justifyContent": "flex-start",
+                      "mode": "flex",
+                      "padding": {
+                        "bottom": 12,
+                        "left": 12,
+                        "right": 12,
+                        "top": 12
+                      },
+                      "wrap": "nowrap"
+                    },
+                    "layoutItem": {
+                      "flexBasis": 220,
+                      "flexGrow": 1,
+                      "flexShrink": 0
+                    },
+                    "name": "商品卡片 咖啡机",
+                    "packageName": "antd",
+                    "props": {},
+                    "style": {
+                      "borderRadius": 8,
+                      "boxShadow": "0 2px 8px rgba(0,0,0,0.08)"
+                    },
+                    "tag": "Card",
+                    "tokens": [
+                      "radius.md",
+                      "space.4"
+                    ]
+                  },
+                  {
+                    "children": [
+                      {
+                        "alt": "磁吸手机壳",
+                        "assetId": "product-8",
+                        "children": [],
+                        "id": "product-8-image",
+                        "kind": "image",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "手机壳商品图",
+                        "props": {},
+                        "style": {
+                          "borderRadius": 8
+                        },
+                        "tag": "image"
+                      },
+                      {
+                        "children": [],
+                        "id": "product-8-name",
+                        "kind": "text",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "手机壳商品名称",
+                        "props": {},
+                        "style": {
+                          "color": "#1F2937",
+                          "fontSize": 16,
+                          "fontWeight": 500,
+                          "lineHeight": 1.4,
+                          "textOverflow": "ellipsis",
+                          "whiteSpace": "nowrap"
+                        },
+                        "tag": "text",
+                        "text": "磁吸手机壳 液态硅胶"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "product-8-price-now",
+                            "kind": "text",
+                            "layoutItem": {
+                              "height": {
+                                "mode": "hug"
+                              },
+                              "width": {
+                                "mode": "hug"
+                              }
+                            },
+                            "name": "手机壳现价",
+                            "props": {},
+                            "style": {
+                              "color": "#1677FF",
+                              "fontSize": 20,
+                              "fontWeight": 600
+                            },
+                            "tag": "text",
+                            "text": "¥69"
+                          },
+                          {
+                            "children": [],
+                            "id": "product-8-price-original",
+                            "kind": "text",
+                            "layoutItem": {
+                              "height": {
+                                "mode": "hug"
+                              },
+                              "width": {
+                                "mode": "hug"
+                              }
+                            },
+                            "name": "手机壳原价",
+                            "props": {},
+                            "style": {
+                              "color": "#9CA3AF",
+                              "fontSize": 14,
+                              "textDecoration": "line-through"
+                            },
+                            "tag": "text",
+                            "text": "¥99"
+                          }
+                        ],
+                        "id": "product-8-price",
+                        "kind": "element",
+                        "layout": {
+                          "alignItems": "center",
+                          "direction": "row",
+                          "gap": 8,
+                          "justifyContent": "flex-start",
+                          "mode": "flex",
+                          "wrap": "nowrap"
+                        },
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "手机壳价格",
+                        "props": {},
+                        "style": {},
+                        "tag": "div"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "product-8-rate",
+                            "kind": "component",
+                            "layoutItem": {
+                              "height": {
+                                "mode": "hug"
+                              },
+                              "width": {
+                                "mode": "hug"
+                              }
+                            },
+                            "name": "手机壳评分星级",
+                            "packageName": "antd",
+                            "props": {
+                              "disabled": true,
+                              "value": 4.2
+                            },
+                            "style": {},
+                            "tag": "Rate"
+                          },
+                          {
+                            "children": [],
+                            "id": "product-8-rate-text",
+                            "kind": "text",
+                            "layoutItem": {
+                              "height": {
+                                "mode": "hug"
+                              },
+                              "width": {
+                                "mode": "hug"
+                              }
+                            },
+                            "name": "手机壳评分分数",
+                            "props": {},
+                            "style": {
+                              "color": "#6B7280",
+                              "fontSize": 14
+                            },
+                            "tag": "text",
+                            "text": "4.2"
+                          }
+                        ],
+                        "id": "product-8-rating",
+                        "kind": "element",
+                        "layout": {
+                          "alignItems": "center",
+                          "direction": "row",
+                          "gap": 8,
+                          "justifyContent": "flex-start",
+                          "mode": "flex",
+                          "wrap": "nowrap"
+                        },
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "手机壳评分",
+                        "props": {},
+                        "style": {},
+                        "tag": "div"
+                      },
+                      {
+                        "children": [],
+                        "id": "product-8-add-cart",
+                        "kind": "component",
+                        "layoutItem": {
+                          "height": {
+                            "mode": "hug"
+                          },
+                          "width": {
+                            "mode": "fill"
+                          }
+                        },
+                        "name": "手机壳加购按钮",
+                        "packageName": "antd",
+                        "props": {
+                          "children": "加入购物车",
+                          "type": "primary"
+                        },
+                        "style": {},
+                        "tag": "Button"
+                      }
+                    ],
+                    "id": "product-8",
+                    "kind": "component",
+                    "layout": {
+                      "alignItems": "stretch",
+                      "direction": "column",
+                      "gap": 8,
+                      "justifyContent": "flex-start",
+                      "mode": "flex",
+                      "padding": {
+                        "bottom": 12,
+                        "left": 12,
+                        "right": 12,
+                        "top": 12
+                      },
+                      "wrap": "nowrap"
+                    },
+                    "layoutItem": {
+                      "flexBasis": 220,
+                      "flexGrow": 1,
+                      "flexShrink": 0
+                    },
+                    "name": "商品卡片 手机壳",
+                    "packageName": "antd",
+                    "props": {},
+                    "style": {
+                      "borderRadius": 8,
+                      "boxShadow": "0 2px 8px rgba(0,0,0,0.08)"
+                    },
+                    "tag": "Card",
+                    "tokens": [
+                      "radius.md",
+                      "space.4"
+                    ]
+                  }
+                ],
+                "id": "product-grid",
+                "kind": "element",
+                "layout": {
+                  "alignItems": "stretch",
+                  "direction": "row",
+                  "gap": 16,
+                  "justifyContent": "flex-start",
+                  "mode": "flex",
+                  "wrap": "wrap"
+                },
+                "layoutItem": {
+                  "height": {
+                    "mode": "hug"
+                  },
+                  "width": {
+                    "mode": "fill"
+                  }
+                },
+                "name": "商品推荐网格",
+                "props": {},
+                "style": {},
+                "tag": "div",
+                "tokens": [
+                  "space.4"
+                ]
+              }
+            ],
+            "id": "recommendations",
+            "kind": "element",
+            "layout": {
+              "alignItems": "stretch",
+              "direction": "column",
+              "gap": 16,
+              "justifyContent": "flex-start",
+              "mode": "flex",
+              "wrap": "nowrap"
+            },
+            "layoutItem": {
+              "height": {
+                "mode": "hug"
+              },
+              "width": {
+                "mode": "fill"
+              }
+            },
+            "name": "商品推荐区",
+            "props": {},
+            "style": {},
+            "tag": "div",
+            "tokens": [
+              "space.4"
+            ]
+          }
+        ],
+        "id": "main-content",
+        "kind": "element",
+        "layout": {
+          "alignItems": "stretch",
+          "direction": "column",
+          "gap": 24,
+          "justifyContent": "flex-start",
+          "mode": "flex",
+          "padding": {
+            "bottom": 16,
+            "left": 16,
+            "right": 16,
+            "top": 16
+          },
+          "wrap": "nowrap"
+        },
+        "layoutItem": {
+          "height": {
+            "mode": "hug"
+          },
+          "width": {
+            "mode": "fill"
+          }
+        },
+        "name": "页面主体",
+        "props": {},
+        "style": {},
+        "tag": "div",
+        "tokens": [
+          "space.4"
+        ]
+      }
+    ],
+    "id": "homepage",
+    "kind": "element",
+    "layout": {
+      "alignItems": "stretch",
+      "direction": "column",
+      "justifyContent": "flex-start",
+      "mode": "flex",
+      "wrap": "nowrap"
+    },
+    "name": "电商首页",
+    "props": {},
+    "style": {
+      "backgroundColor": "#FFFFFF"
+    },
+    "tag": "div",
+    "tokens": [
+      "surface.canvas",
+      "color.primary",
+      "radius.md",
+      "space.4"
+    ]
+  },
+  "version": "2.0.0"
+}
+

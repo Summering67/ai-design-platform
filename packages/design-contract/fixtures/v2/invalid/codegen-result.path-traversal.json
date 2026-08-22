@@ -1,0 +1,12 @@
+{
+  "version": "2.0.0",
+  "documentId": "invalid",
+  "componentName": "Invalid",
+  "fileBaseName": "Invalid",
+  "files": [
+    {"path": "../Invalid.tsx", "mediaType": "text/tsx", "content": "export default function Invalid() { return null; }"},
+    {"path": "Invalid.css", "mediaType": "text/css", "content": ".invalid {}"}
+  ],
+  "planSummary": "invalid",
+  "verification": {"checks": [], "repairAttempts": 0}
+}

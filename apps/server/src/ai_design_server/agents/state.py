@@ -30,3 +30,4 @@ class RootState(TypedDict, total=False):
     result: dict[str, Any]
     error: dict[str, str]
     resolved_user_inputs: list[dict[str, Any]]
+    codegen_request: dict[str, Any]
