@@ -20,7 +20,6 @@ from .agents.graph import build as build_agent_graph
 from .agents.model import ModelPort, create_openai_model
 from .auth.router import router as auth_router
 from .auth.service import AuthService
-from .chat.client import ChatClient
 from .codegen_router import router as codegen_router
 from .config import AgentConfig, RuntimeConfig, load_config
 from .database import Database, open_database
@@ -49,7 +48,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.database = database
     client = getattr(app.state, "http_client", None) or httpx.AsyncClient()
     app.state.http_client = client
-    app.state.chat_client = getattr(app.state, "chat_client", None) or ChatClient(client, config.ai)
     app.state.agent_model = getattr(app.state, "agent_model", None) or create_openai_model(
         client, config.ai
     )
@@ -101,7 +99,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 def create_app(
     config: RuntimeConfig | None = None,
     database: Database | None = None,
-    chat_client: ChatClient | None = None,
     agent_model: ModelPort | None = None,
 ) -> FastAPI:
     app = FastAPI(title="AI Design Server", lifespan=lifespan)
@@ -112,8 +109,6 @@ def create_app(
     if database is not None:
         app.state.database = database
         app.state.database_injected = True
-    if chat_client is not None:
-        app.state.chat_client = chat_client
     if agent_model is not None:
         app.state.agent_model = agent_model
     app.include_router(auth_router)

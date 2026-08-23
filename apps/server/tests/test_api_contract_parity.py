@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import importlib
 import json
 import logging
 from collections.abc import AsyncIterator
@@ -17,6 +18,7 @@ import httpx
 import pytest
 from fastapi import Request
 
+from ai_design_server.agents.model import ModelPort
 from ai_design_server.app import create_app
 from ai_design_server.auth.router import current_user, get_auth_service
 from ai_design_server.config import AIConfig, AuthConfig, DatabaseConfig, RuntimeConfig
@@ -54,32 +56,6 @@ class FakeAuthService:
 
     async def logout(self, _: object, token: str) -> None:
         self.logged_out_token = token
-
-
-class FakeChatClient:
-    def __init__(self, failure: BaseException | None = None) -> None:
-        self.failure = failure
-
-    async def stream(self, _: object, on_delta: object) -> None:
-        if self.failure is not None:
-            raise self.failure
-        await on_delta("你好，")  # type: ignore[operator]
-        await on_delta("世界")  # type: ignore[operator]
-
-
-class BlockingChatClient:
-    def __init__(self) -> None:
-        self.started = asyncio.Event()
-        self.cancelled = asyncio.Event()
-        self.release = asyncio.Event()
-
-    async def stream(self, _: object, __: object) -> None:
-        self.started.set()
-        try:
-            await self.release.wait()
-        except asyncio.CancelledError:
-            self.cancelled.set()
-            raise
 
 
 class FakeProjectService:
@@ -153,7 +129,7 @@ class FakeProjectService:
         assert attempt_id == ATTEMPT_ID
         if failure is not None:
             return None, _attempt(status="failed", error_code="ai_unavailable", finished_at=NOW)
-        assert content == "你好，世界"
+        assert content == "设计已生成。"
         return _assistant_message(), _attempt(
             status="completed",
             assistant_message_id=ASSISTANT_MESSAGE_ID,
@@ -243,15 +219,13 @@ async def _session_override() -> AsyncIterator[object]:
     yield object()
 
 
-def _app(auth: FakeAuthService | None = None, chat: FakeChatClient | None = None) -> object:
+def _app(auth: FakeAuthService | None = None) -> object:
     auth_service = auth or FakeAuthService()
-    chat_client = chat or FakeChatClient()
     app = create_app(
         _config(),
         cast(Database, FakeDatabase()),
-        cast(object, chat_client),  # type: ignore[arg-type]
+        cast(ModelPort, object()),
     )
-    app.state.chat_client = chat_client
     app.state.logger = logging.getLogger("test-api-contract-parity")
     app.dependency_overrides[get_session] = _session_override
     app.dependency_overrides[get_auth_session] = _session_override
@@ -368,7 +342,15 @@ async def test_login_errors_match_go_status_and_json() -> None:
 
 
 @pytest.mark.asyncio
-async def test_web_project_request_shapes_match_go_json_and_sse() -> None:
+async def test_web_project_request_shapes_match_go_json_and_sse(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def run_agent(*_: object, **__: object) -> AsyncIterator[dict[str, object]]:
+        yield {"event": "result", "payload": {"document": {"schemaVersion": "2.0"}}}
+
+    monkeypatch.setattr(
+        importlib.import_module("ai_design_server.project.router"), "run_agent", run_agent
+    )
     app = _app()
     body = {"message_id": CLIENT_MESSAGE_ID, "content": "设计一个工作台"}
     async with httpx.AsyncClient(
@@ -402,15 +384,17 @@ async def test_web_project_request_shapes_match_go_json_and_sse() -> None:
     for response in (created, generated, retried):
         assert response.status_code == 200
         events = _sse(response.text)
-        assert [event["event"] for event in events] == ["generation", "delta", "delta", "completed"]
+        assert [event["event"] for event in events] == ["generation", "agent", "completed"]
         assert events[0]["data"] == {
             "project_id": PROJECT_ID,
             "message_id": USER_MESSAGE_ID,
             "generation_id": ATTEMPT_ID,
         }
-        assert events[1]["data"] == {"content": "你好，"}
-        assert events[2]["data"] == {"content": "世界"}
-        assert set(events[3]["data"]["message"]) == {
+        assert events[1]["data"] == {
+            "event": "result",
+            "payload": {"document": {"schemaVersion": "2.0"}},
+        }
+        assert set(events[2]["data"]["message"]) == {
             "id",
             "project_id",
             "role",
@@ -444,8 +428,17 @@ async def test_sse_has_one_go_equivalent_terminal_event(
     failure: BaseException,
     terminal: str,
     payload: dict[str, str],
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    app = _app(chat=FakeChatClient(failure))
+    async def run_agent(*_: object, **__: object) -> AsyncIterator[dict[str, object]]:
+        raise failure
+        if False:
+            yield {}
+
+    monkeypatch.setattr(
+        importlib.import_module("ai_design_server.project.router"), "run_agent", run_agent
+    )
+    app = _app()
     request = Request({"type": "http", "app": app})
     events = _events(request, FakeProjectService(), _project(), _user_message(), _attempt())
     parsed = _sse("".join([event async for event in events]))
@@ -455,22 +448,39 @@ async def test_sse_has_one_go_equivalent_terminal_event(
 
 
 @pytest.mark.asyncio
-async def test_sse_disconnect_cancels_upstream_and_interrupts_generation() -> None:
+async def test_sse_disconnect_cancels_upstream_and_interrupts_generation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    started = asyncio.Event()
+    cancelled = asyncio.Event()
+    release = asyncio.Event()
+
+    async def run_agent(*_: object, **__: object) -> AsyncIterator[dict[str, object]]:
+        started.set()
+        try:
+            await release.wait()
+        except asyncio.CancelledError:
+            cancelled.set()
+            raise
+        if False:
+            yield {}
+
+    monkeypatch.setattr(
+        importlib.import_module("ai_design_server.project.router"), "run_agent", run_agent
+    )
     app = _app()
-    chat = BlockingChatClient()
     service = TrackingProjectService()
-    app.state.chat_client = chat
     request = Request({"type": "http", "app": app})
     events = _events(request, service, _project(), _user_message(), _attempt())
 
     assert (await events.__anext__()).startswith("event: generation")
     consumer = asyncio.create_task(events.__anext__())
-    await chat.started.wait()
+    await started.wait()
     consumer.cancel()
     with pytest.raises(asyncio.CancelledError):
         await consumer
     await asyncio.sleep(0)
 
-    assert chat.cancelled.is_set()
+    assert cancelled.is_set()
     assert service.interrupts == 1
     assert ATTEMPT_ID not in app.state.active_generations
