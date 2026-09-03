@@ -20,6 +20,7 @@ import {
 import type { ChatMessage, PendingInputRequest, Project } from "./chat-api";
 import { applyReasoningEvent } from "./reasoning";
 import type { ReasoningItem } from "./reasoning";
+import { createFrameBuffer } from "./stream-buffer";
 import { settleGenerationStatus } from "./workspace-status";
 import type { WorkspaceStatus } from "./workspace-status";
 
@@ -38,8 +39,8 @@ const WorkspaceChat = ({
   const router = useRouter();
   const controller = useRef<AbortController | null>(null);
   const sendRef = useRef<(content: string) => void>(() => undefined);
-  const reasoningQueue = useRef<Record<string, unknown>[]>([]);
-  const reasoningTimer = useRef<number | null>(null);
+  const reasoningBuffer = useRef<ReturnType<typeof createFrameBuffer<Record<string, unknown>>> | null>(null);
+  const streamBuffer = useRef<ReturnType<typeof createFrameBuffer<string>> | null>(null);
   const [project, setProject] = useState<Project | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [status, setStatus] = useState<WorkspaceStatus>("idle");
@@ -50,25 +51,23 @@ const WorkspaceChat = ({
   const [reasoning, setReasoning] = useState<ReasoningItem[]>([]);
   const [document, setDocument] = useState<DesignDocument | null>(initialDocument);
   const [email, setEmail] = useState("");
-  const flushReasoning = () => {
-    const queued = reasoningQueue.current;
-    reasoningQueue.current = [];
-    reasoningTimer.current = null;
-    if (queued.length)
-      setReasoning((items) => queued.reduce(applyReasoningEvent, items));
-  };
-  const queueReasoning = (data: Record<string, unknown>) => {
-    reasoningQueue.current.push(data);
-    if (reasoningTimer.current === null)
-      reasoningTimer.current = window.setTimeout(flushReasoning, 16);
-  };
+  if (reasoningBuffer.current === null)
+    reasoningBuffer.current = createFrameBuffer((values) => {
+      setReasoning((items) => values.reduce(applyReasoningEvent, items));
+    });
+  if (streamBuffer.current === null)
+    streamBuffer.current = createFrameBuffer((values) => {
+      setStream((value) => value + values.join(""));
+    });
+  const queueReasoning = (data: Record<string, unknown>) => reasoningBuffer.current?.enqueue(data);
+  const queueStream = (content: string) => streamBuffer.current?.enqueue(content);
   const clearReasoning = () => {
-    if (reasoningTimer.current !== null) {
-      window.clearTimeout(reasoningTimer.current);
-      reasoningTimer.current = null;
-    }
-    reasoningQueue.current = [];
+    reasoningBuffer.current?.discard();
     setReasoning([]);
+  };
+  const clearStream = () => {
+    streamBuffer.current?.discard();
+    setStream("");
   };
   const appendAgentMessage = (data: Record<string, unknown>) => {
     const payload = data.payload;
@@ -95,11 +94,14 @@ const WorkspaceChat = ({
     if (event.event === "agent") appendAgentMessage(event.data);
     if (event.event === "input_required") {
       clearReasoning();
+      clearStream();
       setInputRequest(event.data as unknown as PendingInputRequest);
       if (typeof event.data.generation_id === "string") setGenerationId(event.data.generation_id);
       setStatus("awaiting_input");
     }
     if (event.event === "completed") {
+      reasoningBuffer.current?.flush();
+      streamBuffer.current?.discard();
       const nextMessage = event.data.message as ChatMessage;
       if (nextMessage?.id) setMessages((items) => [...items, nextMessage]);
       if (event.data.document) setDocument(event.data.document as DesignDocument);
@@ -108,6 +110,7 @@ const WorkspaceChat = ({
     }
     if (event.event === "failed" || event.event === "interrupted") {
       clearReasoning();
+      clearStream();
       setInputRequest(null);
       setGenerationId(null);
       setError(event.event === "interrupted" ? "生成已停止，可重新生成。" : "生成失败，可重新生成。");
@@ -115,9 +118,8 @@ const WorkspaceChat = ({
     }
   };
   useEffect(() => () => {
-    if (reasoningTimer.current !== null) window.clearTimeout(reasoningTimer.current);
-    reasoningTimer.current = null;
-    reasoningQueue.current = [];
+    reasoningBuffer.current?.dispose();
+    streamBuffer.current?.dispose();
   }, []);
   useEffect(() => {
     void currentUser()
@@ -161,7 +163,7 @@ const WorkspaceChat = ({
     setMessages((items) => [...items, userMessage]);
     setStatus("loading");
     setError(null);
-    setStream("");
+    clearStream();
     setInputRequest(null);
     clearReasoning();
     const request = new AbortController();
@@ -174,7 +176,7 @@ const WorkspaceChat = ({
         (event) => {
           handleGenerationEvent(event);
           if (event.event === "delta" && typeof event.data.content === "string")
-            setStream((value) => value + event.data.content);
+            queueStream(event.data.content);
         },
       );
     } catch (reason) {
@@ -185,7 +187,7 @@ const WorkspaceChat = ({
       }
     } finally {
       controller.current = null;
-      setStream("");
+      clearStream();
       setStatus(settleGenerationStatus);
       // 首次生成后保留当前工作台，避免路由切换中断 SSE。
     }
@@ -197,6 +199,7 @@ const WorkspaceChat = ({
     setStatus("loading");
     setError(null);
     clearReasoning();
+    clearStream();
     void answerInput(
       project.id,
       generationId,
@@ -209,12 +212,12 @@ const WorkspaceChat = ({
       (event) => {
         handleGenerationEvent(event);
         if (event.event === "delta" && typeof event.data.content === "string")
-          setStream((value) => value + event.data.content);
+          queueStream(event.data.content);
       },
     ).catch(() => setError("提交回答失败，可重试。"))
       .finally(() => {
         controller.current = null;
-        setStream("");
+        clearStream();
         setStatus(settleGenerationStatus);
       });
   };
@@ -226,7 +229,7 @@ const WorkspaceChat = ({
     controller.current = request;
     setStatus("loading");
     setError(null);
-    setStream("");
+    clearStream();
     setInputRequest(null);
     clearReasoning();
     const restorePendingInput = async () => {
@@ -247,7 +250,7 @@ const WorkspaceChat = ({
         (event) => {
           handleGenerationEvent(event);
           if (event.event === "delta" && typeof event.data.content === "string")
-            setStream((value) => value + event.data.content);
+            queueStream(event.data.content);
         },
       );
     } catch (reason: unknown) {
@@ -262,31 +265,26 @@ const WorkspaceChat = ({
       setStatus("error");
     } finally {
       controller.current = null;
-      setStream("");
+      clearStream();
       setStatus(settleGenerationStatus);
     }
   };
   const stop = () => {
     if (project && generationId) void stopGeneration(project.id, generationId);
     controller.current?.abort();
-    setStream("");
+    clearStream();
     clearReasoning();
     setInputRequest(null);
     setGenerationId(null);
     setStatus("idle");
   };
-  const visibleMessages = stream
-    ? [
-        ...messages,
-        { id: "streaming", role: "assistant" as const, content: stream },
-      ]
-    : messages;
   return (
       <Workspace
       accountEmail={email}
       document={document}
       error={error}
-      messages={visibleMessages}
+      messages={messages}
+      streamingMessage={stream ? { id: "streaming-assistant", content: stream } : null}
       reasoning={reasoning}
       inputRequest={inputRequest ? {
         id: inputRequest.id,

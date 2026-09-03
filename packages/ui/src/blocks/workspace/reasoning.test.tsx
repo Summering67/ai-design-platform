@@ -30,7 +30,9 @@ test("工作台展示已完成阶段的模型思考过程", () => {
     />,
   )
   assert.match(markup, /模型真实 reasoning/)
-  assert.doesNotMatch(markup, />requirement</)
+  assert.match(markup, /思考过程/)
+  assert.doesNotMatch(markup, /requirement/)
+  assert.doesNotMatch(markup, /<details[^>]*open/)
 })
 
 test("工作台展示任意 Agent 尚未完成的模型思考过程", () => {
@@ -50,13 +52,91 @@ test("工作台展示任意 Agent 尚未完成的模型思考过程", () => {
         stage: "ui_design",
         taskId: "task",
         attempt: 1,
-        content: "UI Design Agent 正在分析界面结构",
+        content: "先检查画布\n正在分析界面结构",
         status: "reasoning",
       }]}
       status="loading"
     />,
   )
-  assert.match(markup, /UI Design Agent 正在分析界面结构/)
+  assert.match(markup, /正在分析界面结构/)
+  assert.match(markup, /正在思考/)
+  assert.doesNotMatch(markup, /ui_design/)
+  assert.doesNotMatch(markup, /<details[^>]*open/)
+})
+
+test("工作台明确提示模型思考内容已截断", () => {
+  const markup = renderToStaticMarkup(
+    <Workspace
+      accountEmail="developer@local.test"
+      document={null}
+      error={null}
+      messages={[]}
+      onLogout={() => undefined}
+      onRetry={() => undefined}
+      onSend={() => undefined}
+      onStop={() => undefined}
+      projectTitle="测试项目"
+      reasoning={[{
+        id: "run:task:1",
+        stage: "auto_layout",
+        taskId: "task",
+        attempt: 1,
+        content: "已展示的思考内容",
+        status: "truncated",
+      }]}
+      status="loading"
+    />,
+  )
+  assert.match(markup, /思考内容已达到展示上限/)
+})
+
+test("工作台按 reasoning、临时助手正文和持久化消息稳定排列", () => {
+  const markup = renderToStaticMarkup(
+    <Workspace
+      accountEmail="developer@local.test"
+      document={null}
+      error={null}
+      messages={[{ id: "saved", role: "assistant", content: "已保存回答" }]}
+      onLogout={() => undefined}
+      onRetry={() => undefined}
+      onSend={() => undefined}
+      onStop={() => undefined}
+      projectTitle="测试项目"
+      reasoning={[{
+        id: "run:task:1",
+        stage: "root",
+        taskId: "task",
+        attempt: 1,
+        content: "正在分析",
+        status: "reasoning",
+      }]}
+      status="loading"
+      streamingMessage={{ id: "streaming-assistant", content: "临时回答" }}
+    />,
+  )
+  assert.ok(markup.indexOf("已保存回答") < markup.indexOf("正在分析"))
+  assert.ok(markup.indexOf("正在分析") < markup.indexOf("临时回答"))
+  assert.doesNotMatch(markup, /streaming-assistant/)
+})
+
+test("空流式正文不会创建临时助手条目", () => {
+  const markup = renderToStaticMarkup(
+    <Workspace
+      accountEmail="developer@local.test"
+      document={null}
+      error={null}
+      messages={[]}
+      onLogout={() => undefined}
+      onRetry={() => undefined}
+      onSend={() => undefined}
+      onStop={() => undefined}
+      projectTitle="测试项目"
+      reasoning={[]}
+      status="loading"
+      streamingMessage={null}
+    />,
+  )
+  assert.doesNotMatch(markup, /streaming-assistant/)
 })
 
 test("工作台展示阻断问题并要求逐题回答", () => {

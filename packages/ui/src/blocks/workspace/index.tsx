@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import type { FormEvent, KeyboardEvent } from "react";
 import {
   ArrowDownIcon,
@@ -9,7 +9,6 @@ import {
   SparklesIcon,
 } from "lucide-react";
 import { Virtuoso } from "react-virtuoso";
-import { DesignDocumentRenderer } from "../design-document-renderer";
 import {
   applyV2Operations,
   type DesignDocument,
@@ -34,7 +33,17 @@ import {
 } from "../../components/input-group";
 import { Spinner } from "../../components/spinner";
 import { ToggleGroup, ToggleGroupItem } from "../../components/toggle-group";
+import {
+  ReasoningDisclosure,
+  type ReasoningPresentationItem,
+} from "./reasoning-disclosure";
 import styles from "./workspace.module.css";
+
+const DesignDocumentRenderer = lazy(() =>
+  import("../design-document-renderer").then((module) => ({
+    default: module.DesignDocumentRenderer,
+  })),
+);
 
 type ChatRole = "user" | "assistant";
 type ChatStatus = "idle" | "loading" | "awaiting_input" | "error";
@@ -55,18 +64,13 @@ type WorkspaceInputRequest = {
   round: number;
   questions: ReadonlyArray<WorkspaceInputQuestion>;
 };
-type WorkspaceReasoning = {
-  id: string;
-  stage: string;
-  taskId: string;
-  attempt: number;
-  content: string;
-  status: "reasoning" | "completed" | "truncated";
-};
+type WorkspaceReasoning = ReasoningPresentationItem;
+type WorkspaceStreamingMessage = { id: string; content: string };
 type WorkspaceProps = {
   accountEmail: string;
   projectTitle: string;
   messages: ReadonlyArray<ChatMessage>;
+  streamingMessage?: WorkspaceStreamingMessage | null;
   reasoning: ReadonlyArray<WorkspaceReasoning>;
   status: ChatStatus;
   error: string | null;
@@ -91,21 +95,6 @@ const ChatMessageItem = ({ message }: { message: ChatMessage }) => (
   </article>
 );
 
-const ReasoningMessageItem = ({ item }: { item: WorkspaceReasoning }) => (
-  <article
-    className={`${styles.message} ${styles.reasoningMessage}`}
-    data-role="assistant"
-  >
-    <div className={styles.assistantLabel}>
-      <SparklesIcon />
-      <span>设计助手 · 模型思考（无需回复）</span>
-    </div>
-    <details>
-      <p className={styles.messageContent}>{item.content}</p>
-    </details>
-  </article>
-);
-
 const getScrollBehavior = (): "auto" | "smooth" =>
   window.matchMedia("(prefers-reduced-motion: reduce)").matches
     ? "auto"
@@ -114,6 +103,7 @@ const getScrollBehavior = (): "auto" | "smooth" =>
 const ChatPanel = ({
   error,
   messages,
+  streamingMessage,
   reasoning,
   onRetry,
   onSend,
@@ -137,13 +127,16 @@ const ChatPanel = ({
   const reasoningItems = reasoning
     .filter((item) => item.content.trim())
     .map((item) => ({ kind: "reasoning" as const, reasoning: item }));
-  const conversation = messages.flatMap((message) =>
-    message.id === "streaming"
-      ? [...reasoningItems, { kind: "message" as const, message }]
-      : [{ kind: "message" as const, message }],
-  );
-  if (!messages.some((message) => message.id === "streaming"))
-    conversation.push(...reasoningItems);
+  const conversation = [
+    ...messages.map((message) => ({ kind: "message" as const, message })),
+    ...reasoningItems,
+    ...(streamingMessage
+      ? [{
+          kind: "message" as const,
+          message: { ...streamingMessage, role: "assistant" as const },
+        }]
+      : []),
+  ];
   const submit = () => {
     const content = draft.trim();
     if (!content || isLoading) return;
@@ -215,7 +208,7 @@ const ChatPanel = ({
               item.kind === "message" ? (
                 <ChatMessageItem message={item.message} />
               ) : (
-                <ReasoningMessageItem item={item.reasoning} />
+                <ReasoningDisclosure item={item.reasoning} />
               )
             }
           />
@@ -435,12 +428,21 @@ const Canvas = ({
     </div>
     <div className={styles.canvasSurface}>
       {document ? (
-        <DesignDocumentRenderer
-          document={document}
-          selectedNodeId={selectedNodeId}
-          onSelectedNodeIdChange={onSelectedNodeIdChange}
-          onError={(message) => <p>{message}</p>}
-        />
+        <Suspense
+          fallback={
+            <div className={styles.canvasLoading} role="status">
+              <Spinner />
+              正在加载画布…
+            </div>
+          }
+        >
+          <DesignDocumentRenderer
+            document={document}
+            selectedNodeId={selectedNodeId}
+            onSelectedNodeIdChange={onSelectedNodeIdChange}
+            onError={(message) => <p>{message}</p>}
+          />
+        </Suspense>
       ) : (
         <Empty className={styles.canvasEmpty}>
           <EmptyHeader>
@@ -751,6 +753,7 @@ const Workspace = ({
   document,
   error,
   messages,
+  streamingMessage,
   reasoning,
   onRetry,
   onSend,
@@ -778,6 +781,7 @@ const Workspace = ({
         <ChatPanel
           error={error}
           messages={messages}
+          streamingMessage={streamingMessage}
           reasoning={reasoning}
           status={status}
           onRetry={onRetry}
@@ -804,6 +808,7 @@ export type {
   ChatMessage,
   ChatRole,
   ChatStatus,
+  WorkspaceStreamingMessage,
   WorkspaceReasoning,
   WorkspaceProps,
   WorkspaceInputQuestion,

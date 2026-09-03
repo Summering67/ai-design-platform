@@ -80,17 +80,110 @@
   flex: 1;
   height: 100%;
 }
-.reasoningPanel {
-  flex: none;
-  max-height: 15rem;
-  padding: 0.75rem 1rem;
-  overflow: auto;
-  border-bottom: 1px solid #eef0f5;
-  background: #fbfbfe;
-}
-
 .reasoningMessage {
-  margin-block: 8px;
+  margin: 0.25rem 0;
+  color: #667085;
+  font-size: 0.75rem;
+}
+.reasoningDisclosure {
+  position: relative;
+}
+.reasoningSummary {
+  position: relative;
+  min-height: 2rem;
+  padding: 0.25rem 0.125rem;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  overflow: hidden;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  list-style: none;
+}
+.reasoningSummary::-webkit-details-marker {
+  display: none;
+}
+.reasoningSummary:focus-visible {
+  outline: 2px solid #4f46e5;
+  outline-offset: 2px;
+}
+.reasoningIndicator {
+  width: 0.4375rem;
+  height: 0.4375rem;
+  flex: none;
+  border-radius: 50%;
+  background: #98a2b3;
+}
+.reasoningMessage[data-status="reasoning"] .reasoningIndicator {
+  background: #6366f1;
+  box-shadow: 0 0 0 0.1875rem #e0e7ff;
+}
+.reasoningTitle {
+  flex: none;
+  font-weight: 650;
+}
+.reasoningTitle {
+  color: #475467;
+}
+.reasoningMessage[data-status="reasoning"] .reasoningTitle {
+  color: #4f46e5;
+}
+.reasoningPreview {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  color: #98a2b3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.reasoningDisclosure[open] .reasoningPreview {
+  display: none;
+}
+.reasoningChevron {
+  width: 0.875rem;
+  height: 0.875rem;
+  flex: none;
+  color: #98a2b3;
+  transition: transform 160ms ease;
+}
+.reasoningDisclosure[open] .reasoningChevron {
+  transform: rotate(180deg);
+}
+.reasoningBody {
+  margin-left: 0.1875rem;
+  padding: 0.25rem 0.5rem 0.5rem 1rem;
+  border-left: 1px solid #d9dce5;
+  color: #667085;
+  line-height: 1.6;
+}
+.reasoningNotice {
+  margin-top: 0.375rem;
+  color: #9a6700;
+  font-size: 0.6875rem;
+}
+.reasoningMessage[data-status="reasoning"] .reasoningSummary::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: -10rem;
+  width: 10rem;
+  background: linear-gradient(90deg, transparent, #ffffffb8, transparent);
+  animation: reasoningSweep 2.6s ease-out infinite;
+  pointer-events: none;
+}
+@keyframes reasoningSweep {
+  90%,
+  100% {
+    left: 100%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reasoningChevron {
+    transition: none;
+  }
+  .reasoningMessage[data-status="reasoning"] .reasoningSummary::after {
+    animation: none;
+  }
 }
 
 .inputRequestPanel {
@@ -327,6 +420,13 @@
 }
 .canvasEmpty {
   max-width: 18rem;
+}
+.canvasLoading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #667085;
+  font-size: 0.75rem;
 }
 .canvasNode {
   flex: none;
