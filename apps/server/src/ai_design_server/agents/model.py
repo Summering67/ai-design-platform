@@ -303,6 +303,38 @@ def _response_schema(schema: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _structured_messages(
+    purpose: str, payload: Mapping[str, Any], schema: Mapping[str, Any]
+) -> list[dict[str, Any]]:
+    schema_text = json.dumps(_response_schema(schema), ensure_ascii=False, separators=(",", ":"))
+    context = {
+        key: value
+        for key, value in payload.items()
+        if key not in {"instruction", "validationFeedback"}
+    }
+    trailing = {
+        key: payload[key] for key in ("validationFeedback", "instruction") if key in payload
+    }
+    messages = [
+        {
+            "role": "system",
+            "content": f"你是 {purpose}。只返回符合 JSON Schema 的 JSON 对象，不要 Markdown。若缺少必须由用户确认且无法安全推断的信息，返回 kind=input_required；每个问题提供 2-3 个互斥选项，将推荐项放在第一项并在 label 标注（推荐），选项仍不足时可用 isOther 开放自定义回答。否则返回 kind=result 并将业务对象放入 result。不得重复询问 resolvedUserInputs 已回答的问题，reasoning 中不要向用户提问。Schema: {schema_text}",
+        },
+        {
+            "role": "user",
+            "content": json.dumps(context, ensure_ascii=False, separators=(",", ":")),
+        },
+    ]
+    if trailing:
+        messages.append(
+            {
+                "role": "user",
+                "content": json.dumps(trailing, ensure_ascii=False, separators=(",", ":")),
+            }
+        )
+    return messages
+
+
 def _unwrap_response(value: dict[str, Any]) -> dict[str, Any]:
     kind = value.get("kind")
     if kind is None:
@@ -368,17 +400,7 @@ def create_openai_model(client: httpx.AsyncClient, config: AIConfig) -> ModelPor
         on_reasoning: ReasoningSink | None = None,
         on_activity: ActivitySink | None = None,
     ) -> dict[str, Any]:
-        prompt = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
-        schema_text = json.dumps(
-            _response_schema(schema), ensure_ascii=False, separators=(",", ":")
-        )
-        messages = [
-            {
-                "role": "system",
-                "content": f"你是 {purpose}。只返回符合 JSON Schema 的 JSON 对象，不要 Markdown。若缺少必须由用户确认且无法安全推断的信息，返回 kind=input_required；每个问题提供 2-3 个互斥选项，将推荐项放在第一项并在 label 标注（推荐），选项仍不足时可用 isOther 开放自定义回答。否则返回 kind=result 并将业务对象放入 result。不得重复询问 resolvedUserInputs 已回答的问题，reasoning 中不要向用户提问。Schema: {schema_text}",
-            },
-            {"role": "user", "content": prompt},
-        ]
+        messages = _structured_messages(purpose, payload, schema)
         try:
             value = await _structured_attempt(
                 client,

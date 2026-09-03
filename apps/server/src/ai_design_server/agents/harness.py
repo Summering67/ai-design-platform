@@ -100,8 +100,11 @@ async def run_structured_harness(
         candidate: dict[str, Any] | None = None
         issues: list[DiagnosticIssue] = []
         request = dict(payload)
+        instruction = request.pop("instruction", None)
         if feedback:
             request["validationFeedback"] = feedback
+        if instruction is not None:
+            request["instruction"] = instruction
         try:
             candidate = await model.structured(purpose, request, schema)
             issues = collect_schema_issues(schema, candidate)

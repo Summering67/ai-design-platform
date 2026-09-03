@@ -263,8 +263,12 @@ async def _repair(
     run_id: str,
 ) -> tuple[dict[str, str], str]:
     result = await model.structured_multimodal(
-        "多模态 Codegen Agent 修复器",
-        _parts(context, REPAIR_INSTRUCTION, extra={"codePlan": plan, "candidate": candidate, "diagnostics": diagnostics}),
+        "多模态 Codegen Agent",
+        _parts(
+            context,
+            REPAIR_INSTRUCTION,
+            extra={"codePlan": plan, "candidate": candidate, "diagnostics": diagnostics},
+        ),
         _FILES_SCHEMA,
     )
     return _candidate_from_model(result, context)
@@ -281,9 +285,19 @@ async def _review_visuals(
 ) -> list[dict[str, Any]]:
     issues: list[dict[str, Any]] = []
     for image in context.canvas_images:
-        preview = await renderer.render(workspace, image["viewportId"], image["width"], image["height"])
-        parts = _parts(context, VISUAL_REVIEW_INSTRUCTION, extra={"viewportId": image["viewportId"]})
-        parts.append({"type": "image_url", "image_url": {"url": f"data:image/png;base64,{base64.b64encode(preview).decode()}"}})
+        preview = await renderer.render(
+            workspace, image["viewportId"], image["width"], image["height"]
+        )
+        parts = _parts(
+            context, VISUAL_REVIEW_INSTRUCTION, extra={"viewportId": image["viewportId"]}
+        )
+        parts.insert(
+            -1,
+            {
+                "type": "image_url",
+                "image_url": {"url": f"data:image/png;base64,{base64.b64encode(preview).decode()}"},
+            },
+        )
         result = await model.structured_multimodal("视觉审查器", parts, _VISUAL_SCHEMA)
         raw = result.get("issues", [])
         if isinstance(raw, list):
@@ -309,16 +323,36 @@ def _parts(
     *,
     extra: Mapping[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
-    payload = {"document": context.document, "viewports": [image["viewportId"] for image in context.canvas_images]}
-    if extra:
-        payload.update(extra)
     parts: list[dict[str, Any]] = [
-        {"type": "text", "text": CODEGEN_SYSTEM_PROMPT + "\n" + instruction + "\n" + json.dumps(payload, ensure_ascii=False, separators=(",", ":"))}
+        {"type": "text", "text": CODEGEN_SYSTEM_PROMPT},
+        {
+            "type": "text",
+            "text": json.dumps(
+                {
+                    "document": context.document,
+                    "viewports": [image["viewportId"] for image in context.canvas_images],
+                },
+                ensure_ascii=False,
+                separators=(",", ":"),
+            ),
+        },
     ]
     for image in context.canvas_images:
         source = image["image"]
-        url = f"data:{image['mimeType']};base64,{source['data']}" if source["kind"] == "base64" else f"ref://{source['id']}"
+        url = (
+            f"data:{image['mimeType']};base64,{source['data']}"
+            if source["kind"] == "base64"
+            else f"ref://{source['id']}"
+        )
         parts.append({"type": "image_url", "image_url": {"url": url, "detail": "high"}})
+    parts.extend(
+        {
+            "type": "text",
+            "text": json.dumps({key: value}, ensure_ascii=False, separators=(",", ":")),
+        }
+        for key, value in (extra or {}).items()
+    )
+    parts.append({"type": "text", "text": instruction})
     return parts
 
 

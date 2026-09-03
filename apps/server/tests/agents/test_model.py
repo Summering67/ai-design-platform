@@ -19,6 +19,44 @@ def _config() -> AIConfig:
 
 
 @pytest.mark.asyncio
+async def test_structured_keeps_context_prefix_stable_and_appends_instruction() -> None:
+    requests: list[httpx.Request] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        value = {"kind": "result", "result": {"ok": True}}
+        body = (
+            f"data: {json.dumps({'choices': [{'delta': {'content': json.dumps(value)}}]})}\n"
+            "data: [DONE]\n"
+        )
+        return httpx.Response(
+            200, headers={"content-type": "text/event-stream"}, content=body.encode()
+        )
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        model = create_openai_model(client, _config())
+        schema = {"type": "object", "properties": {"ok": {"type": "boolean"}}}
+        await model.structured(
+            "缓存测试", {"document": {"id": "doc"}, "instruction": "生成结果"}, schema
+        )
+        await model.structured(
+            "缓存测试",
+            {
+                "document": {"id": "doc"},
+                "validationFeedback": "修复字段",
+                "instruction": "生成结果",
+            },
+            schema,
+        )
+
+    first, retry = [json.loads(request.content)["messages"] for request in requests]
+    assert first[:2] == retry[:2]
+    assert json.loads(first[1]["content"]) == {"document": {"id": "doc"}}
+    assert json.loads(first[-1]["content"]) == {"instruction": "生成结果"}
+    assert list(json.loads(retry[-1]["content"])) == ["validationFeedback", "instruction"]
+
+
+@pytest.mark.asyncio
 async def test_structured_streams_reasoning_and_content() -> None:
     requests: list[httpx.Request] = []
 

@@ -45,7 +45,7 @@ async def test_harness_retries_with_short_feedback_without_mutating_candidate() 
     result = await run_structured_harness(
         type("Model", (), {"structured": staticmethod(structured)})(),
         "UI Design Agent",
-        {"prd": {"id": "prd"}},
+        {"prd": {"id": "prd"}, "instruction": "生成初始 UI"},
         {"type": "object"},
         validate_candidate,
     )
@@ -55,7 +55,8 @@ async def test_harness_retries_with_short_feedback_without_mutating_candidate() 
     assert "validationFeedback" not in payloads[0]
     assert len(payloads[1]["validationFeedback"]) <= MAX_FEEDBACK_LENGTH
     assert payloads[1]["validationFeedback"].startswith("invalid_contract | /root/children/0")
-    assert set(payloads[1]) == {"prd", "validationFeedback"}
+    assert list(payloads[0]) == ["prd", "instruction"]
+    assert list(payloads[1]) == ["prd", "validationFeedback", "instruction"]
 
 
 @pytest.mark.asyncio

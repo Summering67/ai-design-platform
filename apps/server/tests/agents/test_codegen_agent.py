@@ -8,6 +8,11 @@ from typing import Any
 import pytest
 
 from ai_design_server.agents.codegen.agent import run_codegen
+from ai_design_server.agents.codegen.prompts import (
+    GENERATE_INSTRUCTION,
+    REPAIR_INSTRUCTION,
+    VISUAL_REVIEW_INSTRUCTION,
+)
 from ai_design_server.agents.errors import AgentError
 from ai_design_server.config import AgentConfig
 
@@ -27,8 +32,10 @@ class FakeModel:
 
     def __init__(self) -> None:
         self.calls: list[list[dict[str, Any]]] = []
+        self.purposes: list[str] = []
 
     async def structured_multimodal(self, purpose: str, parts: list[dict[str, Any]], schema: dict[str, Any]) -> dict[str, Any]:
+        self.purposes.append(purpose)
         self.calls.append(parts)
         if len(self.calls) == 1:
             return {
@@ -89,6 +96,9 @@ async def test_codegen_agent_passes_json_and_image_through_visual_loop() -> None
     assert {file["path"] for file in result["files"]} == {"CodegenFixture.tsx", "CodegenFixture.css"}
     assert len(model.calls) == 3
     assert any(part["type"] == "image_url" for part in model.calls[0])
+    assert model.calls[1][-1] == {"type": "text", "text": GENERATE_INSTRUCTION}
+    assert model.calls[2][-1] == {"type": "text", "text": VISUAL_REVIEW_INSTRUCTION}
+    assert model.calls[2][-2]["image_url"]["url"].startswith("data:image/png;base64,")
     assert result["verification"]["checks"][-1]["name"] == "visual"
 
 
@@ -120,6 +130,9 @@ async def test_codegen_agent_repairs_static_diagnostics_with_bounded_attempts() 
 
     assert result["verification"]["repairAttempts"] == 1
     assert verifier.calls == 2
+    assert model.purposes[1:3] == ["多模态 Codegen Agent", "多模态 Codegen Agent"]
+    assert model.calls[1][:-1] == model.calls[2][: len(model.calls[1]) - 1]
+    assert model.calls[2][-1] == {"type": "text", "text": REPAIR_INSTRUCTION}
 
 
 @pytest.mark.asyncio
