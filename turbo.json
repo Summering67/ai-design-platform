@@ -1,6 +1,6 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
-  "globalEnv": ["API_BASE_URL"],
+  "globalEnv": ["API_BASE_URL", "CDN_URL"],
   "ui": "tui",
   "tasks": {
     "build": {

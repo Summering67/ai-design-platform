@@ -1,4 +1,14 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/create-next-app).
+# Web 应用
+
+主站使用 Next.js App Router，并通过 Webpack 对生产资源进行分包。
+
+## CDN 与图片优化
+
+生产构建可设置 `CDN_URL`（例如 `https://cdn.example.com`）。构建产物中的 JavaScript、CSS、字体等 `/_next/static/` 资源会改由该域名加载，Next.js 图片优化请求也会指向 CDN 的 `/_next/image`。
+
+CDN 需要将 `/_next/static/` 映射到当前构建的 `.next/static/`，并把 `/_next/image` 回源到 Web 服务；图片回源规则必须透传浏览器的 `Accept` 请求头。不要将 `.next` 中的服务端文件公开到 CDN。
+
+图片默认生成 AVIF/WebP，允许质量档位为 60、75、85，优化结果至少缓存 24 小时。页面图片应使用 `next/image`，并按实际展示宽度提供 `sizes`，避免客户端下载过大资源。
 
 ## Getting Started
 
