@@ -3,11 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Workspace } from "@repo/ui/blocks/workspace";
-import {
-  validateDesignDocument,
-  type DesignDocument,
-} from "@repo/design-dsl";
-import ecommerceHomepage from "./ecommerce-homepage.document.json";
+import type { DesignDocument } from "@repo/design-dsl";
 import {
   RequestError,
   answerInput,
@@ -23,11 +19,6 @@ import type { ReasoningItem } from "./reasoning";
 import { createFrameBuffer } from "./stream-buffer";
 import { settleGenerationStatus } from "./workspace-status";
 import type { WorkspaceStatus } from "./workspace-status";
-
-const initialDocumentResult = validateDesignDocument(ecommerceHomepage);
-const initialDocument = initialDocumentResult.ok
-  ? initialDocumentResult.value
-  : null;
 
 const WorkspaceChat = ({
   projectId,
@@ -49,7 +40,7 @@ const WorkspaceChat = ({
   const [inputRequest, setInputRequest] = useState<PendingInputRequest | null>(null);
   const [stream, setStream] = useState("");
   const [reasoning, setReasoning] = useState<ReasoningItem[]>([]);
-  const [document, setDocument] = useState<DesignDocument | null>(initialDocument);
+  const [document, setDocument] = useState<DesignDocument | null>(null);
   const [email, setEmail] = useState("");
   if (reasoningBuffer.current === null)
     reasoningBuffer.current = createFrameBuffer((values) => {
