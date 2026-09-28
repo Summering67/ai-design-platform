@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
+import { test } from "vitest";
 import type { DesignDocument } from "@repo/design-dsl";
 import { DesignDocumentRenderer } from "./index";
 
@@ -104,9 +104,7 @@ const document: DesignDocument = {
 };
 
 test("Renderer 在没有 resolvedLayouts 时按 Flex 文档渲染", () => {
-  const markup = renderToStaticMarkup(
-    <DesignDocumentRenderer document={document} />,
-  );
+  const markup = renderToStaticMarkup(<DesignDocumentRenderer document={document} />);
   assert.match(markup, /width:1440px/);
   assert.match(markup, /height:900px/);
   assert.match(markup, /display:flex/);

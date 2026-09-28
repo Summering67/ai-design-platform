@@ -11,6 +11,8 @@
     "./lib/*": "./src/lib/*.ts"
   },
   "scripts": {
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "lint": "eslint . --max-warnings 0",
     "generate:component": "turbo gen react-component",
     "check-types": "tsc --noEmit"
@@ -21,6 +23,7 @@
     "@types/node": "^22.15.3",
     "@types/react": "19.2.2",
     "@types/react-dom": "19.2.2",
+    "@vitest/coverage-v8": "4.1.11",
     "eslint": "^9.39.1",
     "jsdom": "^30.0.1",
     "typescript": "5.9.2",
