@@ -1,4 +1,9 @@
-type ChatMessage = { id: string; role: "user" | "assistant"; content: string };
+type ChatMessage = {
+  id: string;
+  client_message_id?: string | null;
+  role: "user" | "assistant";
+  content: string;
+};
 type Project = { id: string; title: string };
 type InputQuestionOption = { label: string; description: string };
 type InputQuestion = {

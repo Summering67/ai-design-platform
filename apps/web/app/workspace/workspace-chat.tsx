@@ -14,6 +14,7 @@ import {
   stopGeneration,
 } from "./chat-api";
 import type { ChatMessage, PendingInputRequest, Project } from "./chat-api";
+import { retryGenerationPath } from "./retry-generation";
 import { applyReasoningEvent } from "./reasoning";
 import type { ReasoningItem } from "./reasoning";
 import { createFrameBuffer } from "./stream-buffer";
@@ -224,18 +225,25 @@ const WorkspaceChat = ({
     setInputRequest(null);
     clearReasoning();
     const restorePendingInput = async () => {
-      const { pending_input_request } = await loadProject(currentProject.id);
-      if (!pending_input_request) return false;
+      const { messages: savedMessages, pending_input_request } = await loadProject(currentProject.id);
+      if (!pending_input_request) return savedMessages;
       setInputRequest(pending_input_request);
       setGenerationId(pending_input_request.generation_id);
       setError(null);
       setStatus("awaiting_input");
-      return true;
+      return null;
     };
     try {
-      if (await restorePendingInput()) return;
+      const persistedMessages = await restorePendingInput();
+      if (!persistedMessages) return;
+      const path = retryGenerationPath(currentProject.id, persistedMessages, messageId);
+      if (!path) {
+        setError("消息尚未保存，无法重新生成。");
+        setStatus("error");
+        return;
+      }
       await generate(
-        `/projects/${currentProject.id}/messages/${messageId}/generations`,
+        path,
         undefined,
         request.signal,
         (event) => {
@@ -247,7 +255,7 @@ const WorkspaceChat = ({
     } catch (reason: unknown) {
       try {
         if (reason instanceof RequestError && reason.status === 409) {
-          if (await restorePendingInput()) return;
+          if (!(await restorePendingInput())) return;
         }
       } catch {
         // 统一进入下方错误状态。
