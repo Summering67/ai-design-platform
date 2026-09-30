@@ -481,6 +481,49 @@ const NumberField = ({
   </label>
 );
 
+const PositionField = ({
+  label,
+  value,
+  min,
+  max,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min?: number;
+  max?: number;
+  onChange: (value: number) => void;
+}) => {
+  const [draft, setDraft] = useState<string | null>(null);
+  const commit = () => {
+    if (draft === null) return;
+    const next = Number(draft);
+    if (
+      draft.trim() !== "" &&
+      Number.isFinite(next) &&
+      (min === undefined || next >= min) &&
+      (max === undefined || next <= max)
+    )
+      onChange(next);
+    setDraft(null);
+  };
+  return (
+    <label className={styles.numberField}>
+      <span>{label}</span>
+      <input
+        inputMode="decimal"
+        type="text"
+        value={draft ?? String(value)}
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={commit}
+        onKeyDown={(event) =>
+          event.key === "Enter" && event.currentTarget.blur()
+        }
+      />
+    </label>
+  );
+};
+
 const SelectField = ({
   label,
   value,
@@ -517,9 +560,13 @@ const findNode = (
 
 const Inspector = ({
   node,
+  isRoot,
+  operationError,
   onOperation,
 }: {
   node: DesignNode | null;
+  isRoot: boolean;
+  operationError: string | null;
   onOperation: (operation: V2Operation) => void;
 }) => {
   if (!node)
@@ -558,6 +605,46 @@ const Inspector = ({
     onOperation({ type: "patch-layout", nodeId: node.id, patches });
   const patchLayoutItem = (patches: Record<string, unknown | null>) =>
     onOperation({ type: "patch-layout-item", nodeId: node.id, patches });
+  const isAbsolute = layoutItem.position === "absolute";
+  const horizontalAnchor =
+    layoutItem.inset?.left !== undefined ||
+    layoutItem.inset?.right === undefined
+      ? "left"
+      : "right";
+  const verticalAnchor =
+    layoutItem.inset?.top !== undefined ||
+    layoutItem.inset?.bottom === undefined
+      ? "top"
+      : "bottom";
+  const opposite = {
+    left: "right",
+    right: "left",
+    top: "bottom",
+    bottom: "top",
+  } as const;
+  const maxInsetPosition = (side: "left" | "right" | "top" | "bottom") => {
+    const other = layoutItem.inset?.[opposite[side]];
+    return other === undefined
+      ? undefined
+      : (layoutItem.inset?.[side] ?? 0) + other;
+  };
+  const patchPosition = (
+    side: "left" | "right" | "top" | "bottom",
+    value: number,
+  ) => {
+    if (!isAbsolute) {
+      patchLayoutItem({
+        offset: { ...layoutItem.offset, [side === "left" ? "x" : "y"]: value },
+      });
+      return;
+    }
+    const inset = { ...layoutItem.inset, [side]: value };
+    const other = opposite[side];
+    if (layoutItem.inset?.[other] !== undefined)
+      inset[other] =
+        layoutItem.inset[other] + (layoutItem.inset[side] ?? 0) - value;
+    patchLayoutItem({ inset });
+  };
   const sizingMode = (axis: "width" | "height") =>
     layoutItem[axis]?.mode ?? "hug";
   const sizingValue = (axis: "width" | "height") =>
@@ -578,6 +665,11 @@ const Inspector = ({
         <ChevronDownIcon />
       </header>
       <div className={styles.inspectorContent}>
+        {operationError ? (
+          <p className={styles.inspectorError} role="alert">
+            {operationError}
+          </p>
+        ) : null}
         {node.kind === "text" ? (
           <section className={styles.propertyGroup}>
             <div className={styles.propertyHeading}>
@@ -651,28 +743,54 @@ const Inspector = ({
             ))}
           </div>
         </section>
-        <section className={styles.propertyGroup}>
-          <div className={styles.propertyHeading}>
-            <span>位置偏移</span>
-            <span>PX</span>
-          </div>
-          <div className={styles.fieldGrid}>
-            <NumberField
-              label="X"
-              value={layoutItem.offset?.x ?? 0}
-              onChange={(value) =>
-                patchLayoutItem({ offset: { ...layoutItem.offset, x: value } })
-              }
-            />
-            <NumberField
-              label="Y"
-              value={layoutItem.offset?.y ?? 0}
-              onChange={(value) =>
-                patchLayoutItem({ offset: { ...layoutItem.offset, y: value } })
-              }
-            />
-          </div>
-        </section>
+        {!isRoot ? (
+          <section className={styles.propertyGroup}>
+            <div className={styles.propertyHeading}>
+              <span>{isAbsolute ? "绝对位置" : "位置偏移"}</span>
+              <span>PX</span>
+            </div>
+            <div className={styles.fieldGrid}>
+              <PositionField
+                key={`${node.id}:x`}
+                label={
+                  isAbsolute
+                    ? horizontalAnchor === "left"
+                      ? "左侧距离"
+                      : "右侧距离"
+                    : "X"
+                }
+                value={
+                  isAbsolute
+                    ? (layoutItem.inset?.[horizontalAnchor] ?? 0)
+                    : (layoutItem.offset?.x ?? 0)
+                }
+                min={isAbsolute ? 0 : undefined}
+                max={
+                  isAbsolute ? maxInsetPosition(horizontalAnchor) : undefined
+                }
+                onChange={(value) => patchPosition(horizontalAnchor, value)}
+              />
+              <PositionField
+                key={`${node.id}:y`}
+                label={
+                  isAbsolute
+                    ? verticalAnchor === "top"
+                      ? "顶部距离"
+                      : "底部距离"
+                    : "Y"
+                }
+                value={
+                  isAbsolute
+                    ? (layoutItem.inset?.[verticalAnchor] ?? 0)
+                    : (layoutItem.offset?.y ?? 0)
+                }
+                min={isAbsolute ? 0 : undefined}
+                max={isAbsolute ? maxInsetPosition(verticalAnchor) : undefined}
+                onChange={(value) => patchPosition(verticalAnchor, value)}
+              />
+            </div>
+          </section>
+        ) : null}
         <section className={styles.propertyGroup}>
           <div className={styles.propertyHeading}>
             <span>圆角与文字</span>
@@ -765,15 +883,24 @@ const Workspace = ({
   const [editableDocument, setEditableDocument] =
     useState<DesignDocument | null>(document ?? null);
   const [selectedNodeId, setSelectedNodeId] = useState<string>();
+  const [operationError, setOperationError] = useState<string | null>(null);
   useEffect(() => {
     setEditableDocument(document ?? null);
     setSelectedNodeId(undefined);
+    setOperationError(null);
   }, [document]);
   const selectedNode = findNode(editableDocument?.root, selectedNodeId);
   const applyOperation = (operation: V2Operation) => {
     if (!editableDocument) return;
     const result = applyV2Operations(editableDocument, [operation]);
-    if (result.ok) setEditableDocument(result.value);
+    if (!result.ok) {
+      setOperationError(
+        `配置更新失败：${result.errors.map((item) => item.message).join("；") || "未知原因"}`,
+      );
+      return;
+    }
+    setEditableDocument(result.value);
+    setOperationError(null);
   };
   return (
     <main className={styles.workspace}>
@@ -793,9 +920,17 @@ const Workspace = ({
         <Canvas
           document={editableDocument}
           selectedNodeId={selectedNodeId}
-          onSelectedNodeIdChange={(nodeId) => setSelectedNodeId(nodeId)}
+          onSelectedNodeIdChange={(nodeId) => {
+            setSelectedNodeId(nodeId);
+            setOperationError(null);
+          }}
         />
-        <Inspector node={selectedNode ?? null} onOperation={applyOperation} />
+        <Inspector
+          node={selectedNode ?? null}
+          isRoot={selectedNodeId === editableDocument?.root.id}
+          operationError={operationError}
+          onOperation={applyOperation}
+        />
       </div>
     </main>
   );
